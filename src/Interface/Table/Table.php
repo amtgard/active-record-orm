@@ -13,6 +13,4 @@ interface Table
     public function find(): int;
 
     public function next(): bool;
-
-    public function op()
 }
