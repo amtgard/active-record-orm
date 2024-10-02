@@ -1,0 +1,1 @@
+{"version":1,"defects":{"integ\\MysqlDatabaseTest::testBasicQuery":8,"Tests\\Integration\\MysqlDatabaseTest::testBasicQuery":8},"times":{"integ\\MysqlDatabaseTest::testBasicQuery":0.01,"Tests\\Integration\\MysqlDatabaseTest::testBasicQuery":14.661}}
