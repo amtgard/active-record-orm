@@ -8,12 +8,12 @@
         "ext-json": "*",
         "monolog/monolog": "^3.7",
       "ext-pdo": "*",
-        "vlucas/phpdotenv": "^5.6"
+        "vlucas/phpdotenv": "^5.6",
+        "jjware/option": "^1.1"
     },
     "autoload": {
         "psr-4": {
-            "Amtgard\\ActiveRecordOrm\\": "./src",
-            "Amtgard\\ActiveRecordOrm\\Implementation\\": "./src/Impl"
+            "Amtgard\\ActiveRecordOrm\\": "./src"
         }
     },
     "autoload-dev": {

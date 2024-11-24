@@ -1,6 +1,6 @@
 <?php
 
-namespace Amtgard\ActiveRecordOrm\Interface\Table;
+namespace Amtgard\ActiveRecordOrm\Schema;
 
 use PDO;
 

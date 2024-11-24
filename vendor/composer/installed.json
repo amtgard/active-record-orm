@@ -139,6 +139,56 @@
             "install-path": "../graham-campbell/result-type"
         },
         {
+            "name": "jjware/option",
+            "version": "1.1.0",
+            "version_normalized": "1.1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/jjware/php-option.git",
+                "reference": "699769374420a580d318711a5098c9b6b700c5b0"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/jjware/php-option/zipball/699769374420a580d318711a5098c9b6b700c5b0",
+                "reference": "699769374420a580d318711a5098c9b6b700c5b0",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=7.0.0"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^6.5"
+            },
+            "time": "2018-05-31T20:42:07+00:00",
+            "type": "library",
+            "installation-source": "dist",
+            "autoload": {
+                "psr-4": {
+                    "JJWare\\Utils\\Option\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Joshua Jones",
+                    "email": "joshua.jones.software@gmail.com"
+                }
+            ],
+            "description": "PHP Option sum type",
+            "keywords": [
+                "library",
+                "option"
+            ],
+            "support": {
+                "issues": "https://github.com/jjware/php-option/issues",
+                "source": "https://github.com/jjware/php-option/tree/master"
+            },
+            "install-path": "../jjware/option"
+        },
+        {
             "name": "monolog/monolog",
             "version": "3.7.0",
             "version_normalized": "3.7.0.0",

@@ -1,6 +1,6 @@
 <?php
 
-namespace Amtgard\ActiveRecordOrm\Interface\Table;
+namespace Amtgard\ActiveRecordOrm\Schema;
 
 class FieldDefinition
 {
@@ -47,5 +47,4 @@ class FieldDefinition
     public function getNativeType(): string {
         return $this->nativeType;
     }
-
 }

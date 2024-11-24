@@ -1,14 +1,13 @@
 <?php
 
-namespace Amtgard\ActiveRecordOrm\Implementation\Mysql;
+namespace Amtgard\ActiveRecordOrm\Configuration\Database;
 
-use Amtgard\ActiveRecordOrm\Interface\Database\IDatabaseConfiguration;
 use PDO;
 
-class MysqlEnvIDatabaseConfiguration implements IDatabaseConfiguration
+class DatabaseConfiguration
 {
 
-    public static function fromEnvironment(): IDatabaseConfiguration
+    public static function fromEnvironment(): DatabaseConfiguration
     {
         return new self();
     }

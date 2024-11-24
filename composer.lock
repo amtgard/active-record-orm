@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "9dde42571781eedb4792c9374f726ab5",
+    "content-hash": "e287c3e51af464f6947317f1faa30424",
     "packages": [
         {
             "name": "graham-campbell/result-type",
@@ -67,6 +67,53 @@
                 }
             ],
             "time": "2024-07-20T21:45:45+00:00"
+        },
+        {
+            "name": "jjware/option",
+            "version": "1.1.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/jjware/php-option.git",
+                "reference": "699769374420a580d318711a5098c9b6b700c5b0"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/jjware/php-option/zipball/699769374420a580d318711a5098c9b6b700c5b0",
+                "reference": "699769374420a580d318711a5098c9b6b700c5b0",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=7.0.0"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^6.5"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "JJWare\\Utils\\Option\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Joshua Jones",
+                    "email": "joshua.jones.software@gmail.com"
+                }
+            ],
+            "description": "PHP Option sum type",
+            "keywords": [
+                "library",
+                "option"
+            ],
+            "support": {
+                "issues": "https://github.com/jjware/php-option/issues",
+                "source": "https://github.com/jjware/php-option/tree/master"
+            },
+            "time": "2018-05-31T20:42:07+00:00"
         },
         {
             "name": "monolog/monolog",

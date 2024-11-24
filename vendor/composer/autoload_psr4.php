@@ -17,6 +17,7 @@ return array(
     'PhpOption\\' => array($vendorDir . '/phpoption/phpoption/src/PhpOption'),
     'Phake\\' => array($vendorDir . '/phake/phake/src/Phake'),
     'Monolog\\' => array($vendorDir . '/monolog/monolog/src/Monolog'),
+    'JJWare\\Utils\\Option\\' => array($vendorDir . '/jjware/option/src'),
     'GrahamCampbell\\ResultType\\' => array($vendorDir . '/graham-campbell/result-type/src'),
     'Dotenv\\' => array($vendorDir . '/vlucas/phpdotenv/src'),
     'Doctrine\\Instantiator\\' => array($vendorDir . '/doctrine/instantiator/src/Doctrine/Instantiator'),

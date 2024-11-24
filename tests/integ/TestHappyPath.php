@@ -2,10 +2,14 @@
 
 namespace Tests\Integration;
 
-use Amtgard\ActiveRecordOrm\Impl\Database;
-use Amtgard\ActiveRecordOrm\Implementation\Mysql\MysqlIDatabase;
-use Amtgard\ActiveRecordOrm\Implementation\Mysql\MysqlEnvIDatabaseConfiguration;
-use Amtgard\ActiveRecordOrm\Interface\Database\IDatabase;
+use Amtgard\ActiveRecordOrm\Configuration\Database\Database;
+use Amtgard\ActiveRecordOrm\Configuration\Database\DatabaseConfiguration;
+use Amtgard\ActiveRecordOrm\Configuration\TableFactory;
+use Amtgard\ActiveRecordOrm\Configuration\TablePolicy\FileTablePolicyConfiguration;
+use Amtgard\ActiveRecordOrm\Configuration\TablePolicy\UncachedTablePolicy;
+use Amtgard\ActiveRecordOrm\Interface\TablePolicy;
+use Amtgard\ActiveRecordOrm\Interface\TablePolicyConfiguration;
+use Amtgard\ActiveRecordOrm\Table;
 use Dotenv\Dotenv;
 use PHPUnit\Framework\TestCase;
 use function PHPUnit\Framework\assertEquals;
@@ -16,9 +20,11 @@ class TestHappyPath extends TestCase
 
     private static TableFactory $tableFactory;
 
-    private static ITable $itemTable;
+    private static Table $itemTable;
 
-    private static TableDefinitionCache $tableDefinitionCache;
+    private static TablePolicyConfiguration $policyConfiguration;
+
+    private static TablePolicy $tablePolicy;
 
     public static function setUpBeforeClass(): void
     {
@@ -31,16 +37,13 @@ class TestHappyPath extends TestCase
             exit('Dotenv file not found in ' . $dotenvPath);
         }
 
-        $config = MysqlEnvIDatabaseConfiguration::fromEnvironment();
-        TestHappyPath::$db = new Database(MysqlIDatabase::fromConfig($config));
+        $config = DatabaseConfiguration::fromEnvironment();
+        TestHappyPath::$db = Database::fromConfig($config);
 
-        $policy = TableDefinitionPolicy::fromConfig($config);
-        TestHappyPath::$tableDefinitionCache = new TableDefinitionCache(TestHappyPath::$db);
+        TestHappyPath::$policyConfiguration = new FileTablePolicyConfiguration();
+        TestHappyPath::$tablePolicy = new UncachedTablePolicy(TestHappyPath::$db, TestHappyPath::$policyConfiguration);
 
-        TestHappyPath::$tableFactory = new TableFactory(new MysqlTableFactory(TestHappyPath::$db, TestHappyPath::$tableDefinitionCache));
-
-        TestHappyPath::$tableDefinitionCache->clearCache('item');
-        TestHappyPath::$itemTable = TestHappyPath::$tableFactory->createTable('item');
+        TestHappyPath::$itemTable = TableFactory::build(TestHappyPath::$db, TestHappyPath::$tablePolicy, 'item');
     }
 
     public function testFindItem() {
@@ -67,7 +70,7 @@ class TestHappyPath extends TestCase
 
     }
 
-    public function testUpsertItems() {
+    public function testUpdateItems() {
 
     }
 

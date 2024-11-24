@@ -1,11 +1,9 @@
 <?php
 
-namespace Amtgard\ActiveRecordOrm\Interface\Entity;
+namespace Amtgard\ActiveRecordOrm;
 
-use Amtgard\ActiveRecordOrm\Interface\Table\FieldType;
-use PDOException;
+use Amtgard\ActiveRecordOrm\Schema\FieldDefinition;
 use PDOStatement;
-use Amtgard\ActiveRecordOrm\Interface\Table\FieldDefinition;
 
 class RecordSet
 {

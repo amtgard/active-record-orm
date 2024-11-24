@@ -39,6 +39,10 @@ class ComposerStaticInit7d55367017b4ae8681322407ac106726
         array (
             'Monolog\\' => 8,
         ),
+        'J' => 
+        array (
+            'JJWare\\Utils\\Option\\' => 20,
+        ),
         'G' => 
         array (
             'GrahamCampbell\\ResultType\\' => 26,
@@ -100,6 +104,10 @@ class ComposerStaticInit7d55367017b4ae8681322407ac106726
         'Monolog\\' => 
         array (
             0 => __DIR__ . '/..' . '/monolog/monolog/src/Monolog',
+        ),
+        'JJWare\\Utils\\Option\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/jjware/option/src',
         ),
         'GrahamCampbell\\ResultType\\' => 
         array (

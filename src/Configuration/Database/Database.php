@@ -1,25 +1,22 @@
 <?php
 
-namespace Amtgard\ActiveRecordOrm\Implementation\Mysql;
+namespace Amtgard\ActiveRecordOrm\Configuration\Database;
 
-use Amtgard\ActiveRecordOrm\Interface\Database\IDatabase;
-use Amtgard\ActiveRecordOrm\Interface\Database\IDatabaseConfiguration;
-use Amtgard\ActiveRecordOrm\Interface\Entity\RecordSet;
+use Amtgard\ActiveRecordOrm\RecordSet;
 use PDO;
 
-class MysqlIDatabase implements IDatabase
+class Database
 {
-
     private PDO $__dbh;
 
     private array $__fields;
 
-    public static function fromConfig(IDatabaseConfiguration $configuration): IDatabase
+    public static function fromConfig(DatabaseConfiguration $configuration): Database
     {
         return new self($configuration);
     }
 
-    private function __construct(IDatabaseConfiguration $configuration) {
+    private function __construct(DatabaseConfiguration $configuration) {
         $config = $configuration->getConfig();
         $host = $config['host'];
         $port = $config['port'];
@@ -57,5 +54,4 @@ class MysqlIDatabase implements IDatabase
     {
         $this->__fields = [];
     }
-
 }

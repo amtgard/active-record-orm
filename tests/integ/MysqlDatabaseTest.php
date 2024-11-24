@@ -2,8 +2,8 @@
 
 namespace Tests\Integration;
 
-use Amtgard\ActiveRecordOrm\Implementation\Mysql\MysqlIDatabase;
-use Amtgard\ActiveRecordOrm\Implementation\Mysql\MysqlEnvIDatabaseConfiguration;
+use Amtgard\ActiveRecordOrm\Configuration\Database\Database;
+use Amtgard\ActiveRecordOrm\Configuration\Database\DatabaseConfiguration;
 use Dotenv\Dotenv;
 use PHPUnit\Framework\TestCase;
 
@@ -22,8 +22,8 @@ class MysqlDatabaseTest extends TestCase
     }
 
     public function testBasicQuery() {
-        $config = MysqlEnvIDatabaseConfiguration::fromEnvironment();
-        $db = MysqlIDatabase::fromConfig($config);
+        $config = DatabaseConfiguration::fromEnvironment();
+        $db = Database::fromConfig($config);
 
         $db->clear();
         $db->execute("truncate table integtable");
