@@ -3,6 +3,7 @@
 namespace Amtgard\ActiveRecordOrm;
 
 use Amtgard\ActiveRecordOrm\Schema\FieldDefinition;
+use PDOException;
 use PDOStatement;
 
 class RecordSet
@@ -30,10 +31,11 @@ class RecordSet
         return $definition;
     }
 
-    public function next(): void {
+    public function next(): bool {
         try {
             $this->__fields = $this->__statement->fetch();
             $this->__hasActiveRecord = $this->__fields === false ? false : true;
+            return $this->hasActiveRecord();
         } catch (PDOException $e) {
             echo $e->getMessage();
         }

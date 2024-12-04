@@ -11,22 +11,21 @@ use Amtgard\ActiveRecordOrm\Schema\TableSchema;
 
 class UncachedTablePolicy implements TablePolicy
 {
+
     private Database $database;
-    private TablePolicyConfiguration $configuration;
-    private array $tableSchema;
 
     public function __construct(Database $database, TablePolicyConfiguration $configuration) {
         $this->database = $database;
-        $this->configuration = $configuration;
     }
 
-    public function getTableSchema(string $name): TableSchema|null
+    public function getTableSchema(string $name): TableSchema
     {
-        return $this->tableSchema[$name] ?? null;
+        return new TableSchema($this->database, $name);
     }
 
     public function execute(Database $database, QueryBuilder $queryBuilder): RecordSet
     {
-        return new RecordSet();
+        $queryBuilder->compile();
+        return $queryBuilder->execute();
     }
 }

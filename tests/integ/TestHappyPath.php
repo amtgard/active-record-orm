@@ -47,8 +47,7 @@ class TestHappyPath extends TestCase
     }
 
     public function testFindItem() {
-        TestHappyPath::$tableDefinitionCache->setSession('session-id');
-        $itemTable = TestHappyPath::$tableFactory->createTable('item');
+        $itemTable = TestHappyPath::$itemTable;
         $itemTable->id = 1;
         if ($itemTable->find()) {
             assertEquals(1, $itemTable->find()->count());
@@ -57,8 +56,7 @@ class TestHappyPath extends TestCase
     }
 
     public function testFindItems() {
-        TestHappyPath::$tableDefinitionCache->setSession('session-id');
-        $itemTable = TestHappyPath::$tableFactory->createTable('item');
+        $itemTable = TestHappyPath::$itemTable;
         $itemTable->key = "1";
         if ($itemTable->find()) {
             assertEquals(2, $itemTable->find()->count());

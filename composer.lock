@@ -4,8 +4,46 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "e287c3e51af464f6947317f1faa30424",
+    "content-hash": "d2ea13de16cdf723c30bb3b9943562d0",
     "packages": [
+        {
+            "name": "amtgard/builder-traits",
+            "version": "v1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/amtgard/builder-traits.git",
+                "reference": "a0de8c5bea8e50e7b89512afe65ce55d46b48446"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/amtgard/builder-traits/zipball/a0de8c5bea8e50e7b89512afe65ce55d46b48446",
+                "reference": "a0de8c5bea8e50e7b89512afe65ce55d46b48446",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=8.1"
+            },
+            "require-dev": {
+                "phake/phake": "^4.5",
+                "phpunit/phpunit": "^11.2"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Amtgard\\Traits\\": "./src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "Builder traits",
+            "homepage": "https://github.com/amtgard/builder-traits",
+            "support": {
+                "source": "https://github.com/amtgard/builder-traits/tree/v1.0.0"
+            },
+            "time": "2024-12-03T18:59:06+00:00"
+        },
         {
             "name": "graham-campbell/result-type",
             "version": "v1.1.3",
@@ -69,29 +107,33 @@
             "time": "2024-07-20T21:45:45+00:00"
         },
         {
-            "name": "jjware/option",
-            "version": "1.1.0",
+            "name": "jedibc/optional",
+            "version": "1.0.0",
             "source": {
                 "type": "git",
-                "url": "https://github.com/jjware/php-option.git",
-                "reference": "699769374420a580d318711a5098c9b6b700c5b0"
+                "url": "https://github.com/JEDIBC/optional.git",
+                "reference": "686410dd98745bca0845614daa223d5840dbf969"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/jjware/php-option/zipball/699769374420a580d318711a5098c9b6b700c5b0",
-                "reference": "699769374420a580d318711a5098c9b6b700c5b0",
+                "url": "https://api.github.com/repos/JEDIBC/optional/zipball/686410dd98745bca0845614daa223d5840dbf969",
+                "reference": "686410dd98745bca0845614daa223d5840dbf969",
                 "shasum": ""
             },
             "require": {
-                "php": ">=7.0.0"
+                "php": ">=5.6.0"
             },
             "require-dev": {
-                "phpunit/phpunit": "^6.5"
+                "akamon/mockery-callable-mock": "~1.0",
+                "m6web/coke": "~1.0",
+                "m6web/symfony2-coding-standard": "~1.1",
+                "mockery/mockery": "~0.9",
+                "phpunit/phpunit": "~5.3"
             },
             "type": "library",
             "autoload": {
                 "psr-4": {
-                    "JJWare\\Utils\\Option\\": "src"
+                    "Optional\\": "src"
                 }
             },
             "notification-url": "https://packagist.org/downloads/",
@@ -100,20 +142,16 @@
             ],
             "authors": [
                 {
-                    "name": "Joshua Jones",
-                    "email": "joshua.jones.software@gmail.com"
+                    "name": "Bruno CHALOPIN",
+                    "email": "bruno@chalopin.fr"
                 }
             ],
-            "description": "PHP Option sum type",
-            "keywords": [
-                "library",
-                "option"
-            ],
+            "description": "PHP port of Java Optional<T>",
             "support": {
-                "issues": "https://github.com/jjware/php-option/issues",
-                "source": "https://github.com/jjware/php-option/tree/master"
+                "issues": "https://github.com/JEDIBC/optional/issues",
+                "source": "https://github.com/JEDIBC/optional/tree/1.0.0"
             },
-            "time": "2018-05-31T20:42:07+00:00"
+            "time": "2016-04-16T14:28:11+00:00"
         },
         {
             "name": "monolog/monolog",

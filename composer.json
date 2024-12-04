@@ -7,9 +7,10 @@
         "php": "^8.3",
         "ext-json": "*",
         "monolog/monolog": "^3.7",
-      "ext-pdo": "*",
+        "ext-pdo": "*",
         "vlucas/phpdotenv": "^5.6",
-        "jjware/option": "^1.1"
+        "amtgard/builder-traits": "^1.0",
+        "jedibc/optional": "^1.0"
     },
     "autoload": {
         "psr-4": {

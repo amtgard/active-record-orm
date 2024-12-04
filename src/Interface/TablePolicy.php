@@ -11,6 +11,6 @@ interface TablePolicy
 {
     public function getTableSchema(string $name): TableSchema|null;
 
-    public function execute(Database $database, QueryBuilder $queryBuilder): RecordSet;
+    public function execute(Database $database, QueryBuilder $queryBuilder): RecordSet|null;
 
 }

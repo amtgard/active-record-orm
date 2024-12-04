@@ -9,11 +9,17 @@ class TableSchema
     private Database $database;
     private string $tableName;
     private FieldDefinition $primaryKey;
+
+    /** @var FieldDefinition[]ß */
     private array $columns = [];
 
     public function __construct(Database $database, string $tableName) {
         $this->database = $database;
         $this->tableName = $tableName;
+    }
+
+    public function fromJson(string $json) {
+
     }
 
     public function getFields(): array {

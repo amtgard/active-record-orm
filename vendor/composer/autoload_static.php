@@ -35,13 +35,13 @@ class ComposerStaticInit7d55367017b4ae8681322407ac106726
             'PhpOption\\' => 10,
             'Phake\\' => 6,
         ),
+        'O' => 
+        array (
+            'Optional\\' => 9,
+        ),
         'M' => 
         array (
             'Monolog\\' => 8,
-        ),
-        'J' => 
-        array (
-            'JJWare\\Utils\\Option\\' => 20,
         ),
         'G' => 
         array (
@@ -55,7 +55,7 @@ class ComposerStaticInit7d55367017b4ae8681322407ac106726
         ),
         'A' => 
         array (
-            'Amtgard\\ActiveRecordOrm\\Implementation\\' => 39,
+            'Amtgard\\Traits\\' => 15,
             'Amtgard\\ActiveRecordOrm\\' => 24,
         ),
     );
@@ -101,13 +101,13 @@ class ComposerStaticInit7d55367017b4ae8681322407ac106726
         array (
             0 => __DIR__ . '/..' . '/phake/phake/src/Phake',
         ),
+        'Optional\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/jedibc/optional/src',
+        ),
         'Monolog\\' => 
         array (
             0 => __DIR__ . '/..' . '/monolog/monolog/src/Monolog',
-        ),
-        'JJWare\\Utils\\Option\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/jjware/option/src',
         ),
         'GrahamCampbell\\ResultType\\' => 
         array (
@@ -125,9 +125,9 @@ class ComposerStaticInit7d55367017b4ae8681322407ac106726
         array (
             0 => __DIR__ . '/..' . '/myclabs/deep-copy/src/DeepCopy',
         ),
-        'Amtgard\\ActiveRecordOrm\\Implementation\\' => 
+        'Amtgard\\Traits\\' => 
         array (
-            0 => __DIR__ . '/../..' . '/src/Impl',
+            0 => __DIR__ . '/..' . '/amtgard/builder-traits/src',
         ),
         'Amtgard\\ActiveRecordOrm\\' => 
         array (
