@@ -1,1 +1,0 @@
-{"version":1,"defects":{"integ\\MysqlDatabaseTest::testBasicQuery":8,"Tests\\Integration\\MysqlDatabaseTest::testBasicQuery":8,"Tests\\Integration\\TestHappyPath::testFindItem":8},"times":{"integ\\MysqlDatabaseTest::testBasicQuery":0.01,"Tests\\Integration\\MysqlDatabaseTest::testBasicQuery":14.073,"Tests\\Integration\\TestHappyPath::testFindItem":0.018}}
