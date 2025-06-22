@@ -2,7 +2,9 @@
 
 namespace Tests\Unit\Query\Builder\Statement\Expression;
 
-class ColumnSelectorExpressionTest
+use PHPUnit\Framework\TestCase;
+
+class ColumnSelectorExpressionTest extends TestCase
 {
 
 }

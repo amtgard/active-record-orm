@@ -1,6 +1,6 @@
 <?php
 
-namespace Query;
+namespace Tests\Unit\Query;
 
 class QueryBuilderTest
 {

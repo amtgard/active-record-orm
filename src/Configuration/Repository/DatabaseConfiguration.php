@@ -1,6 +1,6 @@
 <?php
 
-namespace Amtgard\ActiveRecordOrm\Configuration\Database;
+namespace Amtgard\ActiveRecordOrm\Configuration\Repository;
 
 use PDO;
 

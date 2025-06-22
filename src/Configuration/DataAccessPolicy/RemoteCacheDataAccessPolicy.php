@@ -1,10 +1,11 @@
 <?php
 
-namespace Amtgard\ActiveRecordOrm\Configuration\TablePolicy;
+namespace Amtgard\ActiveRecordOrm\Configuration\DataAccessPolicy;
 
-use Amtgard\ActiveRecordOrm\Configuration\Database\Database;
+use Amtgard\ActiveRecordOrm\Configuration\Repository\Database;
 use Amtgard\ActiveRecordOrm\Interface\ActiveRecordOrmConfiguration;
-use Amtgard\ActiveRecordOrm\Interface\TablePolicy;
+use Amtgard\ActiveRecordOrm\Interface\DataAccessPolicy;
+use Amtgard\ActiveRecordOrm\Query\Query;
 use Amtgard\ActiveRecordOrm\Query\QueryBuilder;
 use Amtgard\ActiveRecordOrm\RecordSet;
 use Amtgard\ActiveRecordOrm\Schema\Impl\FromJsonTableSchema;
@@ -13,21 +14,18 @@ use Amtgard\ActiveRecordOrm\Schema\TableSchema;
 use Optional\Optional;
 use Psr\SimpleCache\CacheInterface;
 
-class RemoteCacheTablePolicy implements TablePolicy
+class RemoteCacheDataAccessPolicy implements DataAccessPolicy
 {
     private Database $database;
-    private ActiveRecordOrmConfiguration $configuration;
     private array $tableSchema;
-    private array $queries;
     private CacheInterface $cache;
 
-    public function __construct(Database $database, ActiveRecordOrmConfiguration $configuration, CacheInterface $cache) {
+    public function __construct(Database $database, CacheInterface $cache) {
         $this->database = $database;
-        $this->configuration = $configuration;
         $this->cache = $cache;
     }
 
-    public function buildTableSchema(string $name): TableSchema
+    public function applyTableSchemaPolicy(string $name): TableSchema
     {
         return Optional::ofNullable($this->cache->get("amtgard_orm_table_schema_$name"))
             ->map(function($schemaDefinition) {
@@ -46,16 +44,19 @@ class RemoteCacheTablePolicy implements TablePolicy
             });
     }
 
-    public function buildRecordSet(Database $database, QueryBuilder $queryBuilder): RecordSet
+    public function applyQueryPolicy(Query $query): RecordSet
     {
-        $queryHash = $queryBuilder->hash();
+        $queryHash = $query->hash();
         return Optional::ofNullable($this->cache->get($queryHash))
             ->map(function($serializedRecordSet) {
                 return new RecordSet\InMemoryRecordSet($serializedRecordSet);
             })
-            ->orElseGet(function() use ($queryHash, $queryBuilder) {
-                $this->queries[$queryHash] = $queryBuilder;
-                return $this->queries[$queryHash]->execute();
+            ->orElseGet(function() use ($queryHash, $query) {
+                $jsonRecordSet = json_encode($this->database->executeQuery($query));
+                $query->postQuery();
+                $recordSet = new RecordSet\InMemoryRecordSet(json_encode($jsonRecordSet));
+                $this->cache->set($queryHash, $jsonRecordSet);
+                return $recordSet;
             });
     }
 }

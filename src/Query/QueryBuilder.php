@@ -2,51 +2,145 @@
 
 namespace Amtgard\ActiveRecordOrm\Query;
 
-use Amtgard\ActiveRecordOrm\Query\Builder\Statement\Select;
+use Amtgard\ActiveRecordOrm\Configuration\Repository\Database;
+use Amtgard\ActiveRecordOrm\Interface\DataAccessPolicy;
+use Amtgard\ActiveRecordOrm\Query\Builder\DeleteStatementBuilder;
+use Amtgard\ActiveRecordOrm\Query\Builder\FindStatementBuilder;
 use Amtgard\ActiveRecordOrm\Query\Builder\Statement\Statement;
-use Amtgard\ActiveRecordOrm\RecordSet;
+use Amtgard\ActiveRecordOrm\Query\Builder\UpsertStatementBuilder;
+use Amtgard\ActiveRecordOrm\Schema\FieldSet;
+use Amtgard\ActiveRecordOrm\Schema\TableSchema;
+use Amtgard\Traits\Builder\Builder;
+use Optional\Optional;
 
+/*
+ * General guidelines
+ *  QueryBuilder calls specific sub-builders with their field parameters
+ *  Sub-builders build statements composed of expressions
+ *  Statements can generate SQL from their expressions, table, and fieldsets
+ */
 class QueryBuilder
 {
-    protected Statement $statement;
+    use Builder;
 
-    public function __construct() {
+    protected Statement $statement;
+    protected TableSchema $tableSchema;
+    protected DataAccessPolicy $tablePolicy;
+    protected FieldSet $fieldSet;
+
+    protected bool $withLimit = false;
+    protected int $offset = 0;
+    protected ?int $rowCount = null;
+
+    private function __construct() {
 
     }
 
-    public function __set(String $field, String|int|bool $value) {
-        $this->__fields[$field] = $value;
+    public function __set($fieldName, FieldOperation $fieldOperation) {
+        if ($fieldOperation instanceof FieldOperation) {
+            $this->fieldSet->setField($fieldOperation);
+        } else {
+            throw new \InvalidArgumentException("Fields set on QueryBuilder must be an instance of FieldOperation");
+        }
     }
 
     public function hash() {
         return md5("");
     }
 
-    public function compile() {
-
+    public function compile(): Query {
+        return Query::builder()
+            ->sql($this->statement->buildSql())
+            ->params($this->statement->getStatementParams())
+            ->postQueryCallback($this->statement->getPostQueryCallback())
+            ->build();
     }
 
-    public function execute(): RecordSet {
-        return new RecordSet();
-    }
+    public function upsert(?callable $setLastInsertId = null) {
+        $upsertBuilder = UpsertStatementBuilder::builder()
+            ->tableSchema($this->tableSchema);
 
-    public function upsert() {
+        if ($this->primaryKeyIsSet()) {
+            // Update path
+            $upsertBuilder->primaryKey($this->fieldSet->getField($this->tableSchema->primaryKey->getName())->value);
+            $this->fieldSet->setFieldOperation($this->tableSchema, $this->tableSchema->primaryKey->getName(), Operation::Equals);
+        } else {
+            // Insert path
+            $upsertBuilder->postQueryCallback($setLastInsertId);
+        }
 
+        /* @var \Amtgard\ActiveRecordOrm\Query\Builder\UpsertStatementBuilder */
+        $upsert = $upsertBuilder
+            ->fieldSet($this->fieldSet)
+            ->build();
+        $this->statement = $upsert->getStatement();
+        return $this;
     }
 
     public function delete() {
+        $deleteBuilder = DeleteStatementBuilder::builder()
+            ->tableSchema($this->tableSchema)
+            ->fieldSet($this->fieldSet);
 
+        if ($this->primaryKeyIsSet()) {
+            $deleteBuilder->primaryKey($this->fieldSet->getField($this->tableSchema->primaryKey->getName())->value);
+        }
+
+        /* @var \Amtgard\ActiveRecordOrm\Query\Builder\DeleteStatementBuilder */
+        $delete = $deleteBuilder->build();
+        $this->statement = $delete->getStatement();
+        return $this;
+    }
+
+    private function findBuilder(): mixed {
+        $this->fieldSet->updateSetOperationToEquals();
+
+        $findBuilder = FindStatementBuilder::builder()
+            ->tableSchema($this->tableSchema)
+            ->fieldSet($this->fieldSet);
+
+        if ($this->primaryKeyIsSet()) {
+            $findBuilder->primaryKey($this->fieldSet->getField($this->tableSchema->primaryKey->getName())->value);
+        }
+
+        return $findBuilder;
     }
 
     public function find() {
-        $this->statement = Select::builder()->
+        /* @var \Amtgard\ActiveRecordOrm\Query\Builder\FindStatementBuilder */
+        $findBuilder = $this->findBuilder();
+        $findBuilder->withLimit($this->withLimit);
+        $findBuilder->offset($this->offset);
+        $findBuilder->rowCount($this->rowCount);
+
+        /* @var \Amtgard\ActiveRecordOrm\Query\Builder\FindStatementBuilder */
+        $find = $findBuilder->build();
+        $this->statement = $find->getStatement();
+        return $this;
     }
 
-    public function paginate(int $size = 10, int $offset = 0) {
-
+    private function primaryKeyIsSet(): bool {
+        return Optional::ofNullable($this->fieldSet->getField($this->tableSchema->getPrimaryKey()->getName()))
+            ->map(function ($field) {
+                return $field->operation == Operation::Equals || $field->operation == Operation::Set;
+            })->orElse(false);
     }
 
-    public function count() {
+    public function limit(int $offset = 10, ?int $rowCount = null) {
+        $this->withLimit = true;
+        $this->offset = $offset;
+        $this->rowCount = $rowCount;
+        return $this;
+    }
 
+    public function count(string $countAlias = 'row_count') {
+        $findBuilder = $this->findBuilder();
+        $findBuilder->isCount(true);
+        $findBuilder->countAlias($countAlias);
+
+        /* @var \Amtgard\ActiveRecordOrm\Query\Builder\FindStatementBuilder */
+        $find = $findBuilder->build();
+        $this->statement = $find->getStatement();
+        return $this;
     }
 }

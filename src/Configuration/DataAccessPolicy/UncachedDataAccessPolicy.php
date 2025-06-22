@@ -2,17 +2,15 @@
 
 namespace Amtgard\ActiveRecordOrm\Configuration\DataAccessPolicy;
 
-use Amtgard\ActiveRecordOrm\Configuration\Database\Database;
-use Amtgard\ActiveRecordOrm\Interface\QueryCachePolicy;
+use Amtgard\ActiveRecordOrm\Configuration\Repository\Database;
+use Amtgard\ActiveRecordOrm\Interface\DataAccessPolicy;
 use Amtgard\ActiveRecordOrm\Interface\ActiveRecordOrmConfiguration;
 use Amtgard\ActiveRecordOrm\Query\Query;
-use Amtgard\ActiveRecordOrm\Query\QueryBuilder;
 use Amtgard\ActiveRecordOrm\RecordSet;
-use Amtgard\ActiveRecordOrm\Schema\FieldDefinition;
 use Amtgard\ActiveRecordOrm\Schema\Impl\UncachedTableSchema;
 use Amtgard\ActiveRecordOrm\Schema\TableSchema;
 
-class UncachedQueryCachePolicy implements QueryCachePolicy
+class UncachedDataAccessPolicy implements DataAccessPolicy
 {
 
     private Database $database;
@@ -21,7 +19,7 @@ class UncachedQueryCachePolicy implements QueryCachePolicy
         $this->database = $database;
     }
 
-    public function buildTableSchema(string $name): TableSchema
+    public function applyTableSchemaPolicy(string $name): TableSchema
     {
         return UncachedTableSchema::builder()
             ->tableName($name)
@@ -29,8 +27,10 @@ class UncachedQueryCachePolicy implements QueryCachePolicy
             ->build();
     }
 
-    public function buildRecordSet(Query $query): RecordSet
+    public function applyQueryPolicy(Query $query): RecordSet
     {
-        return new RecordSet\PdoRecordSet($buildData[0]);
+        $result = $this->database->executeQuery($query);
+        $query->postQuery();
+        return $result;
     }
 }

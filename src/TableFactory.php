@@ -1,17 +1,29 @@
 <?php
 
-namespace Amtgard\ActiveRecordOrm\Configuration;
+namespace Amtgard\ActiveRecordOrm;
 
-use Amtgard\ActiveRecordOrm\Configuration\Database\Database;
-use Amtgard\ActiveRecordOrm\Interface\TablePolicy;
-use Amtgard\ActiveRecordOrm\Table;
+use Amtgard\ActiveRecordOrm\Configuration\Repository\Database;
+use Amtgard\ActiveRecordOrm\Interface\DataAccessPolicy;
+use Amtgard\ActiveRecordOrm\Query\QueryBuilder;
+use Amtgard\ActiveRecordOrm\Schema\FieldSet;
 
 class TableFactory
 {
-    public static function build(Database $database, TablePolicy $policy, string $tableName): Table {
+    public static function build(Database $database, DataAccessPolicy $policy, string $tableName): Table {
         return Table::builder()
+            ->tableName($tableName)
             ->database($database)
-            ->schema($policy->getTableSchema($tableName))
+            ->tableSchema($policy->applyTableSchemaPolicy($tableName))
+            ->dataAccessPolicy($policy)
+            ->queryBuilder(TableFactory::buildQueryBuilder($policy, $tableName))
+            ->fieldSet(FieldSet::builder()->build())
+            ->build();
+    }
+
+    public static function buildQueryBuilder(DataAccessPolicy $policy, string $tableName): QueryBuilder {
+        return QueryBuilder::builder()
+            ->tableSchema($policy->applyTableSchemaPolicy($tableName))
+            ->fieldSet(FieldSet::builder()->build())
             ->build();
     }
 }

@@ -1,7 +1,8 @@
 <?php
 
-namespace Amtgard\ActiveRecordOrm\Configuration\Database;
+namespace Amtgard\ActiveRecordOrm\Configuration\Repository;
 
+use Amtgard\ActiveRecordOrm\Query\Query;
 use Amtgard\ActiveRecordOrm\RecordSet;
 use PDO;
 
@@ -28,12 +29,18 @@ class Database
         $errMode = $config['errmode'];
         $options = $config['options'];
         $this->__dbh = new PDO("mysql:host=$host;port=$port;dbname=$dbname;charset=utf8", $user, $password, $options);
-        $this->__dbh->setAttribute(PDO::ATTR_ERRMODE, $errMode);
+        $this->__dbh->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
+        $this->__dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $this->__fields = [];
     }
 
     public function __set(String $field, String|int|bool $value) {
         $this->__fields[$field] = $value;
+    }
+
+    public function executeQuery(Query $query): RecordSet {
+        $this->__fields = $query->getParams();
+        return $this->execute($query->getSql());
     }
 
     public function execute(string $sql): RecordSet
@@ -60,5 +67,9 @@ class Database
     public function clear(): void
     {
         $this->__fields = [];
+    }
+
+    public function getLastInsertId(): string {
+        return $this->__dbh->lastInsertId();
     }
 }

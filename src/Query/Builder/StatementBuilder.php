@@ -8,19 +8,21 @@ use Amtgard\ActiveRecordOrm\Query\Builder\Statement\Statement;
 use Amtgard\ActiveRecordOrm\Query\FieldOperation;
 use Amtgard\ActiveRecordOrm\Schema\FieldSet;
 use Amtgard\ActiveRecordOrm\Schema\TableSchema;
+use Amtgard\Traits\Builder\Builder;
 use Amtgard\Traits\Builder\Data;
 use Amtgard\Traits\Builder\Getter;
 use Amtgard\Traits\Builder\Setter;
 use Optional\Optional;
 
-abstract class Builder
+abstract class StatementBuilder
 {
-    use \Amtgard\Traits\Builder\Builder;
+    use Builder;
     use Data;
 
     protected TableSchema $tableSchema;
     protected FieldSet $fieldSet;
     protected $primaryKey;
+    protected $postQueryCallback;
 
     protected function getTableAlias(int $tableNum): string {
         return substr($this->tableSchema->getTableName(), 0, 1) . $tableNum;

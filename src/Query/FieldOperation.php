@@ -3,16 +3,17 @@
 namespace Amtgard\ActiveRecordOrm\Query;
 
 use Amtgard\ActiveRecordOrm\Schema\FieldDefinition;
+use Amtgard\Traits\Builder\Builder;
+use Amtgard\Traits\Builder\Data;
+use Amtgard\Traits\Builder\Getter;
 
 class FieldOperation
 {
-    public FieldDefinition $field;
-    public Operation $operation;
-    public $value;
+    use Builder;
+    use Data;
 
-    public function __construct(FieldDefinition $field, Operation $operation, $value) {
-        $this->field = $field;
-        $this->operation = $operation;
-        $this->value = $value;
-    }
+    protected FieldDefinition $field;
+    protected Operation $operation;
+    protected $value;
+
 }

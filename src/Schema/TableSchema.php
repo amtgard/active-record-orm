@@ -2,29 +2,21 @@
 
 namespace Amtgard\ActiveRecordOrm\Schema;
 
-use Amtgard\ActiveRecordOrm\Configuration\Database\Database;
+use Amtgard\ActiveRecordOrm\Configuration\Repository\Database;
+use Amtgard\Traits\Builder\Builder;
+use Amtgard\Traits\Builder\Getter;
+use FuzzyWuzzy\Fuzz;
+use FuzzyWuzzy\Process;
+use Optional\Optional;
 
-class TableSchema
+abstract class TableSchema extends Schema
 {
-    private Database $database;
-    private string $tableName;
-    private FieldDefinition $primaryKey;
+    use Builder;
+    use Getter;
 
-    /** @var FieldDefinition[]ß */
-    private array $columns = [];
-
-    public function __construct(Database $database, string $tableName) {
-        $this->database = $database;
-        $this->tableName = $tableName;
-    }
-
-    public function fromJson(string $json) {
-
-    }
-
-    public function getFields(): array {
-        return $this->columns;
-    }
+    protected Database $database;
+    protected string $tableName;
+    protected FieldDefinition $primaryKey;
 
     public function getTableName(): string {
         return $this->tableName;
@@ -32,6 +24,10 @@ class TableSchema
 
     public function getPrimaryKey(): FieldDefinition {
         return $this->primaryKey;
+    }
+
+    public function primaryKeyIsSet(FieldSet $fieldSet): bool {
+        return in_array($this->primaryKey->getName(), $fieldSet->getFieldNames());
     }
 
 }

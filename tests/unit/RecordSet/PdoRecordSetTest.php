@@ -1,22 +1,22 @@
 <?php
 
-namespace Tests\Unit;
+namespace Tests\Unit\RecordSet;
 
 use Amtgard\ActiveRecordOrm\RecordSet;
+use Amtgard\ActiveRecordOrm\RecordSet\PdoRecordSet;
 use Amtgard\PHPUnit\AmtgardTestCase;
 use PDOStatement;
 use Phake;
-use PHPUnit\Framework\MockObject\Exception;
 use Tests\util\Constants;
 
-class RecordSetTest extends AmtgardTestCase
+class PdoRecordSetTest extends AmtgardTestCase
 {
     private PDOStatement $mockStatement;
 
     private array $statementDef;
     private array $fetchDataArray;
 
-    private RecordSet $recordSet;
+    private RecordSet\PdoRecordSet $recordSet;
 
     protected function setUp(): void
     {
@@ -35,51 +35,51 @@ class RecordSetTest extends AmtgardTestCase
 
     public function testBuildRecordSetDoesNotThrow() {
         self::assertDoesNotThrow(function () {
-            $rs = new RecordSet($this->mockStatement);
+            $rs = new PdoRecordSet($this->mockStatement);
         });
     }
 
     public function testGetDefinitionMatches() {
-        $recordSet = new RecordSet($this->mockStatement);
+        $recordSet = new PdoRecordSet($this->mockStatement);
         self::assertDoesNotThrow(function () use ($recordSet) {
             self::assertEquals(count($this->statementDef), count($recordSet->getDefinition()));
         });
     }
 
     public function testGetPdoDefinition() {
-        $recordSet = new RecordSet($this->mockStatement);
+        $recordSet = new PdoRecordSet($this->mockStatement);
         self::assertDoesNotThrow(function () use ($recordSet) {
             self::assertEquals(count($this->statementDef), count($recordSet->getPdoDefinition()));
         });
     }
 
     public function testWhenNextIsCalledThenFetchIsCalled() {
-        $recordSet = new RecordSet($this->mockStatement);
+        $recordSet = new PdoRecordSet($this->mockStatement);
         $recordSet->next();
         Phake::verify($this->mockStatement)->fetch();
     }
 
     public function testWhenNextIsCalledThenDataIsPopulated() {
-        $recordSet = new RecordSet($this->mockStatement);
+        $recordSet = new PdoRecordSet($this->mockStatement);
         $recordSet->next();
         self::assertNotNull($recordSet->id);
     }
 
     public function testWhenNextNotCalledThenDataIsNotPopulated() {
-        $recordSet = new RecordSet($this->mockStatement);
+        $recordSet = new PdoRecordSet($this->mockStatement);
         self::assertNull($recordSet->getRecord());
         self::assertNull($recordSet->id);
     }
 
     public function testRecordSetSize(): void
     {
-        $recordSet = new RecordSet($this->mockStatement);
+        $recordSet = new PdoRecordSet($this->mockStatement);
         $this->assertEquals(1, $recordSet->size());
     }
 
     public function testHasActiveRecord(): void
     {
-        $recordSet = new RecordSet($this->mockStatement);
+        $recordSet = new PdoRecordSet($this->mockStatement);
         $this->assertFalse($recordSet->hasActiveRecord());
         $recordSet->next();
         $this->assertTrue($recordSet->hasActiveRecord());
@@ -89,9 +89,35 @@ class RecordSetTest extends AmtgardTestCase
         Phake::when($this->mockStatement)->fetch()
             ->thenReturn($this->fetchDataArray)
             ->thenReturn(false);
-        $recordSet = new RecordSet($this->mockStatement);
+        $recordSet = new PdoRecordSet($this->mockStatement);
         self::assertNotNull($recordSet->next());
         self::assertFalse($recordSet->next());
         self::assertFalse($recordSet->hasActiveRecord());
     }
+
+    public function testIterateRecords(): void {
+        Phake::when($this->mockStatement)->fetch()
+            ->thenReturn($this->fetchDataArray)
+            ->thenReturn(false);
+        $recordSet = new PdoRecordSet($this->mockStatement);
+        self::assertTrue($recordSet->next());
+        self::assertEquals(1, $recordSet->size());
+        self::assertTrue($recordSet->hasActiveRecord());
+        self::assertNotNull($recordSet->getRecord());
+        self::assertFalse($recordSet->next());
+        self::assertFalse($recordSet->hasActiveRecord());
+        self::assertNull($recordSet->getRecord());
+    }
+
+    public function testSerialization() {
+        Phake::when($this->mockStatement)->fetchAll()
+            ->thenReturn([$this->fetchDataArray]);
+        $recordSet = new PdoRecordSet($this->mockStatement);
+        $json = json_encode($recordSet, JSON_PRETTY_PRINT);
+        $deserialized = json_decode($json, true);
+        self::assertEquals(1, count($deserialized['records']));
+        self::assertEquals(Constants::$PDO_RECORD_SET_JSON, $json);
+    }
+
+
 }

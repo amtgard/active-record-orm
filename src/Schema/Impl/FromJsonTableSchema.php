@@ -2,7 +2,9 @@
 
 namespace Amtgard\ActiveRecordOrm\Schema\Impl;
 
-class FromJsonTableSchema
+use Amtgard\ActiveRecordOrm\Schema\TableSchema;
+
+class FromJsonTableSchema extends TableSchema
 {
 
 }

@@ -1,6 +1,6 @@
 <?php
 
-namespace Amtgard\ActiveRecordOrm\Configuration\TablePolicy;
+namespace Amtgard\ActiveRecordOrm\Configuration\OrmConfiguration;
 
 use Amtgard\ActiveRecordOrm\Interface\ActiveRecordOrmConfiguration;
 

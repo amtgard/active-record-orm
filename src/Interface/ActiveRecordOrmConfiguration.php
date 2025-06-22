@@ -2,8 +2,8 @@
 
 namespace Amtgard\ActiveRecordOrm\Interface;
 
-interface TableConfiguration
+interface ActiveRecordOrmConfiguration
 {
-    public static function fromEnvironment(): TableConfiguration;
+    public static function fromEnvironment(): ActiveRecordOrmConfiguration;
     public function getConfig(): array;
 }

@@ -2,31 +2,67 @@
 
 namespace Amtgard\ActiveRecordOrm\Schema;
 
-class FieldDefinition
+use Amtgard\ActiveRecordOrm\RecordSet;
+use Amtgard\Traits\Builder\Builder;
+use Amtgard\Traits\Builder\Data;
+use Amtgard\Traits\Builder\ToBuilder;
+
+class FieldDefinition implements \JsonSerializable
 {
+    use Builder, Data;
+
     private string $name;
-    private string $alias;
     private mixed $value;
     private FieldType $type;
     private string $nativeType;
+    private bool $nullable;
+    private ?string $extra;
 
-    public function __construct(array $pdoDefinition, mixed $value, string $alias = null)
+    public static function fromColumnMetadata(array $pdoDefinition, mixed $value): FieldDefinition
     {
-        $this->name = $pdoDefinition['name'];
-        $this->alias = is_null($alias) ? $pdoDefinition['name'] : $alias;
-        $this->type = FieldType::fromPdoType($pdoDefinition['pdo_type'], $pdoDefinition['native_type']);
-        $this->value = $value;
-        $this->nativeType = $pdoDefinition['native_type'];
+        return FieldDefinition::builder()
+            ->name($pdoDefinition['name'])
+            ->type(FieldType::fromPdoType($pdoDefinition['pdo_type'], $pdoDefinition['native_type']))
+            ->value($value)
+            ->nativeType($pdoDefinition['native_type'])
+            ->extra(null)
+            ->nullable(self::pdoColumnIsNullable($pdoDefinition))
+            ->build();
+    }
+
+    private static function pdoColumnIsNullable(array $pdoDefinition) {
+        foreach ($pdoDefinition['flags'] as $flag) {
+            if ($flag === 'not_null') {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static function fromDescribeTable(RecordSet $fieldRecord): FieldDefinition {
+        return FieldDefinition::builder()
+            ->name($fieldRecord->Field)
+            ->type(FieldType::fromTableType($fieldRecord->Type))
+            ->nativeType($fieldRecord->Type)
+            ->extra($fieldRecord->Extra)
+            ->nullable($fieldRecord->Null === 'YES')
+            ->build();
+    }
+
+    public static function fromJson(array $json): FieldDefinition {
+        return FieldDefinition::builder()
+            ->name($json['name'])
+            ->type(FieldType::from($json['type']))
+            ->value($json['value'])
+            ->nativeType($json['nativeType'])
+            ->nullable($json['nullable'] ?? false)
+            ->extra($json['extra'])
+            ->build();
     }
 
     public function getName(): string
     {
         return $this->name;
-    }
-
-    public function getAlias(): string
-    {
-        return $this->alias;
     }
 
     public function getType(): FieldType
@@ -46,5 +82,10 @@ class FieldDefinition
 
     public function getNativeType(): string {
         return $this->nativeType;
+    }
+
+    public function jsonSerialize(): mixed
+    {
+        return get_object_vars($this);
     }
 }

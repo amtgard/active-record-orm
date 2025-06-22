@@ -2,25 +2,21 @@
 
 namespace Amtgard\ActiveRecordOrm\Query\Builder\Statement\Expression;
 
+use Amtgard\ActiveRecordOrm\Query\Builder\Statement\Statement;
 use Amtgard\Traits\Builder\Builder;
 
-class LimitExpression extends Expression
+class FromExpression extends Expression
 {
-
-    protected bool $withLimit = false;
-    protected int $offset = 0;
-    protected ?int $rowCount = null;
-
     use Builder;
 
     public function willEmit(): bool
     {
-        return $this->withLimit;
+        return true;
     }
 
     public function emit(): string
     {
-        return "LIMIT " . ($this->offset) . (isset($this->rowCount) ? (", " . $this->rowCount) : "");
+        return 'FROM ' . $this->schema->getTableName();
     }
 
     public function preparedParameters(): array
