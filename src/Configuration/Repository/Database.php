@@ -11,6 +11,8 @@ class Database
 
     private array $__fields;
 
+    private string $__databaseName;
+
     public static function fromConfig(DatabaseConfiguration $configuration): Database
     {
         return new self($configuration);
@@ -20,7 +22,7 @@ class Database
         $config = $configuration->getConfig();
         $host = $config['host'];
         $port = $config['port'];
-        $dbname = $config['dbname'];
+        $this->__databaseName = $dbname = $config['dbname'];
         $user = $config['user'];
         $password = $config['password'];
         $errMode = $config['errmode'];
@@ -41,13 +43,18 @@ class Database
             $this->bindParams($query);
         }
         $query->execute();
-        return new RecordSet($query);
+        return new RecordSet\PdoRecordSet($query);
     }
 
-    private function bindParams(\PDOStatement &$query): void {
+    private function bindParams(\PDOStatement &$query): array {
         foreach ($this->__fields as $field => $value) {
-            $query->bindValue(":$field", $value);
+            $bound[] = $query->bindValue(":$field", $value);
         }
+        return $bound;
+    }
+
+    public function fqTableName($tableName): string {
+        return $this->__databaseName . '.' . $tableName;
     }
 
     public function clear(): void

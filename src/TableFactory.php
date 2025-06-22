@@ -11,7 +11,7 @@ class TableFactory
     public static function build(Database $database, TablePolicy $policy, string $tableName): Table {
         return Table::builder()
             ->database($database)
-            ->policy($policy->getTableSchema($tableName))
+            ->schema($policy->getTableSchema($tableName))
             ->build();
     }
 }
