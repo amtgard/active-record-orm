@@ -2,10 +2,11 @@
 
 namespace Tests\Integration;
 
-use Amtgard\ActiveRecordOrm\Implementation\Mysql\MysqlIDatabase;
-use Amtgard\ActiveRecordOrm\Implementation\Mysql\MysqlEnvIDatabaseConfiguration;
+use Amtgard\ActiveRecordOrm\Configuration\Repository\Database;
+use Amtgard\ActiveRecordOrm\Configuration\Repository\DatabaseConfiguration;
 use Dotenv\Dotenv;
 use PHPUnit\Framework\TestCase;
+use Tests\util\Constants;
 
 class MysqlDatabaseTest extends TestCase
 {
@@ -21,18 +22,27 @@ class MysqlDatabaseTest extends TestCase
         }
     }
 
+    public static function tearDownAfterClass(): void
+    {
+        $config = DatabaseConfiguration::fromEnvironment();
+        $db = Database::fromConfig($config);
+
+        $db->clear();
+        $db->execute("truncate table integ");
+    }
+
     public function testBasicQuery() {
-        $config = MysqlEnvIDatabaseConfiguration::fromEnvironment();
-        $db = MysqlIDatabase::fromConfig($config);
+        $config = DatabaseConfiguration::fromEnvironment();
+        $db = Database::fromConfig($config);
 
         $db->clear();
         $db->execute("truncate table integtable");
         $db->clear();
         $db->string_value = "2";
         $db->int_value = 3;
-        $db->execute("insert into integtable (string_value, int_value) values (:string_value, :int_value)");
+        $db->execute("insert into integ (string_value, int_value) values (:string_value, :int_value)");
         $db->clear();
-        $records = $db->execute("select * from integtable");
+        $records = $db->execute("select * from integ");
         $records->next();
 
         self::assertEquals(1, $records->size());
@@ -40,6 +50,38 @@ class MysqlDatabaseTest extends TestCase
         self::assertEquals(3, $records->int_value);
         self::assertEquals(1, $records->id);
         $definition = json_encode($records->getDefinition());
-        self::assertEquals(6, count($records->getDefinition()));
+        self::assertEquals(13, count($records->getDefinition()));
+    }
+
+    public function testCaptureDescribeTable() {
+        $config = DatabaseConfiguration::fromEnvironment();
+        $db = Database::fromConfig($config);
+
+        $db->clear();
+        $tableDefinition = $db->execute("describe integ");
+        while ($tableDefinition->next()) {
+            $def[] = $tableDefinition->getRecord();
+        }
+        $capture = json_encode($def, JSON_PRETTY_PRINT);
+        self::assertEquals(13, count($def));
+
+        $db->clear();
+        $record = $db->execute("select * from integ limit 1");
+        $recordDefinition = $record->getDefinition();
+        while ($tableDefinition->next()) {
+            $record[] = $tableDefinition->getRecord();
+        }
+        self::assertEquals(Constants::$DESCRIBE_TABLE_INTEG, $capture);
+    }
+
+    public function testCaptureDescribeSelectStatement() {
+        $config = DatabaseConfiguration::fromEnvironment();
+        $db = Database::fromConfig($config);
+
+        $db->clear();
+        $selectAll = $db->execute("select * from integ");
+        $definition = $selectAll->getPdoDefinition();
+        $capture = json_encode($definition, JSON_PRETTY_PRINT);
+        self::assertEquals(Constants::$SELECT_INTEG_DEFINITION, $capture);
     }
 }
