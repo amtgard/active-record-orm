@@ -60,30 +60,6 @@ class FieldDefinition implements \JsonSerializable
             ->build();
     }
 
-    public function getName(): string
-    {
-        return $this->name;
-    }
-
-    public function getType(): FieldType
-    {
-        return $this->type;
-    }
-
-    public function setValue(mixed $value): void
-    {
-        $this->value = $value;
-    }
-
-    public function getValue(): mixed
-    {
-        return $this->value;
-    }
-
-    public function getNativeType(): string {
-        return $this->nativeType;
-    }
-
     public function jsonSerialize(): mixed
     {
         return get_object_vars($this);
