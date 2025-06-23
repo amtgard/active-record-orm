@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "54aeab6d669bab6bc48026a0d4124a96",
+    "content-hash": "0baa7c384b69bc9ed89dd415bc615dea",
     "packages": [
         {
             "name": "amtgard/builder-traits",
@@ -48,16 +48,16 @@
         },
         {
             "name": "amtgard/phpunit-extensions",
-            "version": "v1.0.1",
+            "version": "v1.0.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/amtgard/phpunit-extensions.git",
-                "reference": "70f53f26dbe83356650a1c578012af005d53477e"
+                "reference": "7f0a0b304253ed5aae42105e72a636839656a815"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/amtgard/phpunit-extensions/zipball/70f53f26dbe83356650a1c578012af005d53477e",
-                "reference": "70f53f26dbe83356650a1c578012af005d53477e",
+                "url": "https://api.github.com/repos/amtgard/phpunit-extensions/zipball/7f0a0b304253ed5aae42105e72a636839656a815",
+                "reference": "7f0a0b304253ed5aae42105e72a636839656a815",
                 "shasum": ""
             },
             "require": {
@@ -80,9 +80,9 @@
             "homepage": "https://github.com/amtgard/phpunit-extensions",
             "support": {
                 "issues": "https://github.com/amtgard/phpunit-extensions/issues",
-                "source": "https://github.com/amtgard/phpunit-extensions/tree/v1.0.1"
+                "source": "https://github.com/amtgard/phpunit-extensions/tree/v1.0.2"
             },
-            "time": "2025-05-28T15:39:22+00:00"
+            "time": "2025-06-23T00:20:18+00:00"
         },
         {
             "name": "graham-campbell/result-type",
@@ -3968,6 +3968,8 @@
         "ext-json": "*",
         "ext-pdo": "*"
     },
-    "platform-dev": {},
+    "platform-dev": {
+        "ext-openssl": "*"
+    },
     "plugin-api-version": "2.6.0"
 }
