@@ -2,7 +2,7 @@
 
 namespace Amtgard\ActiveRecordOrm\Schema;
 
-use Amtgard\ActiveRecordOrm\Configuration\Repository\Database;
+use Amtgard\ActiveRecordOrm\Utility\Constants;
 use Amtgard\Traits\Builder\Builder;
 use Amtgard\Traits\Builder\Getter;
 use FuzzyWuzzy\Fuzz;
@@ -17,10 +17,14 @@ class Schema
     /** @var FieldDefinition[] */
     protected array $fields = [];
 
+    protected function getSuggestionMesssage(string $name, string $suggestion): string {
+        return sprintf(Constants::$SCHEMA_FIELD_MISS_ERROR, $name, $suggestion);
+    }
+
     public function hasField(string $name): bool {
         return Optional::ofNullable($this->getField($name))
             ->map(fn($f) => true)
-            ->orElseThrow(new \InvalidArgumentException("Field `$name` is not a recognized field in the schema for table `$this->tableName`. Perhaps you meant `" . $this->suggestField($name) . "`?"));
+            ->orElseThrow(new \InvalidArgumentException($this->getSuggestionMesssage($name, $this->suggestField($name))));
     }
 
     public function suggestField(string $needle): string {

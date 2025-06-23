@@ -19,10 +19,6 @@ enum FieldType: int
     case UUID = 104;
     case DECIMAL = 105;
 
-    private static function fieldToPdoMap(): array {
-        return array_combine(array_map(function($v): string { return $v->name; }, self::pdoToFieldMap()), array_keys(self::pdoToFieldMap())) + [ FieldType::DATETIME->name => PDO::PARAM_STR ];
-    }
-
     private static function pdoToFieldMap(): array {
         return [
             PDO::PARAM_BOOL => FieldType::BOOL,
@@ -39,7 +35,7 @@ enum FieldType: int
             FieldType::BOOL->name => PDO::PARAM_BOOL,
             FieldType::INTEGER->name => PDO::PARAM_INT,
             FieldType::STRING->name => PDO::PARAM_STR,
-            FieldType::LOB->name => PDO::PARAM_STR,
+            FieldType::LOB->name => PDO::PARAM_LOB,
             FieldType::DATETIME->name => PDO::PARAM_STR,
             FieldType::BINARY->name => PDO::PARAM_STR,
             FieldType::ENUM->name => PDO::PARAM_STR,
@@ -63,7 +59,7 @@ enum FieldType: int
     }
 
     public static function toPdoType(FieldType $fieldType): int {
-        return self::fieldToPdoMap()[$fieldType->name];
+        return FieldType::fieldTypeToPdoTypeMap()[$fieldType->name];
     }
 
     public static function fromPdoType(int $pdo, string $nativeType): FieldType {
