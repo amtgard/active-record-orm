@@ -5,6 +5,7 @@ namespace Amtgard\ActiveRecordOrm\Schema;
 use Amtgard\ActiveRecordOrm\Query\FieldOperation;
 use Amtgard\ActiveRecordOrm\Query\Operation;
 use Amtgard\ActiveRecordOrm\RecordSet;
+use Amtgard\ActiveRecordOrm\Utility\Constants;
 use Amtgard\Traits\Builder\Builder;
 
 class FieldSet
@@ -21,15 +22,19 @@ class FieldSet
     }
 
     public function subSet(array $fieldNames): FieldSet {
-        $subset = FieldSet::builder()->build();;
+        $subset = FieldSet::builder()->build();
         foreach ($fieldNames as $fieldName) {
-            $subset->setField($this->fields[$fieldName]);
+            if (isset($this->fields[$fieldName])) {
+                $subset->setField($this->fields[$fieldName]);
+            } else {
+                throw new \InvalidArgumentException(sprintf(Constants::$FIELDSET_MISSING_ERROR, $fieldName));
+            }
         }
         return $subset;
     }
 
     public function setField(FieldOperation $fieldOperation) {
-        $this->fields[$fieldOperation->field->getName()] = $fieldOperation;
+        $this->fields[$fieldOperation->getField()->getName()] = $fieldOperation;
     }
 
     public function hasField(FieldDefinition $field): bool
@@ -79,7 +84,7 @@ class FieldSet
         $fields = [];
 
         foreach ($this->fields as $field) {
-            if (in_array($field->operation, $operations)) {
+            if (in_array($field->getOperation(), $operations)) {
                 $fields[] = $field;
             }
         }
@@ -100,7 +105,7 @@ class FieldSet
     }
 
     public static function opsToValues(array $operations): array {
-        return array_map(fn($op) => $op->value, $operations);
+        return array_map(fn($op) => $op->getValue(), $operations);
     }
 
     public static function opsToKeyValueMap(array $operations): array {

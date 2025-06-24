@@ -59,4 +59,27 @@ class FieldTypeTest extends AmtgardTestCase
         
         FieldType::fromTableType('unsupported_type');
     }
+
+    public function testMariaDbNativeTypeMap_returnsCorrectTypeMappings(): void
+    {
+        $typeMap = FieldType::mariaDbNativeTypeMap();
+        
+        // Verify all expected mappings exist
+        self::assertEquals(FieldType::INTEGER, $typeMap['LONG']);
+        self::assertEquals(FieldType::STRING, $typeMap['VAR_STRING']);
+        self::assertEquals(FieldType::DATETIME, $typeMap['DATETIME']);
+        self::assertEquals(FieldType::LOB, $typeMap['BLOB']);
+        self::assertEquals(FieldType::STRING, $typeMap['STRING']);
+        self::assertEquals(FieldType::INTEGER, $typeMap['TINY']);
+        self::assertEquals(FieldType::DOUBLE, $typeMap['DOUBLE']);
+        self::assertEquals(FieldType::DECIMAL, $typeMap['NEWDECIMAL']);
+        
+        // Verify the map contains exactly the expected number of entries
+        self::assertCount(8, $typeMap);
+        
+        // Verify all values are FieldType enum instances
+        foreach ($typeMap as $nativeType => $fieldType) {
+            self::assertInstanceOf(FieldType::class, $fieldType);
+        }
+    }
 }
