@@ -2,8 +2,7 @@
 
 namespace Tests\Unit\Configuration\DataAccessPolicy;
 
-use Amtgard\ActiveRecordOrm\Configuration\DataAccessPolicy\InMemoryDataAccessPolicy;
-use Amtgard\ActiveRecordOrm\Configuration\DataAccessPolicy\UncachedDataAccessPolicy;
+use Amtgard\ActiveRecordOrm\Configuration\DataAccessPolicy\RemoteCacheDataAccessPolicy;
 use Amtgard\ActiveRecordOrm\Configuration\Repository\Database;
 use Amtgard\ActiveRecordOrm\Query\Query;
 use Amtgard\ActiveRecordOrm\RecordSet;
@@ -12,26 +11,27 @@ use Amtgard\ActiveRecordOrm\Schema\Impl\FromJsonTableSchema;
 use Amtgard\ActiveRecordOrm\Schema\Impl\UncachedTableSchema;
 use Amtgard\ActiveRecordOrm\Schema\TableSchema;
 use Amtgard\PHPUnit\AmtgardTestCase;
-use PDOStatement;
 use Phake;
-use PHPUnit\Framework\TestCase;
+use Psr\SimpleCache\CacheInterface;
 use Tests\util\Constants;
 
-class InMemoryDataAccessPolicyTest extends AmtgardTestCase
+class RemoteCacheDataAccessPolicyTest extends AmtgardTestCase
 {
     private Database $mockDatabase;
     private Query $mockQuery;
-    private InMemoryDataAccessPolicy $dataAccessPolicy;
+    private RemoteCacheDataAccessPolicy $dataAccessPolicy;
+    private CacheInterface $mockCache;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->mockQuery = Phake::mock(Query::class);
         $this->mockDatabase = Phake::mock(Database::class);
-        $this->dataAccessPolicy = InMemoryDataAccessPolicy::builder()
+        $this->mockCache = Phake::mock(CacheInterface::class);
+        $this->dataAccessPolicy = RemoteCacheDataAccessPolicy::builder()
             ->database($this->mockDatabase)
-            ->queries([])
             ->tableSchema([])
+            ->cache($this->mockCache)
             ->build();
 
         $__statement = Phake::mock(\PDOStatement::class);
@@ -45,15 +45,16 @@ class InMemoryDataAccessPolicyTest extends AmtgardTestCase
         $phakeWhenRef->thenReturn(false);
 
         Phake::when($this->mockDatabase)->execute("describe integ")->thenReturn($recordSet);
+        Phake::when($this->mockCache)->get(Phake::anyParameters())->thenReturn(Constants::$JSON_ENCODED_INTEG_SCHEMA);
     }
 
     // Tests for applyTableSchemaPolicy method
     public function testApplyTableSchemaPolicy_whenNotCached_createsUncachedTableSchema(): void
     {
         $tableName = 'test_table';
-        
+
         $result = $this->dataAccessPolicy->applyTableSchemaPolicy($tableName);
-        
+
         self::assertInstanceOf(UncachedTableSchema::class, $result);
         self::assertInstanceOf(TableSchema::class, $result);
     }
@@ -64,7 +65,7 @@ class InMemoryDataAccessPolicyTest extends AmtgardTestCase
         // First call - should cache an UncachedTableSchema
         $firstResult = $this->dataAccessPolicy->applyTableSchemaPolicy("integ");
         self::assertInstanceOf(UncachedTableSchema::class, $firstResult);
-        
+
         // Second call - should return the cached schema
         $secondResult = $this->dataAccessPolicy->applyTableSchemaPolicy("integ");
 
@@ -78,10 +79,10 @@ class InMemoryDataAccessPolicyTest extends AmtgardTestCase
     {
         $tableName1 = 'table_one';
         $tableName2 = 'table_two';
-        
+
         $result1 = $this->dataAccessPolicy->applyTableSchemaPolicy($tableName1);
         $result2 = $this->dataAccessPolicy->applyTableSchemaPolicy($tableName2);
-        
+
         self::assertInstanceOf(UncachedTableSchema::class, $result1);
         self::assertInstanceOf(UncachedTableSchema::class, $result2);
         self::assertNotSame($result1, $result2);
@@ -97,13 +98,13 @@ class InMemoryDataAccessPolicyTest extends AmtgardTestCase
             'pdoDefinition' => [],
             'fieldDefinition' => []
         ];
-        
+
         Phake::when($this->mockQuery)->hash()->thenReturn($queryHash);
         Phake::when($this->mockDatabase)->executeQuery($this->mockQuery)->thenReturn($mockRecordSet);
         Phake::when($mockRecordSet)->jsonSerialize()->thenReturn($recordSetVars);
-        
+
         $result = $this->dataAccessPolicy->applyQueryPolicy($this->mockQuery);
-        
+
         Phake::verify($this->mockDatabase)->executeQuery($this->mockQuery);
         Phake::verify($this->mockQuery)->hash();
         self::assertInstanceOf(InMemoryRecordSet::class, $result);
@@ -122,13 +123,13 @@ class InMemoryDataAccessPolicyTest extends AmtgardTestCase
         Phake::when($this->mockQuery)->hash()->thenReturn($queryHash);
         Phake::when($this->mockDatabase)->executeQuery($this->mockQuery)->thenReturn($mockRecordSet);
         Phake::when($mockRecordSet)->jsonSerialize()->thenReturn($recordSetVars);
-        
+
         // First call - should execute query and cache
         $firstResult = $this->dataAccessPolicy->applyQueryPolicy($this->mockQuery);
-        
+
         // Second call - should return cached result without database call
         $secondResult = $this->dataAccessPolicy->applyQueryPolicy($this->mockQuery);
-        
+
         // Verify database was only called once (on first call)
         Phake::verify($this->mockDatabase, Phake::times(1))->executeQuery($this->mockQuery);
         self::assertInstanceOf(InMemoryRecordSet::class, $firstResult);
@@ -154,15 +155,15 @@ class InMemoryDataAccessPolicyTest extends AmtgardTestCase
         // Create two different queries
         $query1 = Phake::mock(Query::class);
         $query2 = Phake::mock(Query::class);
-        
+
         Phake::when($query1)->hash()->thenReturn($queryHash1);
         Phake::when($query2)->hash()->thenReturn($queryHash2);
         Phake::when($this->mockDatabase)->executeQuery($query1)->thenReturn($mockRecordSet);
         Phake::when($this->mockDatabase)->executeQuery($query2)->thenReturn($mockRecordSet);
-        
+
         $result1 = $this->dataAccessPolicy->applyQueryPolicy($query1);
         $result2 = $this->dataAccessPolicy->applyQueryPolicy($query2);
-        
+
         // Both should execute database calls since they have different hashes
         Phake::verify($this->mockDatabase)->executeQuery($query1);
         Phake::verify($this->mockDatabase)->executeQuery($query2);

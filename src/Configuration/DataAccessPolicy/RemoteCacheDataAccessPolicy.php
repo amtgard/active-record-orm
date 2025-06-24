@@ -11,36 +11,47 @@ use Amtgard\ActiveRecordOrm\RecordSet;
 use Amtgard\ActiveRecordOrm\Schema\Impl\FromJsonTableSchema;
 use Amtgard\ActiveRecordOrm\Schema\Impl\UncachedTableSchema;
 use Amtgard\ActiveRecordOrm\Schema\TableSchema;
+use Amtgard\Traits\Builder\Builder;
 use Optional\Optional;
 use Psr\SimpleCache\CacheInterface;
 
 class RemoteCacheDataAccessPolicy implements DataAccessPolicy
 {
-    private Database $database;
-    private array $tableSchema;
-    private CacheInterface $cache;
+    use Builder;
 
-    public function __construct(Database $database, CacheInterface $cache) {
-        $this->database = $database;
-        $this->cache = $cache;
+    private Database $database;
+    private array $tableSchema = [];
+    private CacheInterface $cache;
+    private $schemaKeyNameSupplier = null;
+
+    private function __construct() { }
+
+    private function callSchemaKeyNameSupplier($tableName) {
+        if (isset($this->schemaKeyNameSupplier) && is_callable($this->schemaKeyNameSupplier)) {
+            return call_user_func($this->schemaKeyNameSupplier, $tableName);
+        } else {
+            return "amtgard_orm_table_schema_$tableName";
+        }
     }
 
     public function applyTableSchemaPolicy(string $name): TableSchema
     {
-        return Optional::ofNullable($this->cache->get("amtgard_orm_table_schema_$name"))
-            ->map(function($schemaDefinition) {
+        $schemaKey = $this->callSchemaKeyNameSupplier($name);
+        return Optional::ofNullable($this->cache->get($schemaKey))
+            ->map(function($schemaDefinition) use ($name) {
                 return FromJsonTableSchema::builder()
-                    ->definition($schemaDefinition)
+                    ->jsonDefinition($schemaDefinition)
+                    ->tableName($name)
+                    ->database($this->database)
                     ->build();
             })
-            ->orElseGet(function() use ($name) {
-                return Optional::ofNullable($this->tableSchema[$name])->orElseGet(function() use ($name) {
-                    $this->tableSchema[$name] = UncachedTableSchema::builder()
-                        ->tableName($name)
-                        ->database($this->database)
-                        ->build();
-                    return $this->tableSchema[$name];
-                });
+            ->orElseGet(function() use ($name, $schemaKey) {
+                $schema = UncachedTableSchema::builder()
+                    ->tableName($name)
+                    ->database($this->database)
+                    ->build();
+                $this->cache->set($schemaKey, json_encode($schema));
+                return $schema;
             });
     }
 

@@ -11,16 +11,19 @@ use Amtgard\ActiveRecordOrm\RecordSet;
 use Amtgard\ActiveRecordOrm\Schema\Impl\FromJsonTableSchema;
 use Amtgard\ActiveRecordOrm\Schema\Impl\UncachedTableSchema;
 use Amtgard\ActiveRecordOrm\Schema\TableSchema;
+use Amtgard\Traits\Builder\Builder;
 use Optional\Optional;
 
 class InMemoryDataAccessPolicy implements DataAccessPolicy
 {
-    private Database $database;
-    private array $tableSchema;
-    private array $queries;
+    use Builder;
 
-    public function __construct(Database $database) {
-        $this->database = $database;
+    private Database $database;
+    private array $tableSchema = [];
+    private array $queries = [];
+
+    private function __construct() {
+
     }
 
     public function applyTableSchemaPolicy(string $name): TableSchema
@@ -34,11 +37,12 @@ class InMemoryDataAccessPolicy implements DataAccessPolicy
                     ->build();
             })
             ->orElseGet(function() use ($name) {
-                $this->tableSchema[$name] = UncachedTableSchema::builder()
+                $schema = UncachedTableSchema::builder()
                     ->tableName($name)
                     ->database($this->database)
                     ->build();
-                return $this->tableSchema[$name];
+                $this->tableSchema[$name] = json_encode($schema);
+                return $schema;
         });
     }
 
@@ -51,7 +55,7 @@ class InMemoryDataAccessPolicy implements DataAccessPolicy
             })
             ->orElseGet(function() use ($queryHash, $query) {
                 $jsonRecordSet = json_encode($this->database->executeQuery($query));
-                $recordSet = new RecordSet\InMemoryRecordSet(json_encode($jsonRecordSet));
+                $recordSet = new RecordSet\InMemoryRecordSet($jsonRecordSet);
                 $this->queries[$queryHash] = $jsonRecordSet;
                 return $recordSet;
             });
