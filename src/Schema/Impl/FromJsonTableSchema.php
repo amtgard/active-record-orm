@@ -15,11 +15,12 @@ class FromJsonTableSchema extends TableSchema
     {
         $this->fields = [];
         $jsonArray = json_decode($this->jsonDefinition, true);
-        foreach ($jsonArray as $field) {
-            if ($field['Key'] == "PRI") {
-                $this->primaryKey = FieldDefinition::fromDescribeTableJson($field);
+        foreach ($jsonArray['fields'] as $field) {
+            $field = FieldDefinition::fromJson($field);
+            $this->fields[$field->getName()] = $field;
+            if ($field->getName() == $jsonArray['primaryKey']['name']) {
+                $this->primaryKey = $field;
             }
-            $this->fields[] = FieldDefinition::fromDescribeTableJson($field);
         }
     }
 }

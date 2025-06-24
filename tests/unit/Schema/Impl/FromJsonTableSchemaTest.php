@@ -13,7 +13,7 @@ class FromJsonTableSchemaTest extends AmtgardTestCase
     public function testComparisonWithUncachedTableSchema() {
         $database = Phake::mock(Database::class);
         $schema = FromJsonTableSchema::builder()
-                    ->jsonDefinition(Constants::$DESCRIBE_TABLE_INTEG)
+                    ->jsonDefinition(Constants::$JSON_ENCODED_INTEG_SCHEMA)
                     ->tableName("integ")
                     ->database($database)
                     ->build();
