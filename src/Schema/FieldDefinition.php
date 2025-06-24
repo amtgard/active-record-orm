@@ -49,6 +49,15 @@ class FieldDefinition implements \JsonSerializable
             ->build();
     }
 
+    public static function fromDescribeTableJson(array $json): FieldDefinition {
+        return FieldDefinition::builder()
+            ->name($json['Field'])
+            ->type(FieldType::fromTableType($json['Type']))
+            ->nativeType($json['Type'])
+            ->extra($json['Extra'])
+            ->nullable($json['Null'])
+            ->build();
+    }
     public static function fromJson(array $json): FieldDefinition {
         return FieldDefinition::builder()
             ->name($json['name'])

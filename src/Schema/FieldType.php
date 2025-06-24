@@ -45,7 +45,7 @@ enum FieldType: int
         ];
     }
 
-    private static function mariaDbNativeTypeMap(): array {
+    public static function mariaDbNativeTypeMap(): array {
         return [
             'LONG' => FieldType::INTEGER,
             'VAR_STRING' => FieldType::STRING,

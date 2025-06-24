@@ -26,9 +26,11 @@ class InMemoryDataAccessPolicy implements DataAccessPolicy
     public function applyTableSchemaPolicy(string $name): TableSchema
     {
         return Optional::ofNullable($this->tableSchema[$name])
-            ->map(function($schemaDefinition) {
+            ->map(function($schemaDefinition) use ($name) {
                 return FromJsonTableSchema::builder()
-                    ->definition($schemaDefinition)
+                    ->jsonDefinition($schemaDefinition)
+                    ->tableName($name)
+                    ->database($this->database)
                     ->build();
             })
             ->orElseGet(function() use ($name) {
