@@ -273,6 +273,114 @@ class Constants
 }
 PDO_RECORD_SET_JSON;
 
+    public static string $JSON_ENCODED_INTEG_SCHEMA = <<<JSON_ENCODED_INTEG_SCHEMA
+{
+    "fields": {
+        "id": {
+            "name": "id",
+            "type": 1,
+            "nativeType": "int(11) unsigned",
+            "nullable": false,
+            "extra": "auto_increment"
+        },
+        "int_value": {
+            "name": "int_value",
+            "type": 1,
+            "nativeType": "int(11)",
+            "nullable": true,
+            "extra": ""
+        },
+        "string_value": {
+            "name": "string_value",
+            "type": 2,
+            "nativeType": "varchar(255)",
+            "nullable": true,
+            "extra": ""
+        },
+        "datetime_value": {
+            "name": "datetime_value",
+            "type": 100,
+            "nativeType": "datetime",
+            "nullable": true,
+            "extra": ""
+        },
+        "blob_value": {
+            "name": "blob_value",
+            "type": 3,
+            "nativeType": "blob",
+            "nullable": true,
+            "extra": ""
+        },
+        "text_value": {
+            "name": "text_value",
+            "type": 2,
+            "nativeType": "text",
+            "nullable": true,
+            "extra": ""
+        },
+        "json_value": {
+            "name": "json_value",
+            "type": 2,
+            "nativeType": "longtext",
+            "nullable": true,
+            "extra": ""
+        },
+        "binary_value": {
+            "name": "binary_value",
+            "type": 101,
+            "nativeType": "binary(1)",
+            "nullable": true,
+            "extra": ""
+        },
+        "boolean_value": {
+            "name": "boolean_value",
+            "type": 1,
+            "nativeType": "tinyint(1)",
+            "nullable": true,
+            "extra": ""
+        },
+        "enum_value": {
+            "name": "enum_value",
+            "type": 102,
+            "nativeType": "enum('alpha','beta')",
+            "nullable": true,
+            "extra": ""
+        },
+        "double_value": {
+            "name": "double_value",
+            "type": 103,
+            "nativeType": "double",
+            "nullable": true,
+            "extra": ""
+        },
+        "uuid_value": {
+            "name": "uuid_value",
+            "type": 104,
+            "nativeType": "uuid",
+            "nullable": true,
+            "extra": ""
+        },
+        "decimal_value": {
+            "name": "decimal_value",
+            "type": 105,
+            "nativeType": "decimal(10,0)",
+            "nullable": true,
+            "extra": ""
+        }
+    },
+    "database": {},
+    "tableName": "integ",
+    "primaryKey": {
+        "name": "id",
+        "type": 1,
+        "nativeType": "int(11) unsigned",
+        "nullable": false,
+        "extra": "auto_increment"
+    }
+}
+JSON_ENCODED_INTEG_SCHEMA;
+
+
     public static string $DESCRIBE_TABLE_INTEG = <<<DESCRIBE_TABLE
 [
     {

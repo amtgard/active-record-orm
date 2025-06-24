@@ -9,7 +9,7 @@ use FuzzyWuzzy\Fuzz;
 use FuzzyWuzzy\Process;
 use Optional\Optional;
 
-class Schema
+class Schema implements \JsonSerializable
 {
     use Builder;
     use Getter;
@@ -43,4 +43,8 @@ class Schema
         return $this->fields;
     }
 
+    public function jsonSerialize(): mixed
+    {
+        return get_object_vars($this);
+    }
 }
