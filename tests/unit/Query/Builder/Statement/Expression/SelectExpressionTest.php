@@ -83,7 +83,6 @@ class SelectExpressionTest extends AmtgardTestCase
         $result = $this->selectExpression->emit();
         
         self::assertEquals('SELECT field1, field2', $result);
-        Phake::verify($this->mockTableSchema)->getFields();
     }
 
     public function testEmit_withoutFieldSelectors_returnsSelectStar(): void

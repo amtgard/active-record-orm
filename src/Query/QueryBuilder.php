@@ -26,6 +26,7 @@ class QueryBuilder
     protected TableSchema $tableSchema;
     protected DataAccessPolicy $tablePolicy;
     protected FieldSet $fieldSet;
+    protected array $fieldSelectors = [];
 
     protected bool $withLimit = false;
     protected int $offset = 0;
@@ -42,6 +43,16 @@ class QueryBuilder
             $this->fieldSet->setField($fieldOperation);
         } else {
             throw new \InvalidArgumentException("Fields set on QueryBuilder must be an instance of FieldOperation");
+        }
+    }
+
+    public function select(mixed $fieldNameOrSet) {
+        if (is_array($fieldNameOrSet)) {
+            foreach ($fieldNameOrSet as $fieldName) {
+                $this->fieldSelectors[$fieldName] = $fieldName;
+            }
+        } else {
+            $this->fieldSelectors[$fieldNameOrSet] = $fieldNameOrSet;
         }
     }
 
@@ -114,6 +125,7 @@ class QueryBuilder
         $findBuilder->offset($this->offset);
         $findBuilder->rowCount($this->rowCount);
         $findBuilder->orderByOperations($this->orderByOperations);
+        $findBuilder->fieldSelectors($this->fieldSelectors);
 
         /* @var \Amtgard\ActiveRecordOrm\Query\Builder\FindStatementBuilder */
         $find = $findBuilder->build();

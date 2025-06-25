@@ -7,6 +7,7 @@ use Amtgard\ActiveRecordOrm\Query\Builder\Statement\Expression\FromExpression;
 use Amtgard\ActiveRecordOrm\Query\Builder\Statement\Expression\LimitExpression;
 use Amtgard\ActiveRecordOrm\Query\Builder\Statement\Expression\OrderByExpression;
 use Amtgard\ActiveRecordOrm\Query\Builder\Statement\Expression\WhereExpression;
+use Amtgard\ActiveRecordOrm\Schema\FieldSet;
 use Amtgard\Traits\Builder\Builder;
 use Amtgard\Traits\Builder\Data;
 

@@ -60,6 +60,10 @@ class Table
         $this->queryBuilder->orderBy($fieldName, $orderBy);
     }
 
+    public function select(mixed $fieldNameOrSet) {
+        $this->queryBuilder->select($fieldNameOrSet);
+    }
+
     public function find(): int {
         if ($this->withLimit) {
             $this->queryBuilder->limit($this->offset, $this->rowCount);
