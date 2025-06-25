@@ -3,36 +3,32 @@
 namespace Amtgard\ActiveRecordOrm\Repository;
 
 use Amtgard\ActiveRecordOrm\Configuration\Repository\DatabaseConfiguration;
+use Amtgard\ActiveRecordOrm\Configuration\Repository\MysqlPdoProvider;
+use Amtgard\ActiveRecordOrm\Configuration\Repository\PdoProviderInterface;
 use Amtgard\ActiveRecordOrm\Query\Query;
 use Amtgard\ActiveRecordOrm\RecordSet;
+use Amtgard\Traits\Builder\Builder;
 use PDO;
 
 class Database
 {
+    use Builder;
+
     private PDO $__dbh;
 
-    private array $__fields;
+    private array $__fields = [];
 
     private string $__databaseName;
 
-    public static function fromConfig(DatabaseConfiguration $configuration): Database
-    {
-        return new self($configuration);
-    }
+    private function __construct() { }
 
-    private function __construct(DatabaseConfiguration $configuration) {
-        $config = $configuration->getConfig();
-        $host = $config['host'];
-        $port = $config['port'];
-        $this->__databaseName = $dbname = $config['dbname'];
-        $user = $config['user'];
-        $password = $config['password'];
-        $errMode = $config['errmode'];
-        $options = $config['options'];
-        $this->__dbh = new PDO("mysql:host=$host;port=$port;dbname=$dbname;charset=utf8", $user, $password, $options);
-        $this->__dbh->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
-        $this->__dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $this->__fields = [];
+    public static function fromProvider(PdoProviderInterface $pdoProvider): Database
+    {
+        return Database::builder()
+            ->__databaseName($pdoProvider->getDatabaseName())
+            ->__dbh($pdoProvider->getPdo())
+            ->__fields([])
+            ->build();
     }
 
     public function __set(String $field, String|int|bool $value) {

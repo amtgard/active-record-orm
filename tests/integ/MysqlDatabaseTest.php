@@ -3,6 +3,7 @@
 namespace Tests\Integration;
 
 use Amtgard\ActiveRecordOrm\Configuration\Repository\DatabaseConfiguration;
+use Amtgard\ActiveRecordOrm\Configuration\Repository\MysqlPdoProvider;
 use Amtgard\ActiveRecordOrm\Repository\Database;
 use Dotenv\Dotenv;
 use PHPUnit\Framework\TestCase;
@@ -33,10 +34,11 @@ class MysqlDatabaseTest extends TestCase
 
     public function testBasicQuery() {
         $config = DatabaseConfiguration::fromEnvironment();
-        $db = Database::fromConfig($config);
+        $provider = MysqlPdoProvider::fromConfiguration($config);
+        $db = Database::fromProvider($provider);
 
         $db->clear();
-        $db->execute("truncate table integtable");
+        $db->execute("truncate table integ");
         $db->clear();
         $db->string_value = "2";
         $db->int_value = 3;
@@ -55,7 +57,8 @@ class MysqlDatabaseTest extends TestCase
 
     public function testCaptureDescribeTable() {
         $config = DatabaseConfiguration::fromEnvironment();
-        $db = Database::fromConfig($config);
+        $provider = MysqlPdoProvider::fromConfiguration($config);
+        $db = Database::fromProvider($provider);
 
         $db->clear();
         $tableDefinition = $db->execute("describe integ");
@@ -76,7 +79,8 @@ class MysqlDatabaseTest extends TestCase
 
     public function testCaptureDescribeSelectStatement() {
         $config = DatabaseConfiguration::fromEnvironment();
-        $db = Database::fromConfig($config);
+        $provider = MysqlPdoProvider::fromConfiguration($config);
+        $db = Database::fromProvider($provider);
 
         $db->clear();
         $selectAll = $db->execute("select * from integ");
