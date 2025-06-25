@@ -15,6 +15,7 @@ class SelectExpression extends Expression
 
     private bool $isCount = false;
     private string $countAlias = 'row_count';
+    private array $fieldSelectors = [];
 
     public function willEmit(): bool
     {
@@ -26,7 +27,11 @@ class SelectExpression extends Expression
         if ($this->isCount) {
             $fieldSelectorExpression = 'SELECT COUNT(*) as ' . $this->countAlias;
         } else {
-            $fieldSelectorExpression = 'SELECT ' . implode(", ", array_map(fn($field): string => $field->getName(), $this->getTableSchema()->getFields()));
+            if (count($this->fieldSelectors) > 0) {
+                $fieldSelectorExpression = 'SELECT ' . implode(", ", array_map(fn($field): string => $field->getName(), $this->getTableSchema()->getFields()));
+            } else {
+                $fieldSelectorExpression = 'SELECT *';
+            }
         }
         return $fieldSelectorExpression;
     }

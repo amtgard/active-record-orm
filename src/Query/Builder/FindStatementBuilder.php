@@ -26,6 +26,8 @@ class FindStatementBuilder extends StatementBuilder
     protected int $offset = 0;
     protected ?int $rowCount = null;
 
+    protected array $orderByOperations = [];
+
     public function getStatement(): Statement
     {
         return SelectStatement::builder()
@@ -34,7 +36,7 @@ class FindStatementBuilder extends StatementBuilder
             ->selectExpression(SelectExpression::builder()->schema($this->tableSchema)->fieldSet($this->fieldSet)->isCount($this->isCount)->countAlias($this->countAlias)->build())
             ->fromExpression(FromExpression::builder()->schema($this->tableSchema)->fieldSet($this->fieldSet)->build())
             ->whereExpression(WhereExpression::builder()->schema($this->tableSchema)->fieldSet($this->fieldSet)->build())
-            ->orderBy(OrderByExpression::builder()->schema($this->tableSchema)->fieldSet($this->fieldSet)->build())
+            ->orderBy(OrderByExpression::builder()->schema($this->tableSchema)->fieldSet($this->fieldSet)->orderByOperations($this->orderByOperations)->build())
             ->limit(LimitExpression::builder()->schema($this->tableSchema)->fieldSet($this->fieldSet)->withLimit($this->withLimit)->offset($this->offset)->rowCount($this->rowCount)->build())
             ->build();
     }
