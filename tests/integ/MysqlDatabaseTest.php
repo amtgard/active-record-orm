@@ -26,7 +26,8 @@ class MysqlDatabaseTest extends TestCase
     public static function tearDownAfterClass(): void
     {
         $config = DatabaseConfiguration::fromEnvironment();
-        $db = Database::fromConfig($config);
+        $provider = MysqlPdoProvider::fromConfiguration($config);
+        $db = Database::fromProvider($provider);
 
         $db->clear();
         $db->execute("truncate table integ");
