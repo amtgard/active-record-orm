@@ -2,7 +2,7 @@
 
 namespace Tests\Unit\Schema\Impl;
 
-use Amtgard\ActiveRecordOrm\Configuration\Repository\Database;
+use Amtgard\ActiveRecordOrm\Repository\Database;
 use Amtgard\ActiveRecordOrm\Schema\Impl\FromJsonTableSchema;
 use Amtgard\PHPUnit\AmtgardTestCase;
 use Phake;

@@ -2,8 +2,8 @@
 
 namespace Tests\Integration;
 
-use Amtgard\ActiveRecordOrm\Configuration\Repository\Database;
 use Amtgard\ActiveRecordOrm\Configuration\Repository\DatabaseConfiguration;
+use Amtgard\ActiveRecordOrm\Repository\Database;
 use Dotenv\Dotenv;
 use PHPUnit\Framework\TestCase;
 use Tests\util\Constants;
