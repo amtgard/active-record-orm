@@ -5,6 +5,7 @@ namespace Tests\Integration;
 use Amtgard\ActiveRecordOrm\Configuration\DataAccessPolicy\UncachedDataAccessPolicy;
 use Amtgard\ActiveRecordOrm\Configuration\OrmConfiguration\FileBasedActiveRecordOrmConfiguration;
 use Amtgard\ActiveRecordOrm\Configuration\Repository\DatabaseConfiguration;
+use Amtgard\ActiveRecordOrm\Configuration\Repository\MysqlPdoProvider;
 use Amtgard\ActiveRecordOrm\Interface\ActiveRecordOrmConfiguration;
 use Amtgard\ActiveRecordOrm\Interface\DataAccessPolicy;
 use Amtgard\ActiveRecordOrm\Repository\Database;
@@ -42,7 +43,8 @@ class TestHappyPath extends TestCase
         }
 
         $config = DatabaseConfiguration::fromEnvironment();
-        TestHappyPath::$db = Database::fromConfig($config);
+        $provider = MysqlPdoProvider::fromConfiguration($config);
+        TestHappyPath::$db = Database::fromProvider($provider);
 
         TestHappyPath::$tablePolicy = UncachedDataAccessPolicy::builder()->database(TestHappyPath::$db)->build();;
 

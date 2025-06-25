@@ -11,6 +11,8 @@
         </include>
         <exclude>
             <directory suffix=".php">./vendor/</directory>
+            <directory suffix=".php">./src/Exception</directory>
+            <directory suffix=".php">./src/Interface</directory>
         </exclude>
     </source>
     <coverage includeUncoveredFiles="true" ignoreDisabledCodeUnits="false">

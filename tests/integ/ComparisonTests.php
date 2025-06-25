@@ -3,6 +3,7 @@
 namespace Tests\Integration;
 
 use Amtgard\ActiveRecordOrm\Configuration\Repository\DatabaseConfiguration;
+use Amtgard\ActiveRecordOrm\Configuration\Repository\MysqlPdoProvider;
 use Amtgard\ActiveRecordOrm\Repository\Database;
 use Amtgard\ActiveRecordOrm\Schema\Impl\UncachedTableSchema;
 use Dotenv\Dotenv;
@@ -21,7 +22,8 @@ class ComparisonTests extends \PHPUnit\Framework\TestCase
         }
 
         $config = DatabaseConfiguration::fromEnvironment();
-        $db = Database::fromConfig($config);
+        $provider = MysqlPdoProvider::fromConfiguration($config);
+        $db = Database::fromProvider($provider);
 
         $schema = UncachedTableSchema::builder()
             ->tableName("integ")
