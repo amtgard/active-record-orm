@@ -2,12 +2,10 @@
 
 namespace Amtgard\ActiveRecordOrm\Configuration\DataAccessPolicy;
 
-use Amtgard\ActiveRecordOrm\Configuration\Repository\Database;
-use Amtgard\ActiveRecordOrm\Interface\ActiveRecordOrmConfiguration;
 use Amtgard\ActiveRecordOrm\Interface\DataAccessPolicy;
 use Amtgard\ActiveRecordOrm\Query\Query;
-use Amtgard\ActiveRecordOrm\Query\QueryBuilder;
 use Amtgard\ActiveRecordOrm\RecordSet;
+use Amtgard\ActiveRecordOrm\Repository\Database;
 use Amtgard\ActiveRecordOrm\Schema\Impl\FromJsonTableSchema;
 use Amtgard\ActiveRecordOrm\Schema\Impl\UncachedTableSchema;
 use Amtgard\ActiveRecordOrm\Schema\TableSchema;
@@ -15,12 +13,11 @@ use Amtgard\Traits\Builder\Builder;
 use Optional\Optional;
 use Psr\SimpleCache\CacheInterface;
 
-class RemoteCacheDataAccessPolicy implements DataAccessPolicy
+class CachedDataAccessPolicy implements DataAccessPolicy
 {
     use Builder;
 
     private Database $database;
-    private array $tableSchema = [];
     private CacheInterface $cache;
     private $schemaKeyNameSupplier = null;
 
@@ -65,7 +62,7 @@ class RemoteCacheDataAccessPolicy implements DataAccessPolicy
             ->orElseGet(function() use ($queryHash, $query) {
                 $jsonRecordSet = json_encode($this->database->executeQuery($query));
                 $query->postQuery();
-                $recordSet = new RecordSet\InMemoryRecordSet(json_encode($jsonRecordSet));
+                $recordSet = new RecordSet\InMemoryRecordSet($jsonRecordSet);
                 $this->cache->set($queryHash, $jsonRecordSet);
                 return $recordSet;
             });

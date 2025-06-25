@@ -2,21 +2,23 @@
 
 namespace Amtgard\ActiveRecordOrm\Configuration\DataAccessPolicy;
 
-use Amtgard\ActiveRecordOrm\Configuration\Repository\Database;
-use Amtgard\ActiveRecordOrm\Interface\DataAccessPolicy;
 use Amtgard\ActiveRecordOrm\Interface\ActiveRecordOrmConfiguration;
+use Amtgard\ActiveRecordOrm\Interface\DataAccessPolicy;
 use Amtgard\ActiveRecordOrm\Query\Query;
 use Amtgard\ActiveRecordOrm\RecordSet;
+use Amtgard\ActiveRecordOrm\Repository\Database;
 use Amtgard\ActiveRecordOrm\Schema\Impl\UncachedTableSchema;
 use Amtgard\ActiveRecordOrm\Schema\TableSchema;
+use Amtgard\Traits\Builder\Builder;
 
 class UncachedDataAccessPolicy implements DataAccessPolicy
 {
+    use Builder;
 
     private Database $database;
 
-    public function __construct(Database $database, ActiveRecordOrmConfiguration $configuration) {
-        $this->database = $database;
+    private function __construct() {
+
     }
 
     public function applyTableSchemaPolicy(string $name): TableSchema

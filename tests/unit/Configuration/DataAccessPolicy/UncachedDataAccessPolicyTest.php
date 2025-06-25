@@ -3,10 +3,10 @@
 namespace Tests\Unit\Configuration\DataAccessPolicy;
 
 use Amtgard\ActiveRecordOrm\Configuration\DataAccessPolicy\UncachedDataAccessPolicy;
-use Amtgard\ActiveRecordOrm\Configuration\Repository\Database;
 use Amtgard\ActiveRecordOrm\Interface\ActiveRecordOrmConfiguration;
 use Amtgard\ActiveRecordOrm\Query\Query;
 use Amtgard\ActiveRecordOrm\RecordSet;
+use Amtgard\ActiveRecordOrm\Repository\Database;
 use Amtgard\ActiveRecordOrm\Schema\Impl\UncachedTableSchema;
 use Amtgard\ActiveRecordOrm\Schema\TableSchema;
 use Amtgard\PHPUnit\AmtgardTestCase;
@@ -15,7 +15,6 @@ use Phake;
 class UncachedDataAccessPolicyTest extends AmtgardTestCase
 {
     private Database $mockDatabase;
-    private ActiveRecordOrmConfiguration $mockConfiguration;
     private Query $mockQuery;
     private UncachedDataAccessPolicy $dataAccessPolicy;
 
@@ -25,7 +24,7 @@ class UncachedDataAccessPolicyTest extends AmtgardTestCase
         $this->mockDatabase = Phake::mock(Database::class);
         $this->mockConfiguration = Phake::mock(ActiveRecordOrmConfiguration::class);
         $this->mockQuery = Phake::mock(Query::class);
-        $this->dataAccessPolicy = new UncachedDataAccessPolicy($this->mockDatabase, $this->mockConfiguration);
+        $this->dataAccessPolicy = UncachedDataAccessPolicy::builder()->database($this->mockDatabase)->build();
     }
 
     public function testConstructor_createsInstanceSuccessfully(): void
@@ -33,7 +32,7 @@ class UncachedDataAccessPolicyTest extends AmtgardTestCase
         $database = Phake::mock(Database::class);
         $configuration = Phake::mock(ActiveRecordOrmConfiguration::class);
         
-        $policy = new UncachedDataAccessPolicy($database, $configuration);
+        $policy = UncachedDataAccessPolicy::builder()->database($database)->build();
         
         self::assertInstanceOf(UncachedDataAccessPolicy::class, $policy);
     }

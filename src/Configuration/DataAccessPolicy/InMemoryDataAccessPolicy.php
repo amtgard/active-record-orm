@@ -2,62 +2,43 @@
 
 namespace Amtgard\ActiveRecordOrm\Configuration\DataAccessPolicy;
 
-use Amtgard\ActiveRecordOrm\Configuration\Repository\Database;
+use Amtgard\ActiveRecordOrm\Cache\InMemoryCache;
 use Amtgard\ActiveRecordOrm\Interface\DataAccessPolicy;
-use Amtgard\ActiveRecordOrm\Interface\ActiveRecordOrmConfiguration;
 use Amtgard\ActiveRecordOrm\Query\Query;
-use Amtgard\ActiveRecordOrm\Query\QueryBuilder;
 use Amtgard\ActiveRecordOrm\RecordSet;
+use Amtgard\ActiveRecordOrm\Repository\Database;
 use Amtgard\ActiveRecordOrm\Schema\Impl\FromJsonTableSchema;
 use Amtgard\ActiveRecordOrm\Schema\Impl\UncachedTableSchema;
 use Amtgard\ActiveRecordOrm\Schema\TableSchema;
 use Amtgard\Traits\Builder\Builder;
+use Amtgard\Traits\Builder\PostInit;
 use Optional\Optional;
+use Psr\SimpleCache\CacheInterface;
 
-class InMemoryDataAccessPolicy implements DataAccessPolicy
+class InMemoryDataAccessPolicy extends CachedDataAccessPolicy
 {
     use Builder;
 
     private Database $database;
-    private array $tableSchema = [];
-    private array $queries = [];
+    private CachedDataAccessPolicy $cachedDataAccessPolicy;
 
-    private function __construct() {
-
+    #[PostInit]
+    private function postInit() {
+        $cache = InMemoryCache::builder()->build();
+        $this->cachedDataAccessPolicy = CachedDataAccessPolicy::builder()
+            ->database($this->database)
+            ->cache($cache)
+            ->build();
     }
+
 
     public function applyTableSchemaPolicy(string $name): TableSchema
     {
-        return Optional::ofNullable($this->tableSchema[$name])
-            ->map(function($schemaDefinition) use ($name) {
-                return FromJsonTableSchema::builder()
-                    ->jsonDefinition($schemaDefinition)
-                    ->tableName($name)
-                    ->database($this->database)
-                    ->build();
-            })
-            ->orElseGet(function() use ($name) {
-                $schema = UncachedTableSchema::builder()
-                    ->tableName($name)
-                    ->database($this->database)
-                    ->build();
-                $this->tableSchema[$name] = json_encode($schema);
-                return $schema;
-        });
+        return $this->cachedDataAccessPolicy->applyTableSchemaPolicy($name);
     }
 
     public function applyQueryPolicy(Query $query): RecordSet
     {
-        $queryHash = $query->hash();
-        return Optional::ofNullable($this->queries[$queryHash])
-            ->map(function($serializedRecordSet) {
-                return new RecordSet\InMemoryRecordSet($serializedRecordSet);
-            })
-            ->orElseGet(function() use ($queryHash, $query) {
-                $jsonRecordSet = json_encode($this->database->executeQuery($query));
-                $recordSet = new RecordSet\InMemoryRecordSet($jsonRecordSet);
-                $this->queries[$queryHash] = $jsonRecordSet;
-                return $recordSet;
-            });
+        return $this->cachedDataAccessPolicy->applyQueryPolicy($query);
     }
 }

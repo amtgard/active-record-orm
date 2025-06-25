@@ -2,10 +2,11 @@
 
 namespace Tests\Integration;
 
-use Amtgard\ActiveRecordOrm\Configuration\Repository\Database;
 use Amtgard\ActiveRecordOrm\Configuration\Repository\DatabaseConfiguration;
+use Amtgard\ActiveRecordOrm\Repository\Database;
 use Amtgard\ActiveRecordOrm\Schema\Impl\UncachedTableSchema;
 use Dotenv\Dotenv;
+use function PHPUnit\Framework\assertTrue;
 
 class ComparisonTests extends \PHPUnit\Framework\TestCase
 {
@@ -29,5 +30,6 @@ class ComparisonTests extends \PHPUnit\Framework\TestCase
 
         $json = json_encode($schema, JSON_PRETTY_PRINT);
         echo $json;
+        assertTrue(true);
     }
 }

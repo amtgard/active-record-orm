@@ -2,12 +2,12 @@
 
 namespace Tests\Integration;
 
-use Amtgard\ActiveRecordOrm\Configuration\Repository\Database;
-use Amtgard\ActiveRecordOrm\Configuration\Repository\DatabaseConfiguration;
-use Amtgard\ActiveRecordOrm\Configuration\OrmConfiguration\FileBasedActiveRecordOrmConfiguration;
 use Amtgard\ActiveRecordOrm\Configuration\DataAccessPolicy\UncachedDataAccessPolicy;
+use Amtgard\ActiveRecordOrm\Configuration\OrmConfiguration\FileBasedActiveRecordOrmConfiguration;
+use Amtgard\ActiveRecordOrm\Configuration\Repository\DatabaseConfiguration;
 use Amtgard\ActiveRecordOrm\Interface\ActiveRecordOrmConfiguration;
 use Amtgard\ActiveRecordOrm\Interface\DataAccessPolicy;
+use Amtgard\ActiveRecordOrm\Repository\Database;
 use Amtgard\ActiveRecordOrm\Table;
 use Amtgard\ActiveRecordOrm\TableFactory;
 use Dotenv\Dotenv;
@@ -15,7 +15,6 @@ use PHPUnit\Framework\TestCase;
 use function PHPUnit\Framework\assertEquals;
 use function PHPUnit\Framework\assertFalse;
 use function PHPUnit\Framework\assertGreaterThan;
-use function PHPUnit\Framework\assertNotContains;
 use function PHPUnit\Framework\assertNotEqualsIgnoringCase;
 use function PHPUnit\Framework\assertTrue;
 
@@ -45,8 +44,7 @@ class TestHappyPath extends TestCase
         $config = DatabaseConfiguration::fromEnvironment();
         TestHappyPath::$db = Database::fromConfig($config);
 
-        TestHappyPath::$policyConfiguration = new FileBasedActiveRecordOrmConfiguration();
-        TestHappyPath::$tablePolicy = new UncachedDataAccessPolicy(TestHappyPath::$db, TestHappyPath::$policyConfiguration);
+        TestHappyPath::$tablePolicy = UncachedDataAccessPolicy::builder()->database(TestHappyPath::$db)->build();;
 
         TestHappyPath::$itemTable = TableFactory::build(TestHappyPath::$db, TestHappyPath::$tablePolicy, 'integ');
 

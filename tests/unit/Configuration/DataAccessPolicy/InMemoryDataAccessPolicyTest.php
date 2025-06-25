@@ -3,18 +3,15 @@
 namespace Tests\Unit\Configuration\DataAccessPolicy;
 
 use Amtgard\ActiveRecordOrm\Configuration\DataAccessPolicy\InMemoryDataAccessPolicy;
-use Amtgard\ActiveRecordOrm\Configuration\DataAccessPolicy\UncachedDataAccessPolicy;
-use Amtgard\ActiveRecordOrm\Configuration\Repository\Database;
 use Amtgard\ActiveRecordOrm\Query\Query;
 use Amtgard\ActiveRecordOrm\RecordSet;
 use Amtgard\ActiveRecordOrm\RecordSet\InMemoryRecordSet;
+use Amtgard\ActiveRecordOrm\Repository\Database;
 use Amtgard\ActiveRecordOrm\Schema\Impl\FromJsonTableSchema;
 use Amtgard\ActiveRecordOrm\Schema\Impl\UncachedTableSchema;
 use Amtgard\ActiveRecordOrm\Schema\TableSchema;
 use Amtgard\PHPUnit\AmtgardTestCase;
-use PDOStatement;
 use Phake;
-use PHPUnit\Framework\TestCase;
 use Tests\util\Constants;
 
 class InMemoryDataAccessPolicyTest extends AmtgardTestCase
@@ -30,8 +27,6 @@ class InMemoryDataAccessPolicyTest extends AmtgardTestCase
         $this->mockDatabase = Phake::mock(Database::class);
         $this->dataAccessPolicy = InMemoryDataAccessPolicy::builder()
             ->database($this->mockDatabase)
-            ->queries([])
-            ->tableSchema([])
             ->build();
 
         $__statement = Phake::mock(\PDOStatement::class);

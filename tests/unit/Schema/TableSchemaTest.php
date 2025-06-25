@@ -2,7 +2,7 @@
 
 namespace Tests\Unit\Schema;
 
-use Amtgard\ActiveRecordOrm\Configuration\Repository\Database;
+use Amtgard\ActiveRecordOrm\Repository\Database;
 use Amtgard\ActiveRecordOrm\Schema\FieldDefinition;
 use Amtgard\ActiveRecordOrm\Schema\FieldSet;
 use Amtgard\ActiveRecordOrm\Schema\TableSchema;

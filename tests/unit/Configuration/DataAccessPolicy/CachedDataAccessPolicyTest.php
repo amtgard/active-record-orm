@@ -2,11 +2,11 @@
 
 namespace Tests\Unit\Configuration\DataAccessPolicy;
 
-use Amtgard\ActiveRecordOrm\Configuration\DataAccessPolicy\RemoteCacheDataAccessPolicy;
-use Amtgard\ActiveRecordOrm\Configuration\Repository\Database;
+use Amtgard\ActiveRecordOrm\Configuration\DataAccessPolicy\CachedDataAccessPolicy;
 use Amtgard\ActiveRecordOrm\Query\Query;
 use Amtgard\ActiveRecordOrm\RecordSet;
 use Amtgard\ActiveRecordOrm\RecordSet\InMemoryRecordSet;
+use Amtgard\ActiveRecordOrm\Repository\Database;
 use Amtgard\ActiveRecordOrm\Schema\Impl\FromJsonTableSchema;
 use Amtgard\ActiveRecordOrm\Schema\Impl\UncachedTableSchema;
 use Amtgard\ActiveRecordOrm\Schema\TableSchema;
@@ -15,11 +15,11 @@ use Phake;
 use Psr\SimpleCache\CacheInterface;
 use Tests\util\Constants;
 
-class RemoteCacheDataAccessPolicyTest extends AmtgardTestCase
+class CachedDataAccessPolicyTest extends AmtgardTestCase
 {
     private Database $mockDatabase;
     private Query $mockQuery;
-    private RemoteCacheDataAccessPolicy $dataAccessPolicy;
+    private CachedDataAccessPolicy $dataAccessPolicy;
     private CacheInterface $mockCache;
 
     protected function setUp(): void
@@ -28,9 +28,8 @@ class RemoteCacheDataAccessPolicyTest extends AmtgardTestCase
         $this->mockQuery = Phake::mock(Query::class);
         $this->mockDatabase = Phake::mock(Database::class);
         $this->mockCache = Phake::mock(CacheInterface::class);
-        $this->dataAccessPolicy = RemoteCacheDataAccessPolicy::builder()
+        $this->dataAccessPolicy = CachedDataAccessPolicy::builder()
             ->database($this->mockDatabase)
-            ->tableSchema([])
             ->cache($this->mockCache)
             ->build();
 
@@ -45,12 +44,14 @@ class RemoteCacheDataAccessPolicyTest extends AmtgardTestCase
         $phakeWhenRef->thenReturn(false);
 
         Phake::when($this->mockDatabase)->execute("describe integ")->thenReturn($recordSet);
-        Phake::when($this->mockCache)->get(Phake::anyParameters())->thenReturn(Constants::$JSON_ENCODED_INTEG_SCHEMA);
     }
 
     // Tests for applyTableSchemaPolicy method
     public function testApplyTableSchemaPolicy_whenNotCached_createsUncachedTableSchema(): void
     {
+        Phake::when($this->mockCache)->get(Phake::anyParameters())
+            ->thenReturn(null);
+
         $tableName = 'test_table';
 
         $result = $this->dataAccessPolicy->applyTableSchemaPolicy($tableName);
@@ -61,6 +62,9 @@ class RemoteCacheDataAccessPolicyTest extends AmtgardTestCase
 
     public function testApplyTableSchemaPolicy_whenCached_returnsFromJsonTableSchema(): void
     {
+        Phake::when($this->mockCache)->get(Phake::anyParameters())
+            ->thenReturn(null)
+            ->thenReturn(Constants::$JSON_ENCODED_INTEG_SCHEMA);
 
         // First call - should cache an UncachedTableSchema
         $firstResult = $this->dataAccessPolicy->applyTableSchemaPolicy("integ");
@@ -86,6 +90,36 @@ class RemoteCacheDataAccessPolicyTest extends AmtgardTestCase
         self::assertInstanceOf(UncachedTableSchema::class, $result1);
         self::assertInstanceOf(UncachedTableSchema::class, $result2);
         self::assertNotSame($result1, $result2);
+    }
+
+    public function testApplyTableSchemaPolicy_withCustomSchemaKeyNameSupplier_usesCustomKey(): void
+    {
+        $tableName = 'custom_table';
+        $customKey = 'custom_schema_key_' . $tableName;
+        
+        // Create a custom schema key name supplier function
+        $schemaKeyNameSupplier = function($tableName) {
+            return 'custom_schema_key_' . $tableName;
+        };
+        
+        // Build the policy with the custom schema key name supplier
+        $dataAccessPolicy = CachedDataAccessPolicy::builder()
+            ->database($this->mockDatabase)
+            ->cache($this->mockCache)
+            ->schemaKeyNameSupplier($schemaKeyNameSupplier)
+            ->build();
+        
+        // Mock the cache to return null (cache miss)
+        Phake::when($this->mockCache)->get($customKey)->thenReturn(null);
+        
+        // Call the method that uses callSchemaKeyNameSupplier
+        $result = $dataAccessPolicy->applyTableSchemaPolicy($tableName);
+        
+        // Verify that the cache was called with the custom key
+        Phake::verify($this->mockCache)->get($customKey);
+        
+        // Verify that the result is an UncachedTableSchema (since cache returned null)
+        self::assertInstanceOf(UncachedTableSchema::class, $result);
     }
 
     // Tests for applyQueryPolicy method
@@ -123,6 +157,10 @@ class RemoteCacheDataAccessPolicyTest extends AmtgardTestCase
         Phake::when($this->mockQuery)->hash()->thenReturn($queryHash);
         Phake::when($this->mockDatabase)->executeQuery($this->mockQuery)->thenReturn($mockRecordSet);
         Phake::when($mockRecordSet)->jsonSerialize()->thenReturn($recordSetVars);
+
+        Phake::when($this->mockCache)->get(Phake::anyParameters())
+            ->thenReturn(null)
+            ->thenReturn(Constants::$PDO_RECORD_SET_JSON);
 
         // First call - should execute query and cache
         $firstResult = $this->dataAccessPolicy->applyQueryPolicy($this->mockQuery);
