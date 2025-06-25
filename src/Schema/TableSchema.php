@@ -2,13 +2,10 @@
 
 namespace Amtgard\ActiveRecordOrm\Schema;
 
-use Amtgard\ActiveRecordOrm\Configuration\Repository\Database;
+use Amtgard\ActiveRecordOrm\Repository\Database;
 use Amtgard\ActiveRecordOrm\Utility\Constants;
 use Amtgard\Traits\Builder\Builder;
 use Amtgard\Traits\Builder\Getter;
-use FuzzyWuzzy\Fuzz;
-use FuzzyWuzzy\Process;
-use Optional\Optional;
 
 abstract class TableSchema extends Schema
 {

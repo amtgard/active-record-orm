@@ -2,9 +2,9 @@
 
 namespace Amtgard\ActiveRecordOrm;
 
-use Amtgard\ActiveRecordOrm\Configuration\Repository\Database;
 use Amtgard\ActiveRecordOrm\Interface\DataAccessPolicy;
 use Amtgard\ActiveRecordOrm\Query\QueryBuilder;
+use Amtgard\ActiveRecordOrm\Repository\Database;
 use Amtgard\ActiveRecordOrm\Schema\FieldSet;
 
 class TableFactory

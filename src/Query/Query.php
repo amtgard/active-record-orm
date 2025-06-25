@@ -2,9 +2,9 @@
 
 namespace Amtgard\ActiveRecordOrm\Query;
 
-use Amtgard\ActiveRecordOrm\Configuration\Repository\Database;
 use Amtgard\ActiveRecordOrm\Interface\DataAccessPolicy;
 use Amtgard\ActiveRecordOrm\RecordSet;
+use Amtgard\ActiveRecordOrm\Repository\Database;
 use Amtgard\Traits\Builder\Builder;
 use Amtgard\Traits\Builder\Data;
 
