@@ -25,6 +25,6 @@ class InsertExpression extends Expression
 
     public function preparedParameters(): array
     {
-        return FieldSet::opsToKeyValueMap($this->getFieldSet()->getFieldsByOperation([Operation::Set, Operation::Equals]));
+        return $this->getFieldSet()->toKeyValueMap($this->getFieldSet()->getFieldsByOperation([Operation::Set, Operation::Equals]));
     }
 }

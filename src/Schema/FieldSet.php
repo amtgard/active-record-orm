@@ -14,6 +14,11 @@ class FieldSet
 
     /** @var FieldOperation[] */
     private array $fields = [];
+    private static FieldSet $fieldStatic;
+
+    public function getFieldStatic(): FieldSet {
+        return static::$fieldStatic ??= FieldSet::builder()->build();
+    }
 
     private function __construct() { }
 
@@ -110,5 +115,9 @@ class FieldSet
 
     public static function opsToKeyValueMap(array $operations): array {
         return array_combine(self::opsToNames($operations), self::opsToValues($operations));
+    }
+
+    public function toKeyValueMap(array $operations): array {
+        return static::opsToKeyValueMap($operations);
     }
 }

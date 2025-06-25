@@ -6,6 +6,7 @@ use Amtgard\ActiveRecordOrm\Query\Builder\Statement\Expression\Expression;
 use Amtgard\ActiveRecordOrm\Query\Operation;
 use Amtgard\ActiveRecordOrm\Schema\FieldSet;
 use Amtgard\Traits\Builder\Builder;
+use Amtgard\Traits\Builder\PostInit;
 use Optional\Optional;
 use PDO;
 
@@ -13,6 +14,7 @@ class WhereExpression extends Expression
 {
 
     use Builder;
+    public ?FieldSet $fieldSetStatic = null;
 
     public function willEmit(): bool
     {
@@ -75,6 +77,6 @@ class WhereExpression extends Expression
 
     public function preparedParameters(): array
     {
-        return FieldSet::opsToKeyValueMap($this->getBinaryFieldQualifiers());
+        return $this->getFieldSet()->toKeyValueMap($this->getBinaryFieldQualifiers());
     }
 }

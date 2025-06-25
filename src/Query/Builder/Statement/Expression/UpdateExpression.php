@@ -24,6 +24,6 @@ class UpdateExpression extends Expression
 
     public function preparedParameters(): array
     {
-        return FieldSet::opsToKeyValueMap($this->getFieldSet()->getFieldsByOperation([Operation::Set]));
+        return $this->getFieldSet()->toKeyValueMap($this->getFieldSet()->getFieldsByOperation([Operation::Set]));
     }
 }
