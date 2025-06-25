@@ -29,7 +29,7 @@ class FindStatementBuilder extends StatementBuilder
 
     protected array $orderByOperations = [];
 
-    private ?FieldSet $fieldSelectors = null;
+    private array $fieldSelectors = [];
 
     public function getStatement(): Statement
     {

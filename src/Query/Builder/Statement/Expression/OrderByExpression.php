@@ -4,11 +4,11 @@ namespace Amtgard\ActiveRecordOrm\Query\Builder\Statement\Expression;
 
 use Amtgard\ActiveRecordOrm\Query\Operation;
 use Amtgard\Traits\Builder\Builder;
-use Amtgard\Traits\Builder\Setter;
+use Amtgard\Traits\Builder\Data;
 
 class OrderByExpression extends Expression
 {
-    use Builder, Setter;
+    use Builder, Data;
 
     /* @var Operation */
     private array $orderByOperations = [];
