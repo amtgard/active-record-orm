@@ -27,8 +27,8 @@ class SelectExpression extends Expression
         if ($this->isCount) {
             $fieldSelectorExpression = 'SELECT COUNT(*) as ' . $this->countAlias;
         } else {
-            if (count($this->fieldSelectors) > 0) {
-                $fieldSelectorExpression = 'SELECT ' . implode(", ", array_map(fn($field): string => $field->getName(), $this->getTableSchema()->getFields()));
+            if (isset($this->fieldSelectors) && count($this->fieldSelectors) > 0) {
+                $fieldSelectorExpression = 'SELECT ' . implode(", ", $this->fieldSelectors);
             } else {
                 $fieldSelectorExpression = 'SELECT *';
             }
