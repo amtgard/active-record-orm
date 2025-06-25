@@ -13,6 +13,7 @@ use Amtgard\ActiveRecordOrm\Table;
 use Amtgard\ActiveRecordOrm\TableFactory;
 use Dotenv\Dotenv;
 use PHPUnit\Framework\TestCase;
+use Amtgard\ActiveRecordOrm\Query\OrderBy;
 use function PHPUnit\Framework\assertEquals;
 use function PHPUnit\Framework\assertFalse;
 use function PHPUnit\Framework\assertGreaterThan;
@@ -131,6 +132,31 @@ class TestHappyPath extends TestCase
             }
             assertFalse($itemTable->next());
         }
+    }
+
+    public function testFindByOrder() {
+        $itemTable = TestHappyPath::$itemTable;
+        $itemTable->clear();
+        $itemTable->orderBy('id', OrderBy::DESC);
+        $itemTable->gt('id', 1);
+        assertTrue($itemTable->find() == 2);
+        $invariantId = 1000;
+        while ($itemTable->next()) {
+            self::assertGreaterThan($itemTable->id, $invariantId);
+            $invariantId = $itemTable->id;
+        }
+        assertFalse($itemTable->next());
+
+        $itemTable->clear();
+        $itemTable->orderBy('id', OrderBy::ASC);
+        assertTrue($itemTable->find() == 3);
+        $invariantId = 0;
+        while ($itemTable->next()) {
+            self::assertLessThan($itemTable->id, $invariantId);
+            $invariantId = $itemTable->id;
+        }
+        assertFalse($itemTable->next());
+
     }
 
     public function testCountRecords() {

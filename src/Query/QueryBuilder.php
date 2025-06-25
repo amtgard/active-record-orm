@@ -31,6 +31,8 @@ class QueryBuilder
     protected int $offset = 0;
     protected ?int $rowCount = null;
 
+    protected array $orderByOperations = [];
+
     private function __construct() {
 
     }
@@ -111,6 +113,7 @@ class QueryBuilder
         $findBuilder->withLimit($this->withLimit);
         $findBuilder->offset($this->offset);
         $findBuilder->rowCount($this->rowCount);
+        $findBuilder->orderByOperations($this->orderByOperations);
 
         /* @var \Amtgard\ActiveRecordOrm\Query\Builder\FindStatementBuilder */
         $find = $findBuilder->build();
@@ -123,6 +126,10 @@ class QueryBuilder
             ->map(function ($field) {
                 return $field->operation == Operation::Equals || $field->operation == Operation::Set;
             })->orElse(false);
+    }
+
+    public function orderBy(string $fieldName, OrderBy $orderBy) {
+        $this->orderByOperations[$fieldName] = $orderBy;
     }
 
     public function limit(int $offset = 10, ?int $rowCount = null) {

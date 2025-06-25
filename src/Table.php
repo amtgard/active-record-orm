@@ -5,6 +5,7 @@ namespace Amtgard\ActiveRecordOrm;
 use Amtgard\ActiveRecordOrm\Interface\DataAccessPolicy;
 use Amtgard\ActiveRecordOrm\Query\FieldOperation;
 use Amtgard\ActiveRecordOrm\Query\Operation;
+use Amtgard\ActiveRecordOrm\Query\OrderBy;
 use Amtgard\ActiveRecordOrm\Query\QueryBuilder;
 use Amtgard\ActiveRecordOrm\Repository\Database;
 use Amtgard\ActiveRecordOrm\Schema\FieldSet;
@@ -53,6 +54,10 @@ class Table
         $this->rowCount = null;
         $this->queryBuilder = TableFactory::buildQueryBuilder($this->dataAccessPolicy, $this->tableName);
         $this->fieldSet->clear();
+    }
+
+    public function orderBy(string $fieldName, OrderBy $orderBy) {
+        $this->queryBuilder->orderBy($fieldName, $orderBy);
     }
 
     public function find(): int {
