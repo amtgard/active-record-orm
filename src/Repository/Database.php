@@ -1,7 +1,8 @@
 <?php
 
-namespace Amtgard\ActiveRecordOrm\Configuration\Repository;
+namespace Amtgard\ActiveRecordOrm\Repository;
 
+use Amtgard\ActiveRecordOrm\Configuration\Repository\DatabaseConfiguration;
 use Amtgard\ActiveRecordOrm\Query\Query;
 use Amtgard\ActiveRecordOrm\RecordSet;
 use PDO;

@@ -2,12 +2,8 @@
 
 namespace Amtgard\ActiveRecordOrm;
 
-use Amtgard\ActiveRecordOrm\Configuration\Repository\Database;
-use Amtgard\ActiveRecordOrm\Interface\DataAccessPolicy;
-use Amtgard\ActiveRecordOrm\Query\QueryBuilder;
 use Amtgard\ActiveRecordOrm\Schema\FieldSet;
 use Amtgard\ActiveRecordOrm\Schema\Schema;
-use Amtgard\ActiveRecordOrm\Schema\TableSchema;
 use Amtgard\Traits\Builder\Builder;
 use Optional\Optional;
 

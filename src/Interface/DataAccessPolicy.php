@@ -2,9 +2,7 @@
 
 namespace Amtgard\ActiveRecordOrm\Interface;
 
-use Amtgard\ActiveRecordOrm\Configuration\Repository\Database;
 use Amtgard\ActiveRecordOrm\Query\Query;
-use Amtgard\ActiveRecordOrm\Query\QueryBuilder;
 use Amtgard\ActiveRecordOrm\RecordSet;
 use Amtgard\ActiveRecordOrm\Schema\TableSchema;
 

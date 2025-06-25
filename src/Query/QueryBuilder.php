@@ -2,7 +2,6 @@
 
 namespace Amtgard\ActiveRecordOrm\Query;
 
-use Amtgard\ActiveRecordOrm\Configuration\Repository\Database;
 use Amtgard\ActiveRecordOrm\Interface\DataAccessPolicy;
 use Amtgard\ActiveRecordOrm\Query\Builder\DeleteStatementBuilder;
 use Amtgard\ActiveRecordOrm\Query\Builder\FindStatementBuilder;
