@@ -14,7 +14,6 @@ class WhereExpression extends Expression
 {
 
     use Builder;
-    public ?FieldSet $fieldSetStatic = null;
 
     public function willEmit(): bool
     {

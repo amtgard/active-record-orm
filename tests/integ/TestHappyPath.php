@@ -51,6 +51,11 @@ class TestHappyPath extends TestCase
 
         TestHappyPath::$itemTable = TableFactory::build(TestHappyPath::$db, TestHappyPath::$tablePolicy, 'integ');
 
+        self::resetTable();
+
+    }
+
+    private static function resetTable() {
         TestHappyPath::$db->clear();
         TestHappyPath::$db->execute("truncate table integ");
 
@@ -69,7 +74,6 @@ class TestHappyPath extends TestCase
         TestHappyPath::$db->int_value = 6;
         TestHappyPath::$db->execute("insert into integ (string_value, int_value) values (:string_value, :int_value)");
         TestHappyPath::$db->clear();
-
     }
 
     public function testFindItemById() {
@@ -284,8 +288,43 @@ class TestHappyPath extends TestCase
         }
 
         $itemTable->clear();
-        $itemTable->gt('id', 1);
-        self::assertTrue($itemTable->find() == 0);
+        self::assertTrue($itemTable->find() == 1);
+        assertEquals(1, $itemTable->size());
+    }
+
+    public function testDeleteById() {
+        self::resetTable();
+        
+        $itemTable = TestHappyPath::$itemTable;
+        $itemTable->clear();
+        $itemTable->id = 1;
+        $itemTable->delete();
+
+        $itemTable->clear();
+        $itemTable->find();
+        assertEquals(2, $itemTable->size());
+    }
+
+    public function testDeleteByField() {
+        self::resetTable();
+
+        $itemTable = TestHappyPath::$itemTable;
+        $itemTable->clear();
+        $itemTable->like('string_value', "bunny rabbit foo-foo");
+        $itemTable->delete();
+
+        $itemTable->clear();
+        $itemTable->find();
+        assertEquals(2, $itemTable->size());
+    }
+
+    public function testDeleteWithoutFilter() {
+        $itemTable = TestHappyPath::$itemTable;
+        $itemTable->clear();
+        $itemTable->delete();
+
+        $itemTable->clear();
+        $itemTable->find();
         assertEquals(0, $itemTable->size());
     }
 

@@ -19,10 +19,16 @@ class DeleteStatementBuilder extends StatementBuilder
 
     public function getStatement(): Statement
     {
+        $where = WhereExpression::builder()->schema($this->tableSchema);
+        if ($this->getFieldSet()->hasField($this->tableSchema->getPrimaryKey()->getName())) {
+            $where->fieldSet($this->fieldSet->subSet([$this->tableSchema->getPrimaryKey()->getName()]));
+        } else {
+            $where->fieldSet($this->fieldSet);
+        }
         return DeleteStatement::builder()
             ->tableSchema($this->tableSchema)
             ->deleteExpression(DeleteExpression::builder()->schema($this->tableSchema)->fieldSet($this->fieldSet)->build())
-            ->whereExpression(WhereExpression::builder()->schema($this->tableSchema)->fieldSet($this->fieldSet->subSet([$this->tableSchema->getPrimaryKey()->getName()]))->build())
+            ->whereExpression($where->build())
             ->build();
     }
 }
