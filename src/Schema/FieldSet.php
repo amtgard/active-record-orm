@@ -14,11 +14,6 @@ class FieldSet
 
     /** @var FieldOperation[] */
     private array $fields = [];
-    private static FieldSet $fieldStatic;
-
-    public function getFieldStatic(): FieldSet {
-        return static::$fieldStatic ??= FieldSet::builder()->build();
-    }
 
     private function __construct() { }
 
@@ -42,9 +37,9 @@ class FieldSet
         $this->fields[$fieldOperation->getField()->getName()] = $fieldOperation;
     }
 
-    public function hasField(FieldDefinition $field): bool
+    public function hasField(string|FieldDefinition $field): bool
     {
-        return array_key_exists($field->getName(), $this->fields);
+        return array_key_exists(is_string($field) ? $field : $field->getName(), $this->fields);
     }
 
     public function mapRecord(Schema $schema, RecordSet $record, Callable $callback = null) {

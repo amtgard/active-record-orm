@@ -39,11 +39,7 @@ class QueryBuilder
     }
 
     public function __set($fieldName, FieldOperation $fieldOperation) {
-        if ($fieldOperation instanceof FieldOperation) {
-            $this->fieldSet->setField($fieldOperation);
-        } else {
-            throw new \InvalidArgumentException("Fields set on QueryBuilder must be an instance of FieldOperation");
-        }
+        $this->fieldSet->setField($fieldOperation);
     }
 
     public function select(mixed $fieldNameOrSet) {
@@ -74,8 +70,8 @@ class QueryBuilder
 
         if ($this->primaryKeyIsSet()) {
             // Update path
-            $upsertBuilder->primaryKey($this->fieldSet->getField($this->tableSchema->primaryKey->getName())->value);
-            $this->fieldSet->setFieldOperation($this->tableSchema, $this->tableSchema->primaryKey->getName(), Operation::Equals);
+            $upsertBuilder->primaryKey($this->fieldSet->getField($this->tableSchema->getPrimaryKey()->getName())->value);
+            $this->fieldSet->setFieldOperation($this->tableSchema, $this->tableSchema->getPrimaryKey()->getName(), Operation::Equals);
         } else {
             // Insert path
             $upsertBuilder->postQueryCallback($setLastInsertId);
@@ -90,12 +86,14 @@ class QueryBuilder
     }
 
     public function delete() {
+        $this->fieldSet->updateSetOperationToEquals();
+
         $deleteBuilder = DeleteStatementBuilder::builder()
             ->tableSchema($this->tableSchema)
             ->fieldSet($this->fieldSet);
 
         if ($this->primaryKeyIsSet()) {
-            $deleteBuilder->primaryKey($this->fieldSet->getField($this->tableSchema->primaryKey->getName())->value);
+            $deleteBuilder->primaryKey($this->fieldSet->getField($this->tableSchema->getPrimaryKey()->getName())->value);
         }
 
         /* @var \Amtgard\ActiveRecordOrm\Query\Builder\DeleteStatementBuilder */
@@ -112,7 +110,7 @@ class QueryBuilder
             ->fieldSet($this->fieldSet);
 
         if ($this->primaryKeyIsSet()) {
-            $findBuilder->primaryKey($this->fieldSet->getField($this->tableSchema->primaryKey->getName())->value);
+            $findBuilder->primaryKey($this->fieldSet->getField($this->tableSchema->getPrimaryKey()->getName())->value);
         }
 
         return $findBuilder;
@@ -136,7 +134,7 @@ class QueryBuilder
     private function primaryKeyIsSet(): bool {
         return Optional::ofNullable($this->fieldSet->getField($this->tableSchema->getPrimaryKey()->getName()))
             ->map(function ($field) {
-                return $field->operation == Operation::Equals || $field->operation == Operation::Set;
+                return $field->getOperation() == Operation::Equals || $field->getOperation() == Operation::Set;
             })->orElse(false);
     }
 
