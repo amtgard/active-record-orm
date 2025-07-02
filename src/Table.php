@@ -47,12 +47,14 @@ class Table
             ->orElse(null);
     }
 
+    public $tableFactory = 'Amtgard\ActiveRecordOrm\TableFactory';
     public function clear() {
         $this->recordSet = null;
         $this->withLimit = false;
         $this->offset = 0;
         $this->rowCount = null;
-        $this->queryBuilder = TableFactory::buildQueryBuilder($this->dataAccessPolicy, $this->tableName);
+        $tableFactory = $this->tableFactory;
+        $this->queryBuilder = $tableFactory::buildQueryBuilder($this->dataAccessPolicy, $this->tableName);
         $this->fieldSet->clear();
     }
 
