@@ -1,4 +1,9 @@
 {
+    "name"  : "amtgard/active-record-orm",
+    "type"  : "library",
+    "homepage": "https://github.com/amtgard/active-record-orm",
+    "license" : "MIT",
+    "description": "Active Record ORM for the ORK4",
     "require-dev": {
         "phake/phake": "^4.5",
         "phpunit/phpunit": "^11.3",
