@@ -18,7 +18,7 @@ class Query implements \JsonSerializable
     private $postQueryCallback;
 
     public function hash() {
-        return md5(json_encode($this));
+        return md5(json_encode([$this->sql, $this->params]));
     }
 
     public function apply(Database $db): RecordSet {

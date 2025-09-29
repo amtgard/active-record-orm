@@ -13,6 +13,7 @@
             <directory suffix=".php">./vendor/</directory>
             <directory suffix=".php">./src/Exception</directory>
             <directory suffix=".php">./src/Interface</directory>
+            <directory suffix=".php">./src/RecordSet</directory>
         </exclude>
     </source>
     <coverage includeUncoveredFiles="true">

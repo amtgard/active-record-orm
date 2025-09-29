@@ -1,0 +1,160 @@
+<?php
+
+namespace Amtgard\ActiveRecordOrm\Entity;
+
+use Amtgard\ActiveRecordOrm\EntityManager;
+use Amtgard\ActiveRecordOrm\Interface\TableQueryInterface;
+use Amtgard\ActiveRecordOrm\Query\OrderBy;
+use Amtgard\ActiveRecordOrm\RecordSet;
+use Amtgard\ActiveRecordOrm\Repository\Database;
+use Amtgard\ActiveRecordOrm\ResultSet;
+use Amtgard\ActiveRecordOrm\Table;
+use Amtgard\Traits\Builder\Builder;
+use Amtgard\Traits\Builder\PostInit;
+use Optional\Optional;
+
+class EntityMapper implements TableQueryInterface
+{
+    use Builder;
+
+    private const QUERY_MODE = 'query';
+    private const TABLE_MODE = 'table';
+
+    private ?EntityManager $em = null;
+    private Table $table;
+    private Database $database;
+
+    private string $mode = self::TABLE_MODE;
+    private string $querySql;
+    private ?RecordSet $recordSet;
+    private $entityResultSetBuilder = null;
+
+    public function __get(string $name) {
+        $primaryKeyField = $this->table->getTableSchema()->getPrimaryKey()->getName();
+        return Optional::ofNullable($this->getEm()->getEntity($this->table->getName(), $this->table->$primaryKeyField))
+            ->map(fn($entity) => $entity->$name)
+            ->orElseGet(fn() => $this->table->$name);
+    }
+
+    public function __set(string $name, $value): void
+    {
+        if ($this->mode === self::QUERY_MODE) {
+            $this->database->$name = $value;
+        } else {
+            $this->table->$name = $value;
+        }
+    }
+
+    public function getEntity(): Entity {
+        if ($this->mode === self::QUERY_MODE) {
+            $resultSet = call_user_func($this->entityResultSetBuilder);
+        } else {
+            $resultSet = $this->table->getResultSet();
+        }
+
+        $entity = Entity::builder()
+            ->resultSet($resultSet)
+            ->schema($this->table->getTableSchema())
+            ->build();
+
+        return $this->getEm()->mappedEntity($this->table->getName(), $entity);
+    }
+
+    public function query($sql): void {
+        $this->querySql = $sql;
+        $this->mode = self::QUERY_MODE;
+    }
+
+    public function execute(): int {
+        $this->recordSet = $this->database->execute($this->querySql);
+        return $this->recordSet->size();
+    }
+
+    public function clear(): void
+    {
+        $this->recordSet = null;
+        $this->mode = self::TABLE_MODE;
+        $this->table->clear();
+        if (Optional::ofNullable($this->database)->isPresent()) {
+            $this->database->clear();
+        }
+    }
+
+    public function orderBy(string $fieldName, OrderBy $orderBy): void
+    {
+        $this->table->orderBy($fieldName, $orderBy);
+    }
+
+    public function select(mixed $fieldNameOrSet): void
+    {
+        $this->table->select($fieldNameOrSet);
+    }
+
+    public function find(): int
+    {
+        return $this->table->find();
+    }
+
+    public function count(string $countAlias = 'row_count'): int
+    {
+        return $this->table->count($countAlias);
+    }
+
+    public function page(int $size = 10, int $page = 0): TableQueryInterface
+    {
+        return $this->table->page($size, $page);
+    }
+
+    public function limit(int $offset, ?int $rowCount = null): void
+    {
+        $this->table->limit($offset, $rowCount);
+    }
+
+    public function size(): int
+    {
+        return $this->table->size();
+    }
+
+    public function next(): bool
+    {
+        if ($this->mode === self::QUERY_MODE) {
+            return $this->recordSet->next();
+        } else {
+            return $this->table->next();
+        }
+    }
+
+    public function hasActiveRecord(): bool
+    {
+        return $this->table->hasActiveRecord();
+    }
+
+    public function getTable(): Table {
+        return $this->table;
+    }
+
+    private function getEm(): EntityManager {
+        return Optional::ofNullable($this->em)
+            ->orElseGet(function() {
+                $this->em = EntityManager::getManager();
+                return $this->em;
+            });
+    }
+
+    #[PostInit]
+    private function postInit() {
+        if (!isset($this->table)) {
+            throw new \Exception('A table must be set for EntityMapper.');
+        }
+        if (!isset($this->database)) {
+            $this->database = $this->table->getDatabase();
+        }
+        if (!isset($this->entityResultSetBuilder)) {
+            $this->entityResultSetBuilder = fn() => ResultSet::builder()
+                ->recordSet($this->recordSet)
+                ->schema($this->table->getTableSchema())
+                ->fieldSet($this->table->getFieldSet())
+                ->build();
+        }
+    }
+}
