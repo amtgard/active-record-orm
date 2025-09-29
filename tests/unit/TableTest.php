@@ -337,4 +337,48 @@ class TableTest extends AmtgardTestCase
         
         Phake::verify($this->mockTableSchema)->getField('name');
     }
+
+    public function testCall_withValidOperation_delegatesToOperationMethod(): void
+    {
+        // Mock the operation method to verify it's called
+        $mockField = Phake::mock(FieldDefinition::class);
+        
+        Phake::when($this->mockTableSchema)->getField('name')->thenReturn($mockField);
+        
+        // Call a method that corresponds to a valid Operation (e.g., 'equals')
+        $this->table->equals('name', 'John Doe');
+        
+        // Verify that the operation method was called with the correct parameters
+        // We can't directly verify the __call method, but we can verify the side effects
+        // by checking that the operation method would have been called
+        Phake::verify($this->mockTableSchema)->getField('name');
+    }
+
+    public function testGetTableSchema_returnsTableSchema(): void
+    {
+        $result = $this->table->getTableSchema();
+        
+        self::assertSame($this->mockTableSchema, $result);
+    }
+
+    public function testGetDatabase_returnsDatabase(): void
+    {
+        $result = $this->table->getDatabase();
+        
+        self::assertSame($this->mockDatabase, $result);
+    }
+
+    public function testGetFieldSet_returnsFieldSet(): void
+    {
+        $result = $this->table->getFieldSet();
+        
+        self::assertSame($this->mockFieldSet, $result);
+    }
+
+    public function testGetName_returnsTableName(): void
+    {
+        $result = $this->table->getName();
+        
+        self::assertEquals('test_table', $result);
+    }
 } 

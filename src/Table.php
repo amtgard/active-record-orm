@@ -3,6 +3,7 @@
 namespace Amtgard\ActiveRecordOrm;
 
 use Amtgard\ActiveRecordOrm\Interface\DataAccessPolicy;
+use Amtgard\ActiveRecordOrm\Interface\TableInterface;
 use Amtgard\ActiveRecordOrm\Query\FieldOperation;
 use Amtgard\ActiveRecordOrm\Query\Operation;
 use Amtgard\ActiveRecordOrm\Query\OrderBy;
@@ -13,17 +14,17 @@ use Amtgard\ActiveRecordOrm\Schema\TableSchema;
 use Amtgard\Traits\Builder\Builder;
 use Optional\Optional;
 
-class Table
+class Table implements TableInterface
 {
     use Builder;
 
-    private Database $database;
-    private TableSchema $tableSchema;
-    private QueryBuilder $queryBuilder;
-    private DataAccessPolicy $dataAccessPolicy;
-    private ?RecordSet $recordSet;
-    private FieldSet $fieldSet;
-    private string $tableName;
+    protected Database $database;
+    protected TableSchema $tableSchema;
+    protected QueryBuilder $queryBuilder;
+    protected DataAccessPolicy $dataAccessPolicy;
+    protected ?RecordSet $recordSet;
+    protected FieldSet $fieldSet;
+    protected string $tableName;
 
     protected bool $withLimit = false;
     protected int $offset = 0;
@@ -31,7 +32,26 @@ class Table
 
     private function __constructor() {}
 
-    public function __set(string $name, $value) {
+    public function getTableSchema(): TableSchema
+    {
+        return $this->tableSchema;
+    }
+
+    public function getDatabase(): Database
+    {
+        return $this->database;
+    }
+
+    public function getFieldSet(): FieldSet {
+        return $this->fieldSet;
+    }
+
+    public function getName() {
+        return $this->tableName;
+    }
+
+    public function __set(string $name, $value): void
+    {
         $this->setFieldValue($name, $value);
     }
 
@@ -48,7 +68,8 @@ class Table
     }
 
     public $tableFactory = 'Amtgard\ActiveRecordOrm\TableFactory';
-    public function clear() {
+    public function clear(): void
+    {
         $this->recordSet = null;
         $this->withLimit = false;
         $this->offset = 0;
@@ -58,11 +79,13 @@ class Table
         $this->fieldSet->clear();
     }
 
-    public function orderBy(string $fieldName, OrderBy $orderBy) {
+    public function orderBy(string $fieldName, OrderBy $orderBy): void
+    {
         $this->queryBuilder->orderBy($fieldName, $orderBy);
     }
 
-    public function select(mixed $fieldNameOrSet) {
+    public function select(mixed $fieldNameOrSet): void
+    {
         $this->queryBuilder->select($fieldNameOrSet);
     }
 
@@ -84,14 +107,16 @@ class Table
         return $this->recordSet->size();
     }
 
-    public function page(int $size = 10, int $page = 0) {
+    public function page(int $size = 10, int $page = 0): Interface\TableQueryInterface
+    {
         $this->withLimit = true;
         $this->offset = $size * $page;
         $this->rowCount = $page;
         return $this;
     }
 
-    public function limit(int $offset, ?int $rowCount = null) {
+    public function limit(int $offset, ?int $rowCount = null): void
+    {
         $this->withLimit = true;
         $this->offset = $offset;
         if (isset($rowCount)) {
@@ -107,14 +132,16 @@ class Table
             ->build();
     }
 
-    public function save() {
+    public function save(): void
+    {
         $this->queryBuilder->upsert(function() {
             $this->setFieldValue($this->tableSchema->getPrimaryKey()->getName(), $this->database->getLastInsertId());
         });
         $this->dataAccessPolicy->applyQueryPolicy($this->queryBuilder->compile());
     }
 
-    public function delete() {
+    public function delete(): void
+    {
         $this->queryBuilder->delete();
         $this->dataAccessPolicy->applyQueryPolicy($this->queryBuilder->compile());
     }
@@ -146,7 +173,8 @@ class Table
         return $this->recordSet->hasActiveRecord();
     }
 
-    public function __call(string $name, array $arguments) {
+    public function __call(string $name, array $arguments): void
+    {
         Optional::ofNullable(Operation::fromString($name))
             ->map(function($operation) use ($arguments) {
                 $this->operation($arguments[0], $operation, $arguments[1]);
@@ -155,7 +183,8 @@ class Table
             ->orElseThrow(new \InvalidArgumentException("Invalid Operation name: $name"));
     }
 
-    public function operation(string $name, Operation $operation, $value) {
+    public function operation(string $name, Operation $operation, $value): void
+    {
         $fieldOp = FieldOperation::builder()
             ->field($this->tableSchema->getField($name))
             ->value($value)

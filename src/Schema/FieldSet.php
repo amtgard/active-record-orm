@@ -52,6 +52,14 @@ class FieldSet
         }
     }
 
+    public function getFieldMap(): array {
+        $fieldMap = [];
+        foreach ($this->fields as $field) {
+            $fieldMap[$field->getField()->getName()] = $field->getField()->getValue();
+        }
+        return $fieldMap;
+    }
+
     public function setFieldOperation(Schema $schema, string $name, Operation $operation) {
         $schema->hasField($name);
 

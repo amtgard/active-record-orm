@@ -91,4 +91,36 @@ class ResultSetTest extends AmtgardTestCase
         Phake::verify($this->mockFieldSet)->clear();
         Phake::verify($this->mockFieldSet)->mapRecord($this->mockSchema, $this->mockRecordSet);
     }
+
+    public function testGetFieldMap_returnsFieldNameToValueMap(): void
+    {
+        // Mock field definitions
+        $mockField1 = Phake::mock(FieldDefinition::class);
+        $mockField2 = Phake::mock(FieldDefinition::class);
+        
+        // Mock field names
+        Phake::when($mockField1)->getName()->thenReturn('id');
+        Phake::when($mockField2)->getName()->thenReturn('name');
+        
+        // Mock schema to return fields
+        Phake::when($this->mockSchema)->getFields()->thenReturn([$mockField1, $mockField2]);
+        
+        // Mock record set to return values for fields
+        Phake::when($this->mockRecordSet)->id->thenReturn(1);
+        Phake::when($this->mockRecordSet)->name->thenReturn('John Doe');
+        
+        $fieldMap = $this->resultSet->getFieldMap();
+        
+        $expectedMap = [
+            'id' => 1,
+            'name' => 'John Doe'
+        ];
+        
+        self::assertEquals($expectedMap, $fieldMap);
+        Phake::verify($this->mockSchema)->getFields();
+        Phake::verify($mockField1)->getName();
+        Phake::verify($mockField2)->getName();
+        Phake::verify($this->mockRecordSet)->id;
+        Phake::verify($this->mockRecordSet)->name;
+    }
 } 

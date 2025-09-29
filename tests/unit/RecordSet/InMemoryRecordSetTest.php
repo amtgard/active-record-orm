@@ -54,4 +54,33 @@ class InMemoryRecordSetTest extends AmtgardTestCase
         self::assertFalse($recordSet->hasActiveRecord());
         self::assertNull($recordSet->getRecord());
     }
+
+    public function testGetStringValue(): void {
+        $recordSet = new InMemoryRecordSet(Constants::$PDO_RECORD_SET_JSON);
+        
+        // Position the record set at the first record
+        $recordSet->next();
+        
+        // Test the __get() method by accessing the string_value field
+        $stringValue = $recordSet->string_value;
+        
+        // Assert that the value matches what's expected from the JSON data
+        self::assertEquals("2", $stringValue);
+    }
+
+    public function testHasField(): void {
+        $recordSet = new InMemoryRecordSet(Constants::$PDO_RECORD_SET_JSON);
+        
+        // Position the record set at the first record
+        $recordSet->next();
+        
+        // Test that hasField() returns true for existing fields
+        self::assertTrue($recordSet->hasField('string_value'));
+        self::assertTrue($recordSet->hasField('id'));
+        self::assertTrue($recordSet->hasField('int_value'));
+        
+        // Test that hasField() returns false for non-existent fields
+        self::assertFalse($recordSet->hasField('non_existent_field'));
+        self::assertFalse($recordSet->hasField('missing_field'));
+    }
 }

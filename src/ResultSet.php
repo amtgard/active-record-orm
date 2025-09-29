@@ -32,5 +32,12 @@ class ResultSet
         return $hasNext;
     }
 
-
+    public function getFieldMap(): array {
+        $fieldMap = [];
+        foreach ($this->schema->getFields() as $field) {
+            $fieldName = $field->getName();
+            $fieldMap[$fieldName] = $this->recordSet->$fieldName;
+        }
+        return $fieldMap;
+    }
 }
