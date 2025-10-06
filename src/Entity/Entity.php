@@ -2,22 +2,24 @@
 
 namespace Amtgard\ActiveRecordOrm\Entity;
 
-use Amtgard\ActiveRecordOrm\Interface\TableInterface;
 use Amtgard\ActiveRecordOrm\ResultSet;
 use Amtgard\ActiveRecordOrm\Schema\FieldDefinition;
 use Amtgard\ActiveRecordOrm\Schema\TableSchema;
 use Amtgard\Traits\Builder\Builder;
 use Amtgard\Traits\Builder\PostInit;
+use Optional\Optional;
 
 class Entity
 {
     use Builder;
 
-    private ResultSet $resultSet;
+    private ?ResultSet $resultSet = null;
     private TableSchema $schema;
 
     private array $fields;
     private array $changes = [];
+
+    private EntityMapper $mapper;
 
     public function __get(string $name) {
         return $this->fields[$name] ?? null;
@@ -53,7 +55,9 @@ class Entity
             $table = $mapper->getTable();
             $table->clear();
             $primaryKey = $this->getPrimaryKey()->getName();
-            $table->$primaryKey = $this->getPrimaryKey()->getValue();
+            if (!is_null($this->getPrimaryKey()->getValue())) {
+                $table->$primaryKey = $this->getPrimaryKey()->getValue();
+            }
             foreach ($this->changes as $field => $value) {
                 $table->$field = $value;
             }
@@ -61,8 +65,22 @@ class Entity
         }
     }
 
+    public function getMapper(): EntityMapper {
+        return $this->mapper;
+    }
+
     #[PostInit]
     private function postInit() {
-        $this->fields = $this->resultSet->getFieldMap();
+        $this->fields = Optional::ofNullable($this->resultSet)
+            ->map(function($resultSet) {
+                return $resultSet->getFieldMap();
+            })
+            ->orElseGet(function() {
+                $fields = [];
+                foreach($this->schema->getFields() as $field) {
+                    $fields[$field->getName()] = $this->changes[$field->getName()];
+                }
+                return $fields;
+            });
     }
 }

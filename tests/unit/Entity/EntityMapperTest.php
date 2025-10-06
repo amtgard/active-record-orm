@@ -259,4 +259,20 @@ class EntityMapperTest extends AmtgardTestCase
         self::assertTrue($result);
         Phake::verify($this->mockTable)->hasActiveRecord();
     }
+
+    public function testCreateEntity_savesTableFindsAndCreatesEntity(): void
+    {
+        Phake::when($this->mockTable)->getTableSchema()->thenReturn($this->mockTableSchema);
+        Phake::when($this->mockTable)->getResultSet()->thenReturn($this->mockResultSet);
+        Phake::when($this->mockTable)->getName()->thenReturn('test_table');
+
+        $newEntity = $this->entityMapper->createEntity();
+
+        Phake::verify($this->mockTable)->save();
+
+        $this->entityMapper->clear();
+        $fetchEntity = $this->entityMapper->getEntity();
+
+        assertEquals($newEntity->id, $fetchEntity->id);
+    }
 }

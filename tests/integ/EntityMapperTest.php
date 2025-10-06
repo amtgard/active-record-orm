@@ -15,6 +15,8 @@ use Amtgard\ActiveRecordOrm\TableFactory;
 use Dotenv\Dotenv;
 use PHPUnit\Framework\TestCase;
 use function PHPUnit\Framework\assertEquals;
+use function PHPUnit\Framework\assertGreaterThan;
+use function PHPUnit\Framework\assertNotNull;
 
 class EntityMapperTest extends TestCase
 {
@@ -139,5 +141,55 @@ class EntityMapperTest extends TestCase
         $entity = $entityMapper->getEntity();
         assertEquals("2", $entity->string_value);
         assertEquals(3, $entity->int_value);
+    }
+
+    public function testCreateEntity() {
+        self::resetTable();
+
+        $itemTable = EntityMapperTest::$itemTable;
+        $entityMapper = EntityMapper::builder()->em(EntityMapperTest::$em)->table($itemTable)->build();
+        $entityMapper->clear();
+        $entityMapper->string_value = "bar-baz";
+        $entityMapper->int_value = 83;
+        $entity = $entityMapper->createEntity();
+        assertEquals("bar-baz", $entity->string_value);
+        assertEquals(83, $entity->int_value);
+        self::assertGreaterThan(0, $entity->id);
+
+        $entityMapper->clear();
+        $entityMapper->id = $entity->id;
+        assertEquals(1, $entityMapper->find());
+        $entityMapper->next();
+        $fetched = $entityMapper->getEntity();
+        assertEquals("bar-baz", $fetched->string_value);
+        assertEquals(83, $fetched->int_value);
+        assertGreaterThan(0, $fetched->id);
+        assertEquals($entity->id, $fetched->id);
+    }
+
+    public function testFetch() {
+        self::resetTable();
+
+        $entityId = 1;
+        $itemTable = EntityMapperTest::$itemTable;
+        $entityMapper = EntityMapper::builder()->em(EntityMapperTest::$em)->table($itemTable)->build();
+        $entityMapper->clear();
+        $entityMapper->id = $entityId;
+
+        $entity = $entityMapper->fetch();
+        assertNotNull($entity);
+        assertEquals("2", $entity->string_value);
+    }
+
+    public function testFetchBy() {
+        self::resetTable();
+
+        $entityId = 1;
+        $itemTable = EntityMapperTest::$itemTable;
+        $entityMapper = EntityMapper::builder()->em(EntityMapperTest::$em)->table($itemTable)->build();
+
+        $entity = $entityMapper->fetchBy('id', $entityId);
+        assertNotNull($entity);
+        assertEquals("2", $entity->string_value);
     }
 }

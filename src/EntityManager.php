@@ -54,6 +54,7 @@ class EntityManager
                     $this->getDatabase(),
                     $this->getDataAccessPolicy(),
                     $mapperName))
+                ->name($mapperName)
                 ->build();
         }
         if (!$this->preventShutdown) {
@@ -70,14 +71,20 @@ class EntityManager
         }
     }
 
-    public function flushMapper(string $mapperName) {
-        Optional::ofNullable($this->getMapper($mapperName))
-            ->map(function($mapper) use ($mapperName) {
-                foreach ($this->getMapperEntities($mapperName) as $entity) {
+    public function flushMapper(string|EntityMapper $mapperRef) {
+        $mapperRef = is_string($mapperRef) ? $mapperRef : $mapperRef->getName();
+        Optional::ofNullable($this->getMapper($mapperRef))
+            ->map(function($mapper) use ($mapperRef) {
+                foreach ($this->getMapperEntities($mapperRef) as $entity) {
                     $policy = $this->getRepositoryPolicy();
                     $policy->flushEntity($mapper, $entity);
                 }
             });
+    }
+
+    public function flush(Entity $entity) {
+        $policy = $this->getRepositoryPolicy();
+        $policy->flushEntity($entity->getMapper(), $entity);
     }
 
     public function clearAll() {
@@ -127,8 +134,9 @@ class EntityManager
         return array_key_exists($mapperName, $this->mappers) ? $this->mappers[$mapperName] : null;
     }
 
-    protected function setMapper($mapperName, $map) {
-        $this->mappers[$mapperName] = $map;
+    protected function setMapper(EntityMapper $map) {
+        $name = $map->getName();
+        $this->mappers[$map->getName()] = $map;
     }
 
     protected function mapper(string $mapperName): EntityMapper {
@@ -136,8 +144,9 @@ class EntityManager
             ->map(fn($mapper) => $mapper)
             ->orElseGet(function() use ($mapperName) {
                 $mapper = $this->getMapperSupplier()($mapperName);
-                $this->setMapper($mapperName, $mapper);
-                return $this->getMapper($mapperName);
+                $this->setMapper($mapper);
+                $mapper = $this->getMapper($mapperName);
+                return $mapper;
             });
     }
 

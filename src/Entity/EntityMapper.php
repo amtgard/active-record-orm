@@ -28,6 +28,12 @@ class EntityMapper implements TableQueryInterface
     private string $querySql;
     private ?RecordSet $recordSet;
     private $entityResultSetBuilder = null;
+    private string $name;
+    private array $changes = [];
+
+    public function getName(): string {
+        return $this->name;
+    }
 
     public function __get(string $name) {
         $primaryKeyField = $this->table->getTableSchema()->getPrimaryKey()->getName();
@@ -43,6 +49,7 @@ class EntityMapper implements TableQueryInterface
         } else {
             $this->table->$name = $value;
         }
+        $this->changes[$name] = $value;
     }
 
     public function getEntity(): Entity {
@@ -55,8 +62,33 @@ class EntityMapper implements TableQueryInterface
         $entity = Entity::builder()
             ->resultSet($resultSet)
             ->schema($this->table->getTableSchema())
+            ->mapper($this)
             ->build();
 
+        return $this->getEm()->mappedEntity($this->table->getName(), $entity);
+    }
+
+    public function fetch(): Entity {
+        $this->table->find();
+        $this->next();
+        return $this->getEntity();
+    }
+
+    public function fetchBy(string $field, $value): Entity {
+        $this->table->clear();
+        $this->table->$field = $value;
+        return $this->fetch();
+    }
+
+    public function createEntity(): Entity {
+        $this->table->save();
+        $this->table->find();
+        $this->table->next();
+        $entity = Entity::builder()
+            ->resultSet($this->table->getResultSet())
+            ->schema($this->table->getTableSchema())
+            ->mapper($this)
+            ->build();
         return $this->getEm()->mappedEntity($this->table->getName(), $entity);
     }
 
@@ -75,6 +107,7 @@ class EntityMapper implements TableQueryInterface
         $this->recordSet = null;
         $this->mode = self::TABLE_MODE;
         $this->table->clear();
+        $this->changes = [];
         if (Optional::ofNullable($this->database)->isPresent()) {
             $this->database->clear();
         }
@@ -149,6 +182,7 @@ class EntityMapper implements TableQueryInterface
         if (!isset($this->database)) {
             $this->database = $this->table->getDatabase();
         }
+        $this->name = $this->table->getName();
         if (!isset($this->entityResultSetBuilder)) {
             $this->entityResultSetBuilder = fn() => ResultSet::builder()
                 ->recordSet($this->recordSet)
