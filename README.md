@@ -8,7 +8,14 @@ Amtgard Active Record ORM (Aaro) is an active record data access layer, in the v
 
 Aaro focuses on two basic use cases: CRUD operations with basic constraints and SQL record sets. Aaro does not offer facilities for modeling relationships or a DSL over SQL - the concept is that SQL is already the most robust language for this purpose.
 
-In addition to basic table- and record set-level access, Aaro offers a basic Entity Manager system for automatically persisting records to the database when the current script terminates or explicitly when `flush()`ed.
+Aaro provides four operating modes for database access:
+
+1. **Low level database** - Direct active record operations and SQL queries using the `Database` class
+2. **Table level access** - Active record operations and queries using the `Table` class
+3. **Entity level** - Object mapping with automatic persistence using `EntityMapper` and `Entity` classes
+4. **RepositoryEntity abstraction level** - High-level repository pattern with `Repository` and `RepositoryEntity` classes for type-safe, ergonomic data access
+
+Each mode builds upon the previous, offering increasing levels of abstraction and convenience while maintaining the flexibility to drop down to lower levels when needed.
 
 ## Installation
 
@@ -297,7 +304,7 @@ EntityManager::configure($entityManager);
 An EntityMapper wraps a given table or record set and provides manual and automatic persistence.
 
 ```php
-// Create an EntityMapper
+// Create an EntityOf
 $entityMapper = EntityMapper::builder()
     ->table($itemTable)
     ->build();
@@ -335,7 +342,7 @@ echo $entity->string_value;
 
 ### Entity State Management
 
-Entities may be manually persisted by calling `flushAll()` or `flushMapper('item_table')`. 
+Entities may be manually persisted using various `persist*()` methods. 
 
 ```php
 // Get entity by ID from EntityManager
@@ -343,9 +350,117 @@ $entity = EntityManager::getManager()->getEntity('table_name', 1);
 
 $entity->string_value = "new value";
 
-// Flush all changes
-EntityManager::getManager()->flushAll();
+// Persist a specific entity
+EntityManager::getManager()->persist($entity);
+
+// Persist all entities across all mappers
+EntityManager::getManager()->persistAll();
+
+// Persist all entities for a specific mapper
+EntityManager::getManager()->persistMapper('table_name');
+
+// Persist with no arguments (same as persistAll)
+EntityManager::getManager()->persist();
 ```
+
+## RepositoryEntity Mode
+
+The RepositoryEntity abstraction level provides a high-level, type-safe interface for working with database entities. This mode uses the Repository pattern with attribute-based configuration.
+
+### Setting Up RepositoryEntity Mode
+
+First, create a Repository class that extends `Repository` and implements `EntityRepositoryInterface`:
+
+```php
+use Amtgard\ActiveRecordOrm\Attribute\RepositoryOf;
+use Amtgard\ActiveRecordOrm\Entity\Repository\Repository;
+use Amtgard\ActiveRecordOrm\Interface\EntityRepositoryInterface;
+
+#[RepositoryOf("items", ItemEntity::class)]
+class ItemRepository extends Repository implements EntityRepositoryInterface
+{
+    public static function getTableName()
+    {
+        return 'items';
+    }
+
+    public static function getEntityClass()
+    {
+        return ItemEntity::class;
+    }
+}
+```
+
+Then, create a RepositoryEntity class that extends `RepositoryEntity` and uses the `RepositoryEntityTrait`:
+
+```php
+use Amtgard\ActiveRecordOrm\Attribute\EntityOf;
+use Amtgard\ActiveRecordOrm\Attribute\Field;
+use Amtgard\ActiveRecordOrm\Attribute\PrimaryKey;
+use Amtgard\ActiveRecordOrm\Entity\Repository\RepositoryEntity;
+use Amtgard\ActiveRecordOrm\Trait\RepositoryEntityTrait;
+use Amtgard\Traits\Builder\Builder;
+use Amtgard\Traits\Builder\Data;
+use Amtgard\Traits\Builder\ToBuilder;
+
+#[EntityOf(ItemRepository::class)]
+class ItemEntity extends RepositoryEntity
+{
+    use Builder, ToBuilder, Data, RepositoryEntityTrait;
+
+    #[PrimaryKey]
+    private ?int $id;
+
+    #[Field('string_value')]
+    private ?string $name;
+
+    #[Field('int_value')]
+    private ?int $quantity;
+}
+```
+
+### Working with RepositoryEntity
+
+```php
+// Get repository from EntityManager
+$itemRepository = EntityManager::getManager()->getRepository(ItemRepository::class);
+
+// Fetch an entity by ID
+$item = $itemRepository->fetch(1);
+echo $item->getName();
+
+// Create a new entity
+$newItem = $itemRepository->createEntity();
+$newItem->setName("New Item");
+$newItem->setQuantity(10);
+
+// Persist the entity
+EntityManager::getManager()->persist($newItem);
+
+// Or use the builder pattern
+$item = ItemEntity::builder()
+    ->name("Another Item")
+    ->quantity(5)
+    ->build();
+
+EntityManager::getManager()->persist($item);
+
+// Fetch with conditions
+$item = $itemRepository->fetchBy('name', 'Specific Item');
+
+// Update entity
+$item->setName("Updated Name");
+EntityManager::getManager()->persist($item);
+```
+
+### RepositoryEntity Features
+
+- **Type Safety**: Strongly typed entities with IDE autocomplete support
+- **Field Mapping**: Map database columns to entity properties using `#[Field]` attribute
+- **Automatic Mapper Resolution**: Entities automatically resolve their mapper from the `#[EntityOf]` attribute
+- **Builder Pattern**: Create entities using a fluent builder interface
+- **Change Tracking**: Entities track changes and only persist modified fields
+- **Type Conversions**: Automatic conversion between database types and PHP types (e.g., DateTime)
 
 ## Advanced Features
 

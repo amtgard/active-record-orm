@@ -183,7 +183,7 @@ class EntityMapperTest extends AmtgardTestCase
 
         $entity->datetime_value = $datetime;
         $entity->int_value = $datetime;
-        self::assertDoesNotThrow(fn() => $entity->flush($entityMapper));
+        self::assertDoesNotThrow(fn() => $entity->persist($entityMapper));
 
         $entity = $entityMapper->fetchBy('id', $entityId);
 
@@ -202,7 +202,7 @@ class EntityMapperTest extends AmtgardTestCase
 
         $entity1->int_value = $entity2;
 
-        self::assertDoesNotThrow(fn() => $entity1->flush($entityMapper));
+        self::assertDoesNotThrow(fn() => $entity1->persist($entityMapper));
 
         $entity = $entityMapper->fetchBy('id', 1);
         assertEquals($entity2->id, $entity1->int_value);
@@ -243,5 +243,25 @@ class EntityMapperTest extends AmtgardTestCase
         $entity = $entityMapper->fetchBy('id', $entityId);
         assertNotNull($entity);
         assertEquals("2", $entity->string_value);
+    }
+
+    public function testPersist() {
+        self::resetTable();
+
+        $itemTable = EntityMapperTest::$itemTable;
+        $entityMapper = EntityMapper::builder()->em(EntityMapperTest::$em)->table($itemTable)->build();
+        $entityMapper->clear();
+        $entityMapper->string_value = "bar-baz";
+        $entityMapper->int_value = 83;
+        $entity = $entityMapper->createEntity();
+
+
+        $entityMapper->clear();
+        $entityMapper->id = $entity->id;
+        assertEquals("bar-baz", $entity->string_value);
+
+        EntityMapperTest::$db->clear();
+        EntityMapperTest::$db->execute("select * from integ where string_value = 'bar-baz'");
+        assertEquals(83, $entity->int_value);
     }
 }

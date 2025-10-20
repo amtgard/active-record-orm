@@ -5,7 +5,7 @@ namespace Tests\Unit;
 use Amtgard\ActiveRecordOrm\Entity\Entity;
 use Amtgard\ActiveRecordOrm\Entity\EntityMapper;
 use Amtgard\ActiveRecordOrm\Interface\TableInterface;
-use Amtgard\ActiveRecordOrm\Interface\TableQueryInterface;
+use Amtgard\ActiveRecordOrm\Interface\ActiveRecordTableInterface;
 use Amtgard\ActiveRecordOrm\ResultSet;
 use Amtgard\ActiveRecordOrm\Schema\FieldDefinition;
 use Amtgard\ActiveRecordOrm\Schema\TableSchema;
@@ -78,7 +78,7 @@ class EntityTest extends AmtgardTestCase
         Phake::when($this->mockTable)->clear()->thenReturnSelf();
         Phake::when($this->mockTable)->save()->thenReturnSelf();
         
-        $this->entity->flush($this->mockEntityMapper);
+        $this->entity->persist($this->mockEntityMapper);
         
         // Verify that clear was called
         Phake::verify($this->mockTable)->clear();

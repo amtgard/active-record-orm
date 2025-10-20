@@ -2,22 +2,23 @@
 
 namespace Tests\Integration;
 
+use Amtgard\ActiveRecordOrm\Attribute\EntityOf;
+use Amtgard\ActiveRecordOrm\Attribute\RepositoryOf;
 use Amtgard\ActiveRecordOrm\Configuration\DataAccessPolicy\UncachedDataAccessPolicy;
 use Amtgard\ActiveRecordOrm\Configuration\Repository\DatabaseConfiguration;
 use Amtgard\ActiveRecordOrm\Configuration\Repository\MysqlPdoProvider;
 use Amtgard\ActiveRecordOrm\Entity\Entity;
 use Amtgard\ActiveRecordOrm\Entity\EntityMapper;
 use Amtgard\ActiveRecordOrm\Entity\Policy\UncachedPolicy;
+use Amtgard\ActiveRecordOrm\Entity\Repository\Repository;
+use Amtgard\ActiveRecordOrm\Entity\Repository\RepositoryEntity;
 use Amtgard\ActiveRecordOrm\EntityManager;
 use Amtgard\ActiveRecordOrm\Interface\DataAccessPolicy;
 use Amtgard\ActiveRecordOrm\Interface\EntityInterface;
-use Amtgard\ActiveRecordOrm\Interface\EntityRepositoryInterface;
 use Amtgard\ActiveRecordOrm\Repository\Database;
-use Amtgard\ActiveRecordOrm\Schema\FieldDefinition;
-use Amtgard\ActiveRecordOrm\Schema\FieldType;
 use Amtgard\ActiveRecordOrm\Table;
 use Amtgard\ActiveRecordOrm\TableFactory;
-use Amtgard\ActiveRecordOrm\Trait\EntityTrait;
+use Amtgard\ActiveRecordOrm\Trait\RepositoryEntityTrait;
 use Amtgard\PHPUnit\AmtgardTestCase;
 use Amtgard\Traits\Builder\Builder;
 use Amtgard\ActiveRecordOrm\Attribute\Field;
@@ -28,7 +29,8 @@ use DateTime;
 use Dotenv\Dotenv;
 use function PHPUnit\Framework\assertEquals;
 
-class SomeRepository extends EntityMapper implements EntityRepositoryInterface {
+#[RepositoryOf("integ", SomeEntity::class)]
+class SomeRepository extends Repository {
     static function getTableName() {
         return 'integ';
     }
@@ -38,22 +40,23 @@ class SomeRepository extends EntityMapper implements EntityRepositoryInterface {
     }
 }
 
-class SomeEntity extends Entity {
-    use Builder, ToBuilder, Data, EntityTrait;
+#[EntityOf(SomeRepository::class)]
+class SomeEntity extends RepositoryEntity {
+    use Builder, ToBuilder, Data, RepositoryEntityTrait;
 
     #[PrimaryKey]
-    private int $id;
+    private ?int $id;
     #[Field('string_value')]
-    private string $name;
+    private ?string $name;
     #[Field('datetime_value')]
-    private DateTime $createdAt;
-    private $linkId;
+    private ?DateTime $createdAt;
+    private ?int $linkId;
     #[Field('int_value', 'linkId')]
-    private SomeEntity $link;
+    private ?SomeEntity $link;
 }
 
-function SomeEntity(Entity $entity): SomeEntity {
-    return SomeEntity::mapEntity($entity);
+function SomeEntity(EntityInterface $entity): SomeEntity {
+    return SomeEntity::toRepositoryEntity($entity);
 }
 
 class EntityErgonomicsTest extends AmtgardTestCase
@@ -66,7 +69,7 @@ class EntityErgonomicsTest extends AmtgardTestCase
 
     public static EntityManager $em;
 
-    public static function setUpBeforeClass(): void
+    public function setUp(): void
     {
         $dotenvPath = dirname(dirname(__DIR__)) . DIRECTORY_SEPARATOR . "test-resources";
         $dotenvFile = $dotenvPath . DIRECTORY_SEPARATOR . '.env';
@@ -124,6 +127,40 @@ class EntityErgonomicsTest extends AmtgardTestCase
         assertEquals("2", $someEntity->getName());
     }
 
+    public function testNewEntityByCreateEntity(): void {
+        $someRepo = EntityManager::getManager()->getRepository(SomeRepository::class);
+
+        $someEntity = $someRepo->createEntity();
+        $someEntity->setName("new entity 1");
+        assertEquals(4, $someEntity->id);
+        EntityManager::getManager()->persist($someEntity);
+
+        EntityErgonomicsTest::$itemTable->clear();
+        EntityErgonomicsTest::$itemTable->string_value = "new entity 1";
+        if (EntityErgonomicsTest::$itemTable->find() > 0) {
+            EntityErgonomicsTest::$itemTable->next();
+            assertEquals(4, EntityErgonomicsTest::$itemTable->id);
+        }
+
+        EntityErgonomicsTest::$itemTable->clear();
+        assertEquals(4, EntityErgonomicsTest::$itemTable->find());
+    }
+
+    public function testNewEntityViaErgonomicRepository(): void {
+        $someEntity = SomeEntity::builder()->name("new entity 2")->build();
+        EntityManager::getManager()->persist($someEntity);
+
+        EntityErgonomicsTest::$itemTable->clear();
+        EntityErgonomicsTest::$itemTable->string_value = "new entity 2";
+        if (EntityErgonomicsTest::$itemTable->find() > 0) {
+            EntityErgonomicsTest::$itemTable->next();
+            assertEquals(4, EntityErgonomicsTest::$itemTable->id);
+        }
+
+        EntityErgonomicsTest::$itemTable->clear();
+        assertEquals(4, EntityErgonomicsTest::$itemTable->find());
+    }
+
     public function testComposedEntities_haveCachedSemantics(): void {
         $someRepo = EntityManager::getManager()->getRepository(SomeRepository::class);
         $someEntity = $someRepo->fetch(1);
@@ -134,21 +171,6 @@ class EntityErgonomicsTest extends AmtgardTestCase
 
         $nextEntity = $someRepo->fetch(1);
         assertEquals("new name", $nextEntity->getName());
-    }
-
-    public function testEntityConveniences(): void {
-        $itemTable = EntityErgonomicsTest::$itemTable;
-        $entityMapper = EntityMapper::builder()->em(EntityErgonomicsTest::$em)->entityInterface(SomeEntity::class)->table($itemTable)->build();
-
-        $entity1 = $entityMapper->fetch(1);
-        $entity2 = $entityMapper->fetch(2);
-
-        $someEntity1 = SomeEntity::mapEntity($entity1);
-        $someEntity2 = SomeEntity::mapEntity($entity2);
-
-        assertEquals($entity1->id, $someEntity1->getId());
-
-        $someEntity1->setLink($someEntity2);
     }
 
     public function testLowerErgonomics() {
@@ -164,23 +186,15 @@ class EntityErgonomicsTest extends AmtgardTestCase
             ->name("banana")
             ->build();
 
-        self::assertDoesNotThrow(fn() => EntityErgonomicsTest::$em->persist($entityMapper->getName(), $someEntity));
-    }
-
-    public function testEntityMapper_withEntityInterface() {
-        $itemTable = EntityErgonomicsTest::$itemTable;
-        $entityMapper = EntityMapper::builder()->em(EntityErgonomicsTest::$em)->entityInterface(SomeEntity::class)->table($itemTable)->build();
-
-        $someEntity = $entityMapper->fetch(1);
-
-        assertEquals(get_class($someEntity), SomeEntity::class);
+        self::assertDoesNotThrow(fn() => EntityErgonomicsTest::$em->register($entityMapper->getName(), $someEntity));
     }
 
     public function testFetch_Update_andPersist() {
         $itemTable = EntityErgonomicsTest::$itemTable;
         $entityMapper = EntityMapper::builder()->em(EntityErgonomicsTest::$em)->table($itemTable)->build();
 
-        $someEntity = SomeEntity($entityMapper->fetch(1));
+        $entity = $entityMapper->fetch(1);
+        $someEntity = SomeEntity($entity);
 
         $someEntity->setName("rabba zabba");
 

@@ -22,7 +22,7 @@ class Entity implements EntityInterface
     private array $fields;
     private array $changes = [];
 
-    private EntityMapper $mapper;
+    protected EntityMapper $mapper;
 
     public function __get(string $name) {
         return $this->fields[$name] ?? null;
@@ -81,7 +81,7 @@ class Entity implements EntityInterface
             ->build();
     }
 
-    public function flush(EntityMapper $mapper) {
+    public function persist(EntityMapper $mapper) {
         if ($this->isDirty()) {
             $table = $mapper->getTable();
             $table->clear();

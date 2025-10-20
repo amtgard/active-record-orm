@@ -7,7 +7,7 @@ use Amtgard\ActiveRecordOrm\Entity\Policy\RepositoryPolicy;
 use Amtgard\ActiveRecordOrm\EntityManager;
 use Amtgard\ActiveRecordOrm\Entity\EntityMapper;
 use Amtgard\ActiveRecordOrm\Interface\DataAccessPolicy;
-use Amtgard\ActiveRecordOrm\Interface\TableQueryInterface;
+use Amtgard\ActiveRecordOrm\Interface\ActiveRecordTableInterface;
 use Amtgard\ActiveRecordOrm\Query\OrderBy;
 use Amtgard\ActiveRecordOrm\RecordSet;
 use Amtgard\ActiveRecordOrm\Repository\Database;
@@ -200,7 +200,7 @@ class EntityMapperTest extends AmtgardTestCase
 
     public function testPage_delegatesToTable(): void
     {
-        $mockTableQuery = Phake::mock(TableQueryInterface::class);
+        $mockTableQuery = Phake::mock(ActiveRecordTableInterface::class);
         Phake::when($this->mockTable)->page(20, 2)->thenReturn($mockTableQuery);
         
         $result = $this->entityMapper->page(20, 2);

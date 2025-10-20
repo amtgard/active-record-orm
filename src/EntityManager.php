@@ -5,6 +5,7 @@ namespace Amtgard\ActiveRecordOrm;
 use Amtgard\ActiveRecordOrm\Entity\Entity;
 use Amtgard\ActiveRecordOrm\Entity\EntityMapper;
 use Amtgard\ActiveRecordOrm\Entity\Policy\RepositoryPolicy;
+use Amtgard\ActiveRecordOrm\Exception\AmtgardOrmException;
 use Amtgard\ActiveRecordOrm\Interface\DataAccessPolicy;
 use Amtgard\ActiveRecordOrm\Interface\EntityInterface;
 use Amtgard\ActiveRecordOrm\Interface\EntityMapperInterface;
@@ -27,13 +28,17 @@ class EntityManager
     private $mapperSupplier;
     private bool $preventShutdown = false;
 
-    // $tables[tableName] => EntityMapper
+    // $mappers[tableName] => EntityMapper
     /* @var \Amtgard\ActiveRecordOrm\Entity\EntityMapper[] */
     private array $mappers = [];
 
-    // $entities[tableName][id] => entity
+    // $entities[tableName][id] => EntityInterface
     /* @var \Amtgard\ActiveRecordOrm\Entity\Entity[][] */
     private array $entities = [];
+
+    // $repositories[tableName] => Repository
+    /* @var \Amtgard\ActiveRecordOrm\Interface\EntityRepositoryInterface[] */
+    private array $repositories = [];
 
     private function __construct() { }
 
@@ -51,32 +56,52 @@ class EntityManager
         return static::$instance;
     }
 
-    public function getRepository(string $repository): EntityMapper {
-        $table = TableFactory::build($this->database, $this->dataAccessPolicy, $repository::getTableName());
-        return $repository::builder()->em($this)->entityInterface($repository::getEntityClass())->table($table)->build();
+    public function getRepository(string $repository): EntityRepositoryInterface {
+        if (!class_exists($repository)) {
+            throw new AmtgardOrmException(sprintf('Repository class "%s" does not exist.', $repository));
+        }
+        if (!in_array(EntityRepositoryInterface::class, class_implements($repository))) {
+            throw new AmtgardOrmException(sprintf('Repository class "%s" must implement EntityRepositoryInterface.', $repository));
+        }
+        $this->repositories[$repository::getTableName()] = Optional::ofNullable($this->repositories[$repository::getTableName()])
+            ->orElseGet(function() use ($repository) {
+                $mapper = $this->mapper($repository::getTableName());
+                return $repository::builder()->entityManager($this)->tableName($repository::getTableName())->entityMapper($mapper)->build();
+            });
+        return $this->repositories[$repository::getTableName()];
     }
 
-    public function flushAll() {
-        $mappers = $this->getMappers();
-        foreach ($mappers as $mapperName => $mapper) {
-            EntityManager::flushMapper($mapperName);
+    public function persist(string|EntityMapper|EntityInterface|null $persistable = null) {
+        if (is_null($persistable)) {
+            $this->persistAll();
+        } else if ($persistable instanceof EntityInterface) {
+            $this->persistEntity($persistable);
+        } else {
+            $this->persistMapper($persistable);
         }
     }
 
-    public function flushMapper(string|EntityMapper $mapperRef) {
-        $mapperRef = is_string($mapperRef) ? $mapperRef : $mapperRef->getName();
-        Optional::ofNullable($this->getMapper($mapperRef))
-            ->map(function($mapper) use ($mapperRef) {
-                foreach ($this->getMapperEntities($mapperRef) as $entity) {
-                    $policy = $this->getRepositoryPolicy();
-                    $policy->flushEntity($mapper, $entity);
-                }
-            });
+    public function persistAll() {
+        $mappers = $this->getMappers();
+        foreach ($mappers as $mapperName => $mapper) {
+            EntityManager::persist($mapperName);
+        }
     }
 
-    public function flush(Entity $entity) {
+    public function persistEntity(EntityInterface $entity) {
         $policy = $this->getRepositoryPolicy();
-        $policy->flushEntity($entity->getMapper(), $entity);
+        $policy->persist($entity->getMapper(), $entity);
+    }
+
+    public function persistMapper(string|EntityMapper $entityMapper) {
+        $entityMapper = is_string($entityMapper) ? $entityMapper : $entityMapper->getName();
+        Optional::ofNullable($this->getMapper($entityMapper))
+            ->map(function ($mapper) use ($entityMapper) {
+                foreach ($this->getMapperEntities($entityMapper) as $entity) {
+                    $policy = $this->getRepositoryPolicy();
+                    $policy->persist($mapper, $entity);
+                }
+            });
     }
 
     public function clearAll() {
@@ -91,8 +116,10 @@ class EntityManager
         }
     }
 
-    public function persist(string $mapperName, Entity $repositoryEntity): EntityInterface {
-        return Optional::ofNullable($this->getEntity($mapperName, $repositoryEntity->getPrimaryKey()->getValue()))
+    public function register(string $mapperName, EntityInterface $repositoryEntity): EntityInterface {
+        $primaryKeyValue = $repositoryEntity->getPrimaryKey()->getValue();
+        $entity = $this->getEntity($mapperName, $primaryKeyValue);
+        return Optional::ofNullable($entity)
             ->map(function($entity) use ($repositoryEntity) {
                 return $entity;
             })
@@ -122,7 +149,7 @@ class EntityManager
         return array_key_exists($mapperName, $this->entities) ? $this->entities[$mapperName] : [];
     }
 
-    protected function getMapper($mapperName): ?EntityMapper {
+    public function getMapper($mapperName): ?EntityMapper {
         return array_key_exists($mapperName, $this->mappers) ? $this->mappers[$mapperName] : null;
     }
 
@@ -155,7 +182,7 @@ class EntityManager
         }
         if (!$this->preventShutdown) {
             register_shutdown_function(function() {
-                $this->flushAll();
+                $this->persistAll();
             });
         }
     }

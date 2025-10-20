@@ -4,7 +4,7 @@ namespace Amtgard\ActiveRecordOrm\Interface;
 
 use Amtgard\ActiveRecordOrm\Query\OrderBy;
 
-interface TableQueryInterface
+interface ActiveRecordTableInterface
 {
     /**
      * Magic method to set field values

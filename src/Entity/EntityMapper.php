@@ -4,7 +4,9 @@ namespace Amtgard\ActiveRecordOrm\Entity;
 
 use Amtgard\ActiveRecordOrm\EntityManager;
 use Amtgard\ActiveRecordOrm\Interface\EntityInterface;
-use Amtgard\ActiveRecordOrm\Interface\TableQueryInterface;
+use Amtgard\ActiveRecordOrm\Interface\ActiveRecordTableInterface;
+use Amtgard\ActiveRecordOrm\Interface\EntityMapperInterface;
+use Amtgard\ActiveRecordOrm\Interface\QueryableInterface;
 use Amtgard\ActiveRecordOrm\Query\OrderBy;
 use Amtgard\ActiveRecordOrm\RecordSet;
 use Amtgard\ActiveRecordOrm\Repository\Database;
@@ -14,7 +16,7 @@ use Amtgard\Traits\Builder\Builder;
 use Amtgard\Traits\Builder\PostInit;
 use Optional\Optional;
 
-class EntityMapper implements TableQueryInterface
+class EntityMapper implements ActiveRecordTableInterface, EntityMapperInterface, QueryableInterface
 {
     use Builder;
 
@@ -29,10 +31,8 @@ class EntityMapper implements TableQueryInterface
     private string $querySql;
     private ?RecordSet $recordSet;
     private $entityResultSetBuilder = null;
-    private string $name;
+    protected string $name;
     private array $changes = [];
-
-    protected ?string $entityInterface = null;
 
     public function getName(): string {
         return $this->name;
@@ -68,10 +68,7 @@ class EntityMapper implements TableQueryInterface
             ->mapper($this)
             ->build();
 
-        //
-        //    there is confusion here. persistance and caching should not be confused
-        //
-        return $this->convertToEntityInterface($this->getEm()->persist($this->table->getName(), $entity));
+        return $this->getEm()->register($this->table->getName(), $entity);
     }
 
     public function fetch($primaryKeyValue = null): EntityInterface {
@@ -97,20 +94,23 @@ class EntityMapper implements TableQueryInterface
         return $this->fetch();
     }
 
-    public function persist(Entity $entity): EntityInterface {
-        return $this->convertToEntityInterface(EntityManager::getManager()->persist($this->getName(), $entity));
+    public function persist(EntityInterface $entity): EntityInterface {
+        return EntityManager::getManager()->register($this->getName(), $entity);
     }
 
-    public function createEntity(): EntityInterface {
+    public function createInternalEntity(): EntityInterface {
         $this->table->save();
         $this->table->find();
         $this->table->next();
-        $entity = Entity::builder()
+        return Entity::builder()
             ->resultSet($this->table->getResultSet())
             ->schema($this->table->getTableSchema())
             ->mapper($this)
             ->build();
-        return $this->convertToEntityInterface($this->getEm()->persist($this->table->getName(), $entity));
+    }
+
+    public function createEntity(): EntityInterface {
+        return $this->getEm()->register($this->table->getName(), $this->createInternalEntity());
     }
 
     public function query($sql): void {
@@ -154,7 +154,7 @@ class EntityMapper implements TableQueryInterface
         return $this->table->count($countAlias);
     }
 
-    public function page(int $size = 10, int $page = 0): TableQueryInterface
+    public function page(int $size = 10, int $page = 0): ActiveRecordTableInterface
     {
         return $this->table->page($size, $page);
     }
@@ -187,16 +187,6 @@ class EntityMapper implements TableQueryInterface
         return $this->table;
     }
 
-    public function convertToEntityInterface(EntityInterface $entity): EntityInterface {
-        return Optional::ofNullable($this->entityInterface)
-            ->map(function($entityClass) use ($entity) {
-                return $entity->convertTo($entityClass);
-            })
-            ->orElseGet(function() use ($entity) {
-                return $entity;
-            });
-    }
-
     private function getEm(): EntityManager {
         return Optional::ofNullable($this->em)
             ->orElseGet(function() {
@@ -208,7 +198,7 @@ class EntityMapper implements TableQueryInterface
     #[PostInit]
     private function postInit() {
         if (!isset($this->table)) {
-            throw new \Exception('A table must be set for EntityMapper.');
+            throw new \Exception('A table must be set for EntityOf.');
         }
         if (!isset($this->database)) {
             $this->database = $this->table->getDatabase();

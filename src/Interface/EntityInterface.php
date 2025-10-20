@@ -12,7 +12,7 @@ interface EntityInterface
 
     function getPrimaryKey(): FieldDefinition;
 
-    function flush(EntityMapper $mapper);
+    function persist(EntityMapper $mapper);
 
 
 }

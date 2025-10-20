@@ -8,7 +8,7 @@ use Amtgard\ActiveRecordOrm\Entity\EntityMapper;
 use Amtgard\ActiveRecordOrm\Entity\Policy\RepositoryPolicy;
 use Amtgard\ActiveRecordOrm\Interface\DataAccessPolicy;
 use Amtgard\ActiveRecordOrm\Interface\TableInterface;
-use Amtgard\ActiveRecordOrm\Interface\TableQueryInterface;
+use Amtgard\ActiveRecordOrm\Interface\ActiveRecordTableInterface;
 use Amtgard\ActiveRecordOrm\Repository\Database;
 use Amtgard\ActiveRecordOrm\Schema\FieldDefinition;
 use Amtgard\ActiveRecordOrm\Table;
@@ -88,11 +88,11 @@ class EntityManagerTest extends AmtgardTestCase
         Phake::when($this->mockFieldDefinition)->getValue()->thenReturn(22);
 
         $instance = EntityManager::getManager();
-        $instance->persist("test_table", $this->mockEntity);
-        $instance->flushAll();
+        $instance->register("test_table", $this->mockEntity);
+        $instance->persist();
 
         // Verify that flushEntity was called with the correct parameters
-        Phake::verify($this->mockRepositoryPolicy)->flushEntity($this->mockEntityMapper, $this->mockEntity);
+        Phake::verify($this->mockRepositoryPolicy)->persist($this->mockEntityMapper, $this->mockEntity);
     }
 
     public function testClearAll_callsClearForAllMappers(): void
@@ -102,7 +102,7 @@ class EntityManagerTest extends AmtgardTestCase
         Phake::when($this->mockFieldDefinition)->getValue()->thenReturn(22);
         Phake::when($this->mockEntityMapper)->mappedEntity("test_table", $this->mockEntity)->thenReturn($this->mockEntity);
 
-        EntityManager::getManager()->persist("test_table", $this->mockEntity);
+        EntityManager::getManager()->register("test_table", $this->mockEntity);
 
         $entities = EntityManager::getManager()->getMapperEntities("test_table");
         self::assertEquals(1, count($entities));
@@ -119,7 +119,7 @@ class EntityManagerTest extends AmtgardTestCase
         Phake::when($this->mockFieldDefinition)->getValue()->thenReturn(22);
         Phake::when($this->mockEntityMapper)->mappedEntity("test_table", $this->mockEntity)->thenReturn($this->mockEntity);
 
-        EntityManager::getManager()->persist("test_table", $this->mockEntity);
+        EntityManager::getManager()->register("test_table", $this->mockEntity);
 
         $result = EntityManager::getManager()->getMappers();
 

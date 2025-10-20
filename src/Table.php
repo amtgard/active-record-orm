@@ -108,7 +108,7 @@ class Table implements TableInterface
         return $this->recordSet->size();
     }
 
-    public function page(int $size = 10, int $page = 0): Interface\TableQueryInterface
+    public function page(int $size = 10, int $page = 0): Interface\ActiveRecordTableInterface
     {
         $this->withLimit = true;
         $this->offset = $size * $page;

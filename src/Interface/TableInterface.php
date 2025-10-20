@@ -6,7 +6,7 @@ use Amtgard\ActiveRecordOrm\Query\Operation;
 use Amtgard\ActiveRecordOrm\Query\OrderBy;
 use Amtgard\ActiveRecordOrm\ResultSet;
 
-interface TableInterface extends TableQueryInterface
+interface TableInterface extends ActiveRecordTableInterface
 {
 
     /**

@@ -26,8 +26,8 @@ class UncachedPolicyTest extends AmtgardTestCase
 
     public function testFlushEntity_delegatesToEntityFlush(): void
     {
-        $this->uncachedPolicy->flushEntity($this->mockEntityMapper, $this->mockEntity);
+        $this->uncachedPolicy->persist($this->mockEntityMapper, $this->mockEntity);
         
-        Phake::verify($this->mockEntity)->flush($this->mockEntityMapper);
+        Phake::verify($this->mockEntity)->persist($this->mockEntityMapper);
     }
 }
