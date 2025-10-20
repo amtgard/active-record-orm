@@ -2,7 +2,11 @@
 
 namespace Amtgard\ActiveRecordOrm\Configuration\Repository;
 
+use Amtgard\ActiveRecordOrm\Entity\Entity;
+use Amtgard\ActiveRecordOrm\Schema\FieldType;
+use Amtgard\ActiveRecordOrm\Schema\Schema;
 use Amtgard\Traits\Builder\Builder;
+use DateTime;
 use PDO;
 
 class MysqlPdoProvider implements PdoProviderInterface
@@ -37,5 +41,32 @@ class MysqlPdoProvider implements PdoProviderInterface
     public function getDatabaseName(): string
     {
         return $this->configuration->getConfig()['dbname'];
+    }
+
+    public function convertToProviderParams(Schema $schema, array $params): array
+    {
+        $convertedParams = [];
+        foreach ($params as $name => $value) {
+            if ($schema->hasField($name)) {
+                $field = $schema->getField($name);
+                $type = $field->getType();
+                switch (gettype($value)) {
+                    case "object":
+                        if ($value instanceof DateTime && $type == FieldType::DATETIME) {
+                            $convertedParams[$name] = $value->format('Y-m-d H:i:s');
+                        }
+                        if ($value instanceof DateTime && $type == FieldType::INTEGER) {
+                            $convertedParams[$name] = $value->format('U');
+                        }
+                        if ($value instanceof Entity && $type == FieldType::INTEGER) {
+                            $convertedParams[$name] = $value->getPrimaryKey()->getValue();
+                        }
+                        break;
+                    default:
+                        $convertedParams[$name] = $value;
+                }
+            }
+        }
+        return $convertedParams;
     }
 }

@@ -6,11 +6,16 @@ use Amtgard\ActiveRecordOrm\Entity\Entity;
 use Amtgard\ActiveRecordOrm\Entity\EntityMapper;
 use Amtgard\ActiveRecordOrm\Entity\Policy\RepositoryPolicy;
 use Amtgard\ActiveRecordOrm\Interface\DataAccessPolicy;
+use Amtgard\ActiveRecordOrm\Interface\EntityInterface;
+use Amtgard\ActiveRecordOrm\Interface\EntityMapperInterface;
+use Amtgard\ActiveRecordOrm\Interface\EntityRepositoryInterface;
 use Amtgard\ActiveRecordOrm\Repository\Database;
 use Amtgard\Traits\Builder\Builder;
 use Amtgard\Traits\Builder\Getter;
 use Amtgard\Traits\Builder\PostInit;
 use Optional\Optional;
+use Tests\Integration\EntityErgonomicsTest;
+use Tests\Integration\SomeEntity;
 
 class EntityManager
 {
@@ -46,22 +51,9 @@ class EntityManager
         return static::$instance;
     }
 
-    #[PostInit]
-    private function init() {
-        if (!Optional::ofNullable($this->mapperSupplier)->isPresent()) {
-            $this->mapperSupplier = fn($mapperName) => EntityMapper::builder()
-                ->table(TableFactory::build(
-                    $this->getDatabase(),
-                    $this->getDataAccessPolicy(),
-                    $mapperName))
-                ->name($mapperName)
-                ->build();
-        }
-        if (!$this->preventShutdown) {
-            register_shutdown_function(function() {
-                $this->flushAll();
-            });
-        }
+    public function getRepository(string $repository): EntityMapper {
+        $table = TableFactory::build($this->database, $this->dataAccessPolicy, $repository::getTableName());
+        return $repository::builder()->em($this)->entityInterface($repository::getEntityClass())->table($table)->build();
     }
 
     public function flushAll() {
@@ -99,7 +91,7 @@ class EntityManager
         }
     }
 
-    public function mappedEntity(string $mapperName, Entity $repositoryEntity): Entity {
+    public function persist(string $mapperName, Entity $repositoryEntity): EntityInterface {
         return Optional::ofNullable($this->getEntity($mapperName, $repositoryEntity->getPrimaryKey()->getValue()))
             ->map(function($entity) use ($repositoryEntity) {
                 return $entity;
@@ -110,7 +102,7 @@ class EntityManager
             });
     }
 
-    public function getEntity(string $tableName, int $entityId): ?Entity {
+    public function getEntity(string $tableName, int $entityId): ?EntityInterface {
         return Optional::ofNullable($this->getMapperEntities($tableName))
             ->map(function($entities) use ($entityId) {
                 return $entities[$entityId];
@@ -118,7 +110,7 @@ class EntityManager
             ->orElse(null);
     }
 
-    protected function registerEntity(string $mapperName, Entity $entity) {
+    protected function registerEntity(string $mapperName, EntityInterface $entity) {
         $this->mapper($mapperName);
         $entityId = $entity->getPrimaryKey()->getValue();
         if (!isset($this->entities[$mapperName][$entityId])) {
@@ -148,6 +140,24 @@ class EntityManager
                 $mapper = $this->getMapper($mapperName);
                 return $mapper;
             });
+    }
+
+    #[PostInit]
+    private function init() {
+        if (!Optional::ofNullable($this->mapperSupplier)->isPresent()) {
+            $this->mapperSupplier = fn($mapperName) => EntityMapper::builder()
+                ->table(TableFactory::build(
+                    $this->getDatabase(),
+                    $this->getDataAccessPolicy(),
+                    $mapperName))
+                ->name($mapperName)
+                ->build();
+        }
+        if (!$this->preventShutdown) {
+            register_shutdown_function(function() {
+                $this->flushAll();
+            });
+        }
     }
 
 }

@@ -7,6 +7,7 @@ use Amtgard\ActiveRecordOrm\Configuration\Repository\MysqlPdoProvider;
 use Amtgard\ActiveRecordOrm\Configuration\Repository\PdoProviderInterface;
 use Amtgard\ActiveRecordOrm\Query\Query;
 use Amtgard\ActiveRecordOrm\RecordSet;
+use Amtgard\ActiveRecordOrm\Schema\Schema;
 use Amtgard\Traits\Builder\Builder;
 use PDO;
 
@@ -19,6 +20,8 @@ class Database
     private array $__fields = [];
 
     private string $__databaseName;
+
+    private PdoProviderInterface $__pdo;
 
     private function __construct() { }
 

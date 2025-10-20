@@ -3,6 +3,7 @@
 namespace Amtgard\ActiveRecordOrm\Entity;
 
 use Amtgard\ActiveRecordOrm\EntityManager;
+use Amtgard\ActiveRecordOrm\Interface\EntityInterface;
 use Amtgard\ActiveRecordOrm\Interface\TableQueryInterface;
 use Amtgard\ActiveRecordOrm\Query\OrderBy;
 use Amtgard\ActiveRecordOrm\RecordSet;
@@ -20,8 +21,8 @@ class EntityMapper implements TableQueryInterface
     private const QUERY_MODE = 'query';
     private const TABLE_MODE = 'table';
 
-    private ?EntityManager $em = null;
-    private Table $table;
+    protected ?EntityManager $em = null;
+    protected Table $table;
     private Database $database;
 
     private string $mode = self::TABLE_MODE;
@@ -30,6 +31,8 @@ class EntityMapper implements TableQueryInterface
     private $entityResultSetBuilder = null;
     private string $name;
     private array $changes = [];
+
+    protected ?string $entityInterface = null;
 
     public function getName(): string {
         return $this->name;
@@ -52,7 +55,7 @@ class EntityMapper implements TableQueryInterface
         $this->changes[$name] = $value;
     }
 
-    public function getEntity(): Entity {
+    public function getEntity(): EntityInterface {
         if ($this->mode === self::QUERY_MODE) {
             $resultSet = call_user_func($this->entityResultSetBuilder);
         } else {
@@ -65,22 +68,40 @@ class EntityMapper implements TableQueryInterface
             ->mapper($this)
             ->build();
 
-        return $this->getEm()->mappedEntity($this->table->getName(), $entity);
+        //
+        //    there is confusion here. persistance and caching should not be confused
+        //
+        return $this->convertToEntityInterface($this->getEm()->persist($this->table->getName(), $entity));
     }
 
-    public function fetch(): Entity {
-        $this->table->find();
-        $this->next();
-        return $this->getEntity();
+    public function fetch($primaryKeyValue = null): EntityInterface {
+        return Optional::ofNullable($primaryKeyValue)
+            ->map(function($primaryKeyValue) {
+                $primaryKeyField = $this->table->getTableSchema()->getPrimaryKey()->getName();
+                $this->table->clear();
+                $this->table->$primaryKeyField = $primaryKeyValue;
+                $this->table->find();
+                $this->table->next();
+                return $this->getEntity();
+            })
+            ->orElseGet(function() {
+                $this->table->find();
+                $this->next();
+                return $this->getEntity();
+            });
     }
 
-    public function fetchBy(string $field, $value): Entity {
+    public function fetchBy(string $field, $value): EntityInterface {
         $this->table->clear();
         $this->table->$field = $value;
         return $this->fetch();
     }
 
-    public function createEntity(): Entity {
+    public function persist(Entity $entity): EntityInterface {
+        return $this->convertToEntityInterface(EntityManager::getManager()->persist($this->getName(), $entity));
+    }
+
+    public function createEntity(): EntityInterface {
         $this->table->save();
         $this->table->find();
         $this->table->next();
@@ -89,7 +110,7 @@ class EntityMapper implements TableQueryInterface
             ->schema($this->table->getTableSchema())
             ->mapper($this)
             ->build();
-        return $this->getEm()->mappedEntity($this->table->getName(), $entity);
+        return $this->convertToEntityInterface($this->getEm()->persist($this->table->getName(), $entity));
     }
 
     public function query($sql): void {
@@ -164,6 +185,16 @@ class EntityMapper implements TableQueryInterface
 
     public function getTable(): Table {
         return $this->table;
+    }
+
+    public function convertToEntityInterface(EntityInterface $entity): EntityInterface {
+        return Optional::ofNullable($this->entityInterface)
+            ->map(function($entityClass) use ($entity) {
+                return $entity->convertTo($entityClass);
+            })
+            ->orElseGet(function() use ($entity) {
+                return $entity;
+            });
     }
 
     private function getEm(): EntityManager {

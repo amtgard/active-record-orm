@@ -42,6 +42,8 @@ class EntityManagerTest extends AmtgardTestCase
         // Reset static state before each test
         $this->resetEntityManagerStaticState();
 
+        Phake::when($this->mockEntityMapper)->getName()->thenReturn("test_table");
+
         EntityManager::configure(EntityManager::builder()
             ->database($this->mockDatabase)
             ->repositoryPolicy($this->mockRepositoryPolicy)
@@ -86,7 +88,7 @@ class EntityManagerTest extends AmtgardTestCase
         Phake::when($this->mockFieldDefinition)->getValue()->thenReturn(22);
 
         $instance = EntityManager::getManager();
-        $instance->mappedEntity("test_table", $this->mockEntity);
+        $instance->persist("test_table", $this->mockEntity);
         $instance->flushAll();
 
         // Verify that flushEntity was called with the correct parameters
@@ -100,7 +102,7 @@ class EntityManagerTest extends AmtgardTestCase
         Phake::when($this->mockFieldDefinition)->getValue()->thenReturn(22);
         Phake::when($this->mockEntityMapper)->mappedEntity("test_table", $this->mockEntity)->thenReturn($this->mockEntity);
 
-        EntityManager::getManager()->mappedEntity("test_table", $this->mockEntity);
+        EntityManager::getManager()->persist("test_table", $this->mockEntity);
 
         $entities = EntityManager::getManager()->getMapperEntities("test_table");
         self::assertEquals(1, count($entities));
@@ -117,7 +119,7 @@ class EntityManagerTest extends AmtgardTestCase
         Phake::when($this->mockFieldDefinition)->getValue()->thenReturn(22);
         Phake::when($this->mockEntityMapper)->mappedEntity("test_table", $this->mockEntity)->thenReturn($this->mockEntity);
 
-        EntityManager::getManager()->mappedEntity("test_table", $this->mockEntity);
+        EntityManager::getManager()->persist("test_table", $this->mockEntity);
 
         $result = EntityManager::getManager()->getMappers();
 

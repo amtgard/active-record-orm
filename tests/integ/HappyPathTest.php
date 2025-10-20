@@ -20,7 +20,7 @@ use function PHPUnit\Framework\assertGreaterThan;
 use function PHPUnit\Framework\assertNotEqualsIgnoringCase;
 use function PHPUnit\Framework\assertTrue;
 
-class TestHappyPath extends TestCase
+class HappyPathTest extends TestCase
 {
     private static Database $db;
 
@@ -45,39 +45,39 @@ class TestHappyPath extends TestCase
 
         $config = DatabaseConfiguration::fromEnvironment();
         $provider = MysqlPdoProvider::fromConfiguration($config);
-        TestHappyPath::$db = Database::fromProvider($provider);
+        HappyPathTest::$db = Database::fromProvider($provider);
 
-        TestHappyPath::$tablePolicy = UncachedDataAccessPolicy::builder()->database(TestHappyPath::$db)->build();;
+        HappyPathTest::$tablePolicy = UncachedDataAccessPolicy::builder()->database(HappyPathTest::$db)->build();;
 
-        TestHappyPath::$itemTable = TableFactory::build(TestHappyPath::$db, TestHappyPath::$tablePolicy, 'integ');
+        HappyPathTest::$itemTable = TableFactory::build(HappyPathTest::$db, HappyPathTest::$tablePolicy, 'integ');
 
         self::resetTable();
 
     }
 
     private static function resetTable() {
-        TestHappyPath::$db->clear();
-        TestHappyPath::$db->execute("truncate table integ");
+        HappyPathTest::$db->clear();
+        HappyPathTest::$db->execute("truncate table integ");
 
-        TestHappyPath::$db->clear();
-        TestHappyPath::$db->string_value = "2";
-        TestHappyPath::$db->int_value = 3;
-        TestHappyPath::$db->execute("insert into integ (string_value, int_value) values (:string_value, :int_value)");
+        HappyPathTest::$db->clear();
+        HappyPathTest::$db->string_value = "2";
+        HappyPathTest::$db->int_value = 3;
+        HappyPathTest::$db->execute("insert into integ (string_value, int_value) values (:string_value, :int_value)");
 
-        TestHappyPath::$db->clear();
-        TestHappyPath::$db->string_value = "4";
-        TestHappyPath::$db->int_value = 5;
-        TestHappyPath::$db->execute("insert into integ (string_value, int_value) values (:string_value, :int_value)");
+        HappyPathTest::$db->clear();
+        HappyPathTest::$db->string_value = "4";
+        HappyPathTest::$db->int_value = 5;
+        HappyPathTest::$db->execute("insert into integ (string_value, int_value) values (:string_value, :int_value)");
 
-        TestHappyPath::$db->clear();
-        TestHappyPath::$db->string_value = "Bunny Rabbit Foo-Foo";
-        TestHappyPath::$db->int_value = 6;
-        TestHappyPath::$db->execute("insert into integ (string_value, int_value) values (:string_value, :int_value)");
-        TestHappyPath::$db->clear();
+        HappyPathTest::$db->clear();
+        HappyPathTest::$db->string_value = "Bunny Rabbit Foo-Foo";
+        HappyPathTest::$db->int_value = 6;
+        HappyPathTest::$db->execute("insert into integ (string_value, int_value) values (:string_value, :int_value)");
+        HappyPathTest::$db->clear();
     }
 
     public function testFindItemById() {
-        $itemTable = TestHappyPath::$itemTable;
+        $itemTable = HappyPathTest::$itemTable;
         $itemTable->clear();
         $itemTable->id = 1;
         assertEquals(1, $itemTable->find());
@@ -88,7 +88,7 @@ class TestHappyPath extends TestCase
     }
 
     public function testFindAllItems() {
-        $itemTable = TestHappyPath::$itemTable;
+        $itemTable = HappyPathTest::$itemTable;
         $itemTable->clear();
         if ($itemTable->find()) {
             assertEquals(3, $itemTable->size());
@@ -100,7 +100,7 @@ class TestHappyPath extends TestCase
     }
 
     public function testFindItemByComparison() {
-        $itemTable = TestHappyPath::$itemTable;
+        $itemTable = HappyPathTest::$itemTable;
         $itemTable->clear();
         $itemTable->greater('int_value', 3);
         if ($itemTable->find()) {
@@ -113,7 +113,7 @@ class TestHappyPath extends TestCase
     }
 
     public function testFindLikeAnywaysFindItYeah() {
-        $itemTable = TestHappyPath::$itemTable;
+        $itemTable = HappyPathTest::$itemTable;
         $itemTable->clear();
         $itemTable->notLike('string_value', "bunny rabbit foo-foo");
         if ($itemTable->find()) {
@@ -126,7 +126,7 @@ class TestHappyPath extends TestCase
     }
 
     public function testFindAMemberOf() {
-        $itemTable = TestHappyPath::$itemTable;
+        $itemTable = HappyPathTest::$itemTable;
         $itemTable->clear();
         $itemTable->in('int_value', [3, 5]);
         if ($itemTable->find()) {
@@ -139,7 +139,7 @@ class TestHappyPath extends TestCase
     }
 
     public function testFindByOrder() {
-        $itemTable = TestHappyPath::$itemTable;
+        $itemTable = HappyPathTest::$itemTable;
         $itemTable->clear();
         $itemTable->orderBy('id', OrderBy::DESC);
         $itemTable->gt('id', 1);
@@ -164,35 +164,35 @@ class TestHappyPath extends TestCase
     }
 
     public function testCountRecords() {
-        $itemTable = TestHappyPath::$itemTable;
+        $itemTable = HappyPathTest::$itemTable;
         $itemTable->clear();
         assertTrue($itemTable->count() == 1);
         assertEquals(3, $itemTable->row_count);
     }
 
     public function testPagination() {
-        $itemTable = TestHappyPath::$itemTable;
+        $itemTable = HappyPathTest::$itemTable;
         $itemTable->clear();
         $itemTable->page(2, 1);
         assertTrue($itemTable->find() == 1);
     }
 
     public function testLimit() {
-        $itemTable = TestHappyPath::$itemTable;
+        $itemTable = HappyPathTest::$itemTable;
         $itemTable->clear();
         $itemTable->limit(1);
         assertTrue($itemTable->find() < 3);
     }
 
     public function testLimitWithRowCount() {
-        $itemTable = TestHappyPath::$itemTable;
+        $itemTable = HappyPathTest::$itemTable;
         $itemTable->clear();
         $itemTable->limit(1, 1);
         assertTrue($itemTable->find() == 1);
     }
 
     public function testWhenUpdatingInsertingAndDeleting_IterateResultSet() {
-        $itemTable = TestHappyPath::$itemTable;
+        $itemTable = HappyPathTest::$itemTable;
         $itemTable->clear();
         assertTrue($itemTable->find() > 0);
         assertEquals(3, $itemTable->size());
@@ -224,11 +224,11 @@ class TestHappyPath extends TestCase
 
     public function testInsertItems() {
         $itemValue = "insert_item_test_" . bin2hex(openssl_random_pseudo_bytes(6));
-        TestHappyPath::$db->clear();
-        TestHappyPath::$db->execute("delete from integ where string_value like 'insert_item_test_%'");
-        TestHappyPath::$db->clear();
+        HappyPathTest::$db->clear();
+        HappyPathTest::$db->execute("delete from integ where string_value like 'insert_item_test_%'");
+        HappyPathTest::$db->clear();
 
-        $itemTable = TestHappyPath::$itemTable;
+        $itemTable = HappyPathTest::$itemTable;
         $itemTable->clear();
         $itemTable->string_value = $itemValue;
         $itemTable->save();
@@ -245,11 +245,11 @@ class TestHappyPath extends TestCase
 
     public function testUpdateItems() {
         $itemValue = "insert_item_test_" . bin2hex(openssl_random_pseudo_bytes(6));
-        TestHappyPath::$db->clear();
-        TestHappyPath::$db->execute("delete from integ where string_value like 'insert_item_test_%'");
-        TestHappyPath::$db->clear();
+        HappyPathTest::$db->clear();
+        HappyPathTest::$db->execute("delete from integ where string_value like 'insert_item_test_%'");
+        HappyPathTest::$db->clear();
 
-        $itemTable = TestHappyPath::$itemTable;
+        $itemTable = HappyPathTest::$itemTable;
         $itemTable->clear();
         $itemTable->string_value = $itemValue;
         $itemTable->save();
@@ -279,7 +279,7 @@ class TestHappyPath extends TestCase
     }
 
     public function testDeleteItems() {
-        $itemTable = TestHappyPath::$itemTable;
+        $itemTable = HappyPathTest::$itemTable;
         $itemTable->clear();
         $itemTable->gt('id', 1);
         self::assertTrue($itemTable->find() > 0);
@@ -295,7 +295,7 @@ class TestHappyPath extends TestCase
     public function testDeleteById() {
         self::resetTable();
         
-        $itemTable = TestHappyPath::$itemTable;
+        $itemTable = HappyPathTest::$itemTable;
         $itemTable->clear();
         $itemTable->id = 1;
         $itemTable->delete();
@@ -308,7 +308,7 @@ class TestHappyPath extends TestCase
     public function testDeleteByField() {
         self::resetTable();
 
-        $itemTable = TestHappyPath::$itemTable;
+        $itemTable = HappyPathTest::$itemTable;
         $itemTable->clear();
         $itemTable->like('string_value', "bunny rabbit foo-foo");
         $itemTable->delete();
@@ -319,7 +319,7 @@ class TestHappyPath extends TestCase
     }
 
     public function testDeleteWithoutFilter() {
-        $itemTable = TestHappyPath::$itemTable;
+        $itemTable = HappyPathTest::$itemTable;
         $itemTable->clear();
         $itemTable->delete();
 

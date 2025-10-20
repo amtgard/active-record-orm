@@ -16,7 +16,7 @@
         "monolog/monolog": "^3.7",
         "ext-pdo": "*",
         "vlucas/phpdotenv": "^5.6",
-        "amtgard/builder-traits": "^2.0",
+        "amtgard/builder-traits": "^2.1",
         "jedibc/optional": "^1.0",
         "amtgard/phpunit-extensions": "^1.0",
         "wyndow/fuzzywuzzy": "^0.6.0"

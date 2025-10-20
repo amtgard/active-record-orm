@@ -2,6 +2,7 @@
 
 namespace Amtgard\ActiveRecordOrm\Configuration\Repository;
 
+use Amtgard\ActiveRecordOrm\Schema\Schema;
 use PDO;
 
 interface PdoProviderInterface
@@ -10,4 +11,5 @@ interface PdoProviderInterface
 
     public function getDatabaseName(): string;
 
+    public function convertToProviderParams(Schema $schema, array $ormValues): array;
 }

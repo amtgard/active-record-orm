@@ -30,13 +30,17 @@ class EntityTest extends AmtgardTestCase
         $this->mockTableSchema = Phake::mock(TableSchema::class);
         $this->mockTable = Phake::mock(Table::class);
         $this->mockPrimaryKey = Phake::mock(FieldDefinition::class);
+        $this->mockNameField = Phake::mock(FieldDefinition::class);
+        $this->mockEmailField = Phake::mock(FieldDefinition::class);
         $this->mockEntityMapper = Phake::mock(EntityMapper::class);
 
         Phake::when($this->mockEntityMapper)->getTable()->thenReturn($this->mockTable);
 
         // Mock the primary key field definition
         Phake::when($this->mockPrimaryKey)->getName()->thenReturn('id');
-        
+        Phake::when($this->mockTableSchema)->getField('name')->thenReturn($this->mockNameField);
+        Phake::when($this->mockTableSchema)->getField('email')->thenReturn($this->mockEmailField);
+
         // Mock the table schema to return the primary key
         Phake::when($this->mockTableSchema)->getPrimaryKey()->thenReturn($this->mockPrimaryKey);
         
@@ -46,7 +50,8 @@ class EntityTest extends AmtgardTestCase
             'name' => 'Test Entity',
             'email' => 'test@example.com'
         ]);
-        
+
+
         $this->entity = Entity::builder()
             ->resultSet($this->mockResultSet)
             ->schema($this->mockTableSchema)

@@ -2,6 +2,7 @@
 
 namespace Amtgard\ActiveRecordOrm;
 
+use Amtgard\ActiveRecordOrm\Exception\ValueNotSetException;
 use Amtgard\ActiveRecordOrm\Interface\DataAccessPolicy;
 use Amtgard\ActiveRecordOrm\Interface\TableInterface;
 use Amtgard\ActiveRecordOrm\Query\FieldOperation;
@@ -64,7 +65,7 @@ class Table implements TableInterface
 
         return Optional::ofNullable($this->fieldSet->getField($name))
             ->map(fn ($field) => $field->getValue())
-            ->orElse(null);
+            ->orElseThrow(new ValueNotSetException("The field `$name` at " . __FILE__ . ", line " . __LINE__ . " is not set and may not be accessed."));
     }
 
     public $tableFactory = 'Amtgard\ActiveRecordOrm\TableFactory';

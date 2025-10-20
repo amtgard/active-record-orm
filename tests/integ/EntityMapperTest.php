@@ -12,21 +12,24 @@ use Amtgard\ActiveRecordOrm\Interface\DataAccessPolicy;
 use Amtgard\ActiveRecordOrm\Repository\Database;
 use Amtgard\ActiveRecordOrm\Table;
 use Amtgard\ActiveRecordOrm\TableFactory;
+use Amtgard\PHPUnit\AmtgardTestCase;
+use DateTime;
 use Dotenv\Dotenv;
 use PHPUnit\Framework\TestCase;
+use stdClass;
 use function PHPUnit\Framework\assertEquals;
 use function PHPUnit\Framework\assertGreaterThan;
 use function PHPUnit\Framework\assertNotNull;
 
-class EntityMapperTest extends TestCase
+class EntityMapperTest extends AmtgardTestCase
 {
     private static Database $db;
 
-    private static Table $itemTable;
+    public static Table $itemTable;
 
     private static DataAccessPolicy $tablePolicy;
 
-    private static EntityManager $em;
+    public static EntityManager $em;
 
     public static function setUpBeforeClass(): void
     {
@@ -167,6 +170,44 @@ class EntityMapperTest extends TestCase
         assertEquals($entity->id, $fetched->id);
     }
 
+    public function testTableFields_withConvenienceObjects() {
+        self::resetTable();
+
+        $entityId = 1;
+        $itemTable = EntityMapperTest::$itemTable;
+        $entityMapper = EntityMapper::builder()->em(EntityMapperTest::$em)->table($itemTable)->build();
+
+        $entity = $entityMapper->fetchBy('id', $entityId);
+
+        $datetime = new \DateTime();
+
+        $entity->datetime_value = $datetime;
+        $entity->int_value = $datetime;
+        self::assertDoesNotThrow(fn() => $entity->flush($entityMapper));
+
+        $entity = $entityMapper->fetchBy('id', $entityId);
+
+        assertEquals($datetime->format("Y-m-d H:i:s"), $entity->datetime_value);
+        assertEquals($datetime->format("U"), $entity->int_value);
+    }
+
+    public function testReferenceEntities_areConverted() {
+        self::resetTable();
+
+        $itemTable = EntityMapperTest::$itemTable;
+        $entityMapper = EntityMapper::builder()->em(EntityMapperTest::$em)->table($itemTable)->build();
+
+        $entity1 = $entityMapper->fetchBy('id', 1);
+        $entity2 = $entityMapper->fetchBy('id', 2);
+
+        $entity1->int_value = $entity2;
+
+        self::assertDoesNotThrow(fn() => $entity1->flush($entityMapper));
+
+        $entity = $entityMapper->fetchBy('id', 1);
+        assertEquals($entity2->id, $entity1->int_value);
+    }
+
     public function testFetch() {
         self::resetTable();
 
@@ -177,6 +218,17 @@ class EntityMapperTest extends TestCase
         $entityMapper->id = $entityId;
 
         $entity = $entityMapper->fetch();
+        assertNotNull($entity);
+        assertEquals("2", $entity->string_value);
+    }
+
+    public function testFetch_withPrimaryKey() {
+        self::resetTable();
+
+        $itemTable = EntityMapperTest::$itemTable;
+        $entityMapper = EntityMapper::builder()->em(EntityMapperTest::$em)->table($itemTable)->build();
+
+        $entity = $entityMapper->fetch(1);
         assertNotNull($entity);
         assertEquals("2", $entity->string_value);
     }
