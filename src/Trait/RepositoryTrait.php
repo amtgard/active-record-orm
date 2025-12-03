@@ -16,10 +16,13 @@ trait RepositoryTrait
     protected string $tableName;
     protected EntityManager $entityManager;
     protected EntityMapper $entityMapper;
+    protected $entityMapInfo;
 
     #[PostInit]
     protected function postInit() {
         $this->initRepositoryOf();
+        $repositoryEntityClass = $this->repositoryEntityClass;
+        $this->entityMapInfo = $repositoryEntityClass::buildEntityMapInfo();
     }
 
     protected function initRepositoryOf()
@@ -53,6 +56,7 @@ trait RepositoryTrait
 
         $this->repositoryEntityClass = $repositoryEntityClass;
         $this->tableName = $tableName;
+
     }
 
     public function __set(string $name, $value): void
@@ -115,21 +119,22 @@ trait RepositoryTrait
         return $this->entityMapper->hasActiveRecord();
     }
 
-    function getEntity(): EntityInterface
+    function getEntity(): ?EntityInterface
     {
         return $this->entityMapper->getEntity();
     }
 
-    function fetch($primaryKeyValue = null): EntityInterface
+    function fetch($primaryKeyValue = null): ?EntityInterface
     {
         $repositoryEntityClass = $this->repositoryEntityClass;
         return $repositoryEntityClass::toRepositoryEntity($this->entityMapper->fetch($primaryKeyValue));
     }
 
-    function fetchBy(string $field, $value): EntityInterface
+    function fetchBy(string $field, $value): ?EntityInterface
     {
         $repositoryEntityClass = $this->repositoryEntityClass;
-        return $repositoryEntityClass::toRepositoryEntity($this->entityMapper->fetchBy($field, $value));
+        $repositoryEntityField = $this->entityMapInfo[$field]['source'] ?? $field;
+        return $repositoryEntityClass::toRepositoryEntity($this->entityMapper->fetchBy($repositoryEntityField, $value));
     }
 
     function persist(EntityInterface $entity): EntityInterface

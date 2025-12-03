@@ -28,6 +28,7 @@ use Amtgard\Traits\Builder\ToBuilder;
 use DateTime;
 use Dotenv\Dotenv;
 use function PHPUnit\Framework\assertEquals;
+use function PHPUnit\Framework\assertNull;
 
 #[RepositoryOf("integ", SomeEntity::class)]
 class SomeRepository extends Repository {
@@ -125,6 +126,22 @@ class EntityErgonomicsTest extends AmtgardTestCase
         $someRepo = EntityManager::getManager()->getRepository(SomeRepository::class);
         $someEntity = $someRepo->fetch(1);
         assertEquals("2", $someEntity->getName());
+    }
+
+    public function testFetchWithLocalFieldName() {
+        $someRepo = EntityManager::getManager()->getRepository(SomeRepository::class);
+
+        $missingEntity = $someRepo->fetchBy("name", "2");
+
+        assertEquals(3, $missingEntity->getLinkId());
+    }
+
+    public function testFetchByIsMissing(): void {
+        $someRepo = EntityManager::getManager()->getRepository(SomeRepository::class);
+
+        $missingEntity = $someRepo->fetchBy("name", "string_value");
+
+        assertNull($missingEntity);
     }
 
     public function testNewEntityByCreateEntity(): void {

@@ -8,7 +8,7 @@ use Amtgard\PHPUnit\AmtgardTestCase;
 
 class ConcreteRepositoryEntityForTest extends RepositoryEntity
 {
-    public static function toRepositoryEntity(EntityInterface $entity): EntityInterface
+    public static function toRepositoryEntity(?EntityInterface $entity): ?EntityInterface
     {
         return $entity;
     }
