@@ -34,7 +34,7 @@ class TestRepository extends \Amtgard\ActiveRecordOrm\Entity\Repository\Reposito
 
 class TestRepositoryEntity extends \Amtgard\ActiveRecordOrm\Entity\Repository\RepositoryEntity
 {
-    public static function toRepositoryEntity(EntityInterface $entity): EntityInterface
+    public static function toRepositoryEntity(?EntityInterface $entity): ?EntityInterface
     {
         return $entity;
     }

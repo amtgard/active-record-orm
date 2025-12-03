@@ -57,7 +57,11 @@ trait RepositoryEntityTrait
         $this->entity = $entity;
     }
 
-    public static function toRepositoryEntity(EntityInterface $entity): EntityInterface {
+    public static function toRepositoryEntity(?EntityInterface $entity): ?EntityInterface {
+        if (is_null($entity)) {
+            return null;
+        }
+
         $parentClass = static::class;
 
         $instanceBuilder = $parentClass::builder();
@@ -173,6 +177,15 @@ trait RepositoryEntityTrait
     #[PostInit]
     private function postInit() {
         $this->entityMapperEntityId = md5(microtime());
+        $this->entityMapInfo = static::buildEntityMapInfo();
+
+        if (!isset($this->entity)) {
+            $this->buildEmptyInternalEntity();
+            $this->mapFieldsToInternalEntity();
+        }
+    }
+
+    public static function buildEntityMapInfo() {
         $map = [];
         $thisClassReflection = new \ReflectionClass(static::class);
         foreach ($thisClassReflection->getProperties(\ReflectionProperty::IS_PRIVATE) as $property) {
@@ -189,12 +202,7 @@ trait RepositoryEntityTrait
                 }
             }
         }
-        $this->entityMapInfo = $map;
-
-        if (!isset($this->entity)) {
-            $this->buildEmptyInternalEntity();
-            $this->mapFieldsToInternalEntity();
-        }
+        return $map;
     }
 
     #[OnSet]

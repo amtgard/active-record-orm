@@ -25,7 +25,7 @@ class ConcreteRepository extends Repository implements EntityRepositoryInterface
 
 class ConcreteRepositoryEntity extends \Amtgard\ActiveRecordOrm\Entity\Repository\RepositoryEntity
 {
-    public static function toRepositoryEntity(\Amtgard\ActiveRecordOrm\Interface\EntityInterface $entity): \Amtgard\ActiveRecordOrm\Interface\EntityInterface
+    public static function toRepositoryEntity(?\Amtgard\ActiveRecordOrm\Interface\EntityInterface $entity): ?\Amtgard\ActiveRecordOrm\Interface\EntityInterface
     {
         return $entity;
     }

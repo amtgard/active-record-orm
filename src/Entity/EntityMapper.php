@@ -55,7 +55,7 @@ class EntityMapper implements ActiveRecordTableInterface, EntityMapperInterface,
         $this->changes[$name] = $value;
     }
 
-    public function getEntity(): EntityInterface {
+    public function getEntity(): ?EntityInterface {
         if ($this->mode === self::QUERY_MODE) {
             $resultSet = call_user_func($this->entityResultSetBuilder);
         } else {
@@ -71,24 +71,28 @@ class EntityMapper implements ActiveRecordTableInterface, EntityMapperInterface,
         return $this->getEm()->register($this->table->getName(), $entity);
     }
 
-    public function fetch($primaryKeyValue = null): EntityInterface {
+    public function fetch($primaryKeyValue = null): ?EntityInterface {
         return Optional::ofNullable($primaryKeyValue)
             ->map(function($primaryKeyValue) {
                 $primaryKeyField = $this->table->getTableSchema()->getPrimaryKey()->getName();
                 $this->table->clear();
                 $this->table->$primaryKeyField = $primaryKeyValue;
-                $this->table->find();
-                $this->table->next();
-                return $this->getEntity();
+                if ($this->table->find()) {
+                    $this->table->next();
+                    return $this->getEntity();
+                }
+                return null;
             })
             ->orElseGet(function() {
-                $this->table->find();
-                $this->next();
-                return $this->getEntity();
+                if ($this->table->find()) {
+                    $this->next();
+                    return $this->getEntity();
+                }
+                return null;
             });
     }
 
-    public function fetchBy(string $field, $value): EntityInterface {
+    public function fetchBy(string $field, $value): ?EntityInterface {
         $this->table->clear();
         $this->table->$field = $value;
         return $this->fetch();
