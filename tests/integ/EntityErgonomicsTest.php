@@ -27,6 +27,7 @@ use Amtgard\Traits\Builder\Data;
 use Amtgard\Traits\Builder\ToBuilder;
 use DateTime;
 use Dotenv\Dotenv;
+use function PHPUnit\Framework\assertDoesNotMatchRegularExpression;
 use function PHPUnit\Framework\assertEquals;
 use function PHPUnit\Framework\assertNull;
 
@@ -176,6 +177,18 @@ class EntityErgonomicsTest extends AmtgardTestCase
 
         EntityErgonomicsTest::$itemTable->clear();
         assertEquals(4, EntityErgonomicsTest::$itemTable->find());
+    }
+
+    public function testEntityBuilderPattern_SelfRegistersRepository(): void {
+        self::assertDoesNotThrow(fn() => SomeEntity::builder()->name("new entity 2")->build());
+    }
+
+    public function testCreateEntitySetsPrimaryKeyId(): void {
+        $someEntity = SomeEntity::builder()->name("new entity 2")->build();
+        EntityManager::getManager()->persist($someEntity);
+
+        assertEquals(4, $someEntity->id);
+        assertEquals("new entity 2", $someEntity->name);
     }
 
     public function testComposedEntities_haveCachedSemantics(): void {

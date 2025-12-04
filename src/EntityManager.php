@@ -56,6 +56,18 @@ class EntityManager
         return static::$instance;
     }
 
+    public function registerRepository(string $repository): void {
+        if (!class_exists($repository)) {
+            throw new AmtgardOrmException(sprintf('Repository class "%s" does not exist.', $repository));
+        }
+        if (!in_array(EntityRepositoryInterface::class, class_implements($repository))) {
+            throw new AmtgardOrmException(sprintf('Repository class "%s" must implement EntityRepositoryInterface.', $repository));
+        }
+        if (!isset($this->repositories[$repository::getTableName()])) {
+            $this->getRepository($repository);
+        }
+    }
+
     public function getRepository(string $repository): EntityRepositoryInterface {
         if (!class_exists($repository)) {
             throw new AmtgardOrmException(sprintf('Repository class "%s" does not exist.', $repository));
