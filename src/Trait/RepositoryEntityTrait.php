@@ -43,6 +43,7 @@ trait RepositoryEntityTrait
     public function persist(EntityMapper $mapper)
     {
         $this->entity->persist($mapper);
+        $this->mapInternalEntityToFields();
     }
 
     public function getSchema(): TableSchema {
@@ -124,6 +125,8 @@ trait RepositoryEntityTrait
             ));
         }
 
+        EntityManager::getManager()->registerRepository($this->repositoryClass);
+
         if (!is_subclass_of($this->repositoryClass, EntityRepositoryInterface::class)) {
             throw new \RuntimeException(sprintf(
                 'EntityOf repository %s must implement %s.',
@@ -171,6 +174,13 @@ trait RepositoryEntityTrait
                 $entityFieldName = $mapInfo['source'];
                 $this->entity->$entityFieldName = $this->$fieldName;
             }
+        }
+    }
+
+    private function mapInternalEntityToFields() {
+        foreach ($this->entityMapInfo as $fieldName => $mapInfo) {
+            $entityFieldName = $mapInfo['source'];
+            $this->$fieldName = $this->entity->$entityFieldName;
         }
     }
 
