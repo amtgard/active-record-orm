@@ -8,6 +8,6 @@ use Attribute;
 #[Attribute(Attribute::TARGET_PROPERTY | Attribute::IS_REPEATABLE)]
 class Field
 {
-    public function __construct(string $name = null) {
+    public function __construct(string $name = null, string $reference = null) {
     }
 }
