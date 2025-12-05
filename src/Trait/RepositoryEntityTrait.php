@@ -6,6 +6,7 @@ use Amtgard\ActiveRecordOrm\Attribute\EntityOf;
 use Amtgard\ActiveRecordOrm\Attribute\Field;
 use Amtgard\ActiveRecordOrm\Attribute\PrimaryKey;
 use Amtgard\ActiveRecordOrm\Entity\EntityMapper;
+use Amtgard\ActiveRecordOrm\Entity\Repository\RepositoryEntity;
 use Amtgard\ActiveRecordOrm\EntityManager;
 use Amtgard\ActiveRecordOrm\Interface\EntityInterface;
 use Amtgard\ActiveRecordOrm\Interface\EntityRepositoryInterface;
@@ -78,7 +79,7 @@ trait RepositoryEntityTrait
         return $instance;
     }
 
-    private static function fieldTypeConversions(EntityInterface &$instance, $instanceField, TableSchema $sourceSchema, $mapInfo, $entity, $sourceField) {
+    private static function fieldTypeConversions(RepositoryEntity &$instance, $instanceField, TableSchema $sourceSchema, $mapInfo, EntityInterface $entity, $sourceField) {
         $sourceFieldValue = $entity->$sourceField;
         switch ($mapInfo['destinationType']) {
             case 'DateTime': {
@@ -169,18 +170,36 @@ trait RepositoryEntityTrait
     }
 
     private function mapFieldsToInternalEntity() {
-        foreach ($this->entityMapInfo as $fieldName => $mapInfo) {
-            if (isset($this->$fieldName)) {
-                $entityFieldName = $mapInfo['source'];
-                $this->entity->$entityFieldName = $this->$fieldName;
+        $schema = $this->entity->getSchema();
+        foreach ($this->getEntityMapInfo() as $instanceField => $mapInfo) {
+            $sourceField = $mapInfo['source'];
+            if (!isset($this->$instanceField)) {
+                continue;
+            }
+            switch ($mapInfo['destinationType']) {
+                case 'DateTime': {
+                    switch ($schema->getFields()[$sourceField]->getType()) {
+                        case FieldType::DATETIME: $this->entity->$sourceField = $this->$instanceField->format('Y-m-d H:i:s'); break;
+                        case FieldType::INTEGER: $this->entity->$sourceField = $this->$instanceField->getTimestamp(); break;
+                    }
+                }
+                default: {
+                    $interfaces = class_implements($mapInfo['destinationType']);
+                    if ($interfaces && count($interfaces) > 0) {
+                        if (in_array(EntityInterface::class, $interfaces)) {
+                            $this->entity->$sourceField = $this->$instanceField->id;
+                        }
+                    }
+                }
             }
         }
     }
 
     private function mapInternalEntityToFields() {
-        foreach ($this->entityMapInfo as $fieldName => $mapInfo) {
-            $entityFieldName = $mapInfo['source'];
-            $this->$fieldName = $this->entity->$entityFieldName;
+        $schema = $this->entity->getSchema();
+        foreach ($this->getEntityMapInfo() as $instanceField => $mapInfo) {
+            $sourceField = $mapInfo['source'];
+            static::fieldTypeConversions($this, $instanceField, $schema, $mapInfo, $this->entity, $sourceField);
         }
     }
 
