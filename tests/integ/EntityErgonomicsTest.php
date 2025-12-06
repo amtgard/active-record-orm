@@ -155,10 +155,9 @@ class EntityErgonomicsTest extends AmtgardTestCase
 
         EntityErgonomicsTest::$itemTable->clear();
         EntityErgonomicsTest::$itemTable->string_value = "new entity 1";
-        if (EntityErgonomicsTest::$itemTable->find() > 0) {
-            EntityErgonomicsTest::$itemTable->next();
-            assertEquals(4, EntityErgonomicsTest::$itemTable->id);
-        }
+        self::assertGreaterThan(0, EntityErgonomicsTest::$itemTable->find());
+        self::assertTrue(EntityErgonomicsTest::$itemTable->next());
+        assertEquals(4, EntityErgonomicsTest::$itemTable->id);
 
         EntityErgonomicsTest::$itemTable->clear();
         assertEquals(4, EntityErgonomicsTest::$itemTable->find());
@@ -170,10 +169,9 @@ class EntityErgonomicsTest extends AmtgardTestCase
 
         EntityErgonomicsTest::$itemTable->clear();
         EntityErgonomicsTest::$itemTable->string_value = "new entity 2";
-        if (EntityErgonomicsTest::$itemTable->find() > 0) {
-            EntityErgonomicsTest::$itemTable->next();
-            assertEquals(4, EntityErgonomicsTest::$itemTable->id);
-        }
+        self::assertGreaterThan(0, EntityErgonomicsTest::$itemTable->find());
+        self::assertTrue(EntityErgonomicsTest::$itemTable->next());
+        assertEquals(4, EntityErgonomicsTest::$itemTable->id);
 
         EntityErgonomicsTest::$itemTable->clear();
         assertEquals(4, EntityErgonomicsTest::$itemTable->find());

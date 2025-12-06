@@ -189,6 +189,8 @@ trait RepositoryEntityTrait
                         if (in_array(EntityInterface::class, $interfaces)) {
                             $this->entity->$sourceField = $this->$instanceField->id;
                         }
+                    } else {
+                        $this->entity->$sourceField = $this->$instanceField;
                     }
                 }
             }
