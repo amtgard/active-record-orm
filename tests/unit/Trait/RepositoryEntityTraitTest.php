@@ -97,8 +97,24 @@ class RepositoryEntityTraitTest extends AmtgardTestCase
         Phake::when($this->mockEntity)->isDirty()->thenReturn(true);
         Phake::when($this->mockEntity)->getChanges()->thenReturn(['name_field' => 'new_value']);
         Phake::when($this->mockEntity)->schema->thenReturn($this->mockTableSchema);
+        Phake::when($this->mockEntity)->getSchema()->thenReturn($this->mockTableSchema);
         Phake::when($this->mockEntityMapper)->getTable()->thenReturn($this->mockTable);
         Phake::when($this->mockTable)->getName()->thenReturn('test_table');
+
+        // Mock field definitions for the schema fields used in TestRepositoryEntityForTrait
+        $mockIdField = Phake::mock(FieldDefinition::class);
+        $mockNameField = Phake::mock(FieldDefinition::class);
+        $mockCreatedAtField = Phake::mock(FieldDefinition::class);
+        
+        Phake::when($mockIdField)->getType()->thenReturn(FieldType::INTEGER);
+        Phake::when($mockNameField)->getType()->thenReturn(FieldType::STRING);
+        Phake::when($mockCreatedAtField)->getType()->thenReturn(FieldType::DATETIME);
+        
+        Phake::when($this->mockTableSchema)->getFields()->thenReturn([
+            'id' => $mockIdField,
+            'name_field' => $mockNameField,
+            'created_at' => $mockCreatedAtField,
+        ]);
 
         EntityManager::configure($this->mockEntityManager);
 

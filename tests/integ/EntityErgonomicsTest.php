@@ -63,11 +63,11 @@ function SomeEntity(EntityInterface $entity): SomeEntity {
 
 class EntityErgonomicsTest extends AmtgardTestCase
 {
-    private static Database $db;
+    public static Database $db;
 
     public static Table $itemTable;
 
-    private static DataAccessPolicy $tablePolicy;
+    public static DataAccessPolicy $tablePolicy;
 
     public static EntityManager $em;
 

@@ -17,6 +17,7 @@ use Amtgard\Traits\Builder\OnSet;
 use Amtgard\Traits\Builder\PostInit;
 use Amtgard\Traits\Builder\PreInit;
 use DateTime;
+use Optional\Optional;
 
 trait RepositoryEntityTrait
 {
@@ -43,6 +44,7 @@ trait RepositoryEntityTrait
 
     public function persist(EntityMapper $mapper)
     {
+        $this->mapFieldsToInternalEntity();
         $this->entity->persist($mapper);
         $this->mapInternalEntityToFields();
     }
@@ -104,7 +106,9 @@ trait RepositoryEntityTrait
                 }
             }
         }
-        $instance->$instanceField = $sourceFieldValue;
+        if (Optional::ofNullable($sourceFieldValue)->isPresent() || $mapInfo['nullable']) {
+            $instance->$instanceField = $sourceFieldValue;
+        }
     }
 
     private function getEntityMapperAttributeValue(): ?EntityMapper
@@ -212,8 +216,8 @@ trait RepositoryEntityTrait
 
         if (!isset($this->entity)) {
             $this->buildEmptyInternalEntity();
-            $this->mapFieldsToInternalEntity();
         }
+        $this->mapFieldsToInternalEntity();
     }
 
     public static function buildEntityMapInfo() {
@@ -224,11 +228,13 @@ trait RepositoryEntityTrait
                 if (in_array($attribute->getName(), [ Field::class, PrimaryKey::class ])) {
                     $args = $attribute->getArguments();
                     $entityFieldName = count($args) > 0 ? $args[0] : $property->getName();
+                    $propertyType = $property->getType();
                     $map[$property->getName()] = [
                         'annotation' => $attribute->getName(),
                         'source' => $entityFieldName,
-                        'destinationType' => $property->getType()->getName(),
+                        'destinationType' => $propertyType ? $propertyType->getName() : null,
                         'backingReferencePk' => count($args) > 1 ? $args[1] : null,
+                        'nullable' => $propertyType ? $propertyType->allowsNull() : true,
                     ];
                 }
             }
