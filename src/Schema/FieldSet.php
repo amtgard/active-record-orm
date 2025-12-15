@@ -55,7 +55,7 @@ class FieldSet
     public function getFieldMap(): array {
         $fieldMap = [];
         foreach ($this->fields as $field) {
-            $fieldMap[$field->getField()->getName()] = $field->getField()->getValue();
+            $fieldMap[$field->getField()->getName()] = $field->getValue();
         }
         return $fieldMap;
     }

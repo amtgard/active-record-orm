@@ -81,6 +81,7 @@ enum FieldType: int
             case 'int': return FieldType::INTEGER;
             case 'datetime': return FieldType::DATETIME;
             case 'longtext':
+            case 'tinytext': return FieldType::STRING;
             case 'text': return FieldType::STRING;
             case 'blob': return FieldType::LOB;
             case 'binary': return FieldType::BINARY;

@@ -174,7 +174,7 @@ class EntityManager
         return Optional::ofNullable($this->getMapper($mapperName))
             ->map(fn($mapper) => $mapper)
             ->orElseGet(function() use ($mapperName) {
-                $mapper = $this->getMapperSupplier()($mapperName);
+                $mapper = $this->getMapperSupplier()($this->getDatabase(), $this->getDataAccessPolicy(), $mapperName);
                 $this->setMapper($mapper);
                 $mapper = $this->getMapper($mapperName);
                 return $mapper;
@@ -184,10 +184,10 @@ class EntityManager
     #[PostInit]
     private function init() {
         if (!Optional::ofNullable($this->mapperSupplier)->isPresent()) {
-            $this->mapperSupplier = fn($mapperName) => EntityMapper::builder()
+            $this->mapperSupplier = fn($database, $policy, $mapperName) => EntityMapper::builder()
                 ->table(TableFactory::build(
-                    $this->getDatabase(),
-                    $this->getDataAccessPolicy(),
+                    $database(),
+                    $policy,
                     $mapperName))
                 ->name($mapperName)
                 ->build();

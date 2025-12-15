@@ -19,6 +19,7 @@ final class InitIntegDb extends AbstractMigration
      */
     public function change(): void
     {
+        return;
         $this->table('integ')
             ->addColumn('int_value',  'integer', ['null' => true])
             ->addColumn('string_value', 'string', ['limit' => 255, 'null' => true])
