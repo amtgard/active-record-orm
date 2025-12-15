@@ -5,6 +5,7 @@ namespace Amtgard\ActiveRecordOrm\Interface;
 use Amtgard\ActiveRecordOrm\Query\Operation;
 use Amtgard\ActiveRecordOrm\Query\OrderBy;
 use Amtgard\ActiveRecordOrm\ResultSet;
+use Amtgard\ActiveRecordOrm\Schema\FieldSet;
 
 interface TableInterface extends ActiveRecordTableInterface
 {
@@ -33,4 +34,8 @@ interface TableInterface extends ActiveRecordTableInterface
      * Set a field operation
      */
     public function operation(string $name, Operation $operation, $value): void;
+
+    public function getPrimaryKeyValue();
+
+    public function getSetFields(): FieldSet;
 } 

@@ -42,6 +42,10 @@ class QueryBuilder
         $this->fieldSet->setField($fieldOperation);
     }
 
+    public function getSetFields(): FieldSet {
+        return $this->fieldSet;
+    }
+
     public function select(mixed $fieldNameOrSet) {
         if (is_array($fieldNameOrSet)) {
             foreach ($fieldNameOrSet as $fieldName) {

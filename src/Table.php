@@ -171,7 +171,9 @@ class Table implements TableInterface
     }
 
     public function hasActiveRecord(): bool {
-        return $this->recordSet->hasActiveRecord();
+        return Optional::ofNullable($this->recordSet)
+            ->map(fn ($recordSet) => $recordSet->hasActiveRecord())
+            ->orElse(false);
     }
 
     public function __call(string $name, array $arguments): void
@@ -192,5 +194,16 @@ class Table implements TableInterface
             ->operation($operation)
             ->build();
         $this->queryBuilder->$name = $fieldOp;
+    }
+
+    public function getPrimaryKeyValue()
+    {
+        $primaryKeyField = $this->tableSchema->getPrimaryKey()->getName();
+        return $this->$primaryKeyField;
+    }
+
+    public function getSetFields(): FieldSet
+    {
+        return $this->queryBuilder->getSetFields();
     }
 }

@@ -56,7 +56,6 @@ trait RepositoryTrait
 
         $this->repositoryEntityClass = $repositoryEntityClass;
         $this->tableName = $tableName;
-
     }
 
     public function __set(string $name, $value): void

@@ -341,4 +341,14 @@ class FieldSetTest extends AmtgardTestCase
         
         self::assertEquals([], $map);
     }
+
+    public function testGetFieldMap_withFields_returnsNameToValueMap(): void
+    {
+        $this->fieldSet->setField($this->mockFieldOperation1);
+        $this->fieldSet->setField($this->mockFieldOperation2);
+
+        $result = $this->fieldSet->getFieldMap();
+
+        self::assertEquals(['field1' => 'value1', 'field2' => 'value2'], $result);
+    }
 } 
