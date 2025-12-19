@@ -1,19 +1,17 @@
 <?php
 
-namespace Tests\Integration;
+namespace Tests\Integration\Features;
 
 use Amtgard\ActiveRecordOrm\Configuration\DataAccessPolicy\UncachedDataAccessPolicy;
 use Amtgard\ActiveRecordOrm\Configuration\Repository\DatabaseConfiguration;
 use Amtgard\ActiveRecordOrm\Configuration\Repository\MysqlPdoProvider;
 use Amtgard\ActiveRecordOrm\Entity\Policy\UncachedPolicy;
 use Amtgard\ActiveRecordOrm\EntityManager;
-use Amtgard\ActiveRecordOrm\Feature\AuditTable;
-use Amtgard\ActiveRecordOrm\Feature\AuditTableFactory;
-use Amtgard\ActiveRecordOrm\Interface\ActiveRecordOrmConfiguration;
+use Amtgard\ActiveRecordOrm\Factory\AuditTableFactory;
+use Amtgard\ActiveRecordOrm\Factory\TableFactory;
 use Amtgard\ActiveRecordOrm\Interface\DataAccessPolicy;
 use Amtgard\ActiveRecordOrm\Repository\Database;
 use Amtgard\ActiveRecordOrm\Table;
-use Amtgard\ActiveRecordOrm\TableFactory;
 use Amtgard\PHPUnit\AmtgardTestCase;
 use Dotenv\Dotenv;
 
@@ -31,7 +29,7 @@ class AuditTableTest extends AmtgardTestCase
 
     public static function setUpBeforeClass(): void
     {
-        $dotenvPath = dirname(dirname(__DIR__)) . DIRECTORY_SEPARATOR . "test-resources";
+        $dotenvPath = dirname(dirname(dirname(__DIR__))) . DIRECTORY_SEPARATOR . "test-resources";
         $dotenvFile = $dotenvPath . DIRECTORY_SEPARATOR . '.env';
         if (file_exists($dotenvFile)) {
             $dotenv = Dotenv::createImmutable($dotenvPath);

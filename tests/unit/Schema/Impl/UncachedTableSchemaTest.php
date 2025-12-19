@@ -7,7 +7,7 @@ use Amtgard\ActiveRecordOrm\Repository\Database;
 use Amtgard\ActiveRecordOrm\Schema\Impl\UncachedTableSchema;
 use Amtgard\PHPUnit\AmtgardTestCase;
 use Phake;
-use Tests\util\Constants;
+use Tests\Util\Constants;
 
 class UncachedTableSchemaTest extends AmtgardTestCase
 {
@@ -23,11 +23,11 @@ class UncachedTableSchemaTest extends AmtgardTestCase
         }
         $phakeWhenRef->thenReturn(false);
 
-        Phake::when($database)->execute("describe integ")->thenReturn($recordSet);
+        Phake::when($database)->execute("describe test_table")->thenReturn($recordSet);
 
         self::assertDoesNotThrow(function() use (&$schema, $database) {
             $schema = UncachedTableSchema::builder()
-                ->tableName("integ")
+                ->tableName("test_table")
                 ->database($database)
                 ->build();
         });

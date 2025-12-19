@@ -1,19 +1,19 @@
 <?php
 
-namespace Tests\Integration;
+namespace Tests\Integration\LowLevel;
 
 use Amtgard\ActiveRecordOrm\Configuration\Repository\DatabaseConfiguration;
 use Amtgard\ActiveRecordOrm\Configuration\Repository\MysqlPdoProvider;
 use Amtgard\ActiveRecordOrm\Repository\Database;
 use Dotenv\Dotenv;
 use PHPUnit\Framework\TestCase;
-use Tests\util\Constants;
+use Tests\Util\Constants;
 
 class MysqlDatabaseTest extends TestCase
 {
     public static function setUpBeforeClass(): void
     {
-        $dotenvPath = dirname(dirname(__DIR__)) . DIRECTORY_SEPARATOR . "test-resources";
+        $dotenvPath = dirname(dirname(dirname(__DIR__))) . DIRECTORY_SEPARATOR . "test-resources";
         $dotenvFile = $dotenvPath . DIRECTORY_SEPARATOR . '.env';
         if (file_exists($dotenvFile)) {
             $dotenv = Dotenv::createImmutable($dotenvPath);

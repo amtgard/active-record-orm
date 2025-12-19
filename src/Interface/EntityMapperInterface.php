@@ -8,6 +8,6 @@ interface EntityMapperInterface
 	function fetch($primaryKeyValue = null): ?EntityInterface;
 	function fetchBy(string $field, $value): ?EntityInterface;
 	function persist(EntityInterface $entity): EntityInterface;
-	function createEntity(): EntityInterface;
-	function createInternalEntity(): EntityInterface;
+    function getTable(): TableInterface;
+    function getChanges(): array;
 }

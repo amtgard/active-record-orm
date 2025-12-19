@@ -3,31 +3,28 @@
 namespace Tests\Integration;
 
 use Amtgard\ActiveRecordOrm\Attribute\EntityOf;
+use Amtgard\ActiveRecordOrm\Attribute\Field;
+use Amtgard\ActiveRecordOrm\Attribute\PrimaryKey;
 use Amtgard\ActiveRecordOrm\Attribute\RepositoryOf;
 use Amtgard\ActiveRecordOrm\Configuration\DataAccessPolicy\UncachedDataAccessPolicy;
 use Amtgard\ActiveRecordOrm\Configuration\Repository\DatabaseConfiguration;
 use Amtgard\ActiveRecordOrm\Configuration\Repository\MysqlPdoProvider;
-use Amtgard\ActiveRecordOrm\Entity\Entity;
 use Amtgard\ActiveRecordOrm\Entity\EntityMapper;
 use Amtgard\ActiveRecordOrm\Entity\Policy\UncachedPolicy;
 use Amtgard\ActiveRecordOrm\Entity\Repository\Repository;
 use Amtgard\ActiveRecordOrm\Entity\Repository\RepositoryEntity;
 use Amtgard\ActiveRecordOrm\EntityManager;
+use Amtgard\ActiveRecordOrm\Factory\TableFactory;
 use Amtgard\ActiveRecordOrm\Interface\DataAccessPolicy;
 use Amtgard\ActiveRecordOrm\Interface\EntityInterface;
 use Amtgard\ActiveRecordOrm\Repository\Database;
 use Amtgard\ActiveRecordOrm\Table;
-use Amtgard\ActiveRecordOrm\TableFactory;
-use Amtgard\ActiveRecordOrm\Trait\RepositoryEntityTrait;
 use Amtgard\PHPUnit\AmtgardTestCase;
 use Amtgard\Traits\Builder\Builder;
-use Amtgard\ActiveRecordOrm\Attribute\Field;
-use Amtgard\ActiveRecordOrm\Attribute\PrimaryKey;
 use Amtgard\Traits\Builder\Data;
 use Amtgard\Traits\Builder\ToBuilder;
 use DateTime;
 use Dotenv\Dotenv;
-use function PHPUnit\Framework\assertDoesNotMatchRegularExpression;
 use function PHPUnit\Framework\assertEquals;
 use function PHPUnit\Framework\assertNull;
 
@@ -44,7 +41,7 @@ class SomeRepository extends Repository {
 
 #[EntityOf(SomeRepository::class)]
 class SomeEntity extends RepositoryEntity {
-    use Builder, ToBuilder, Data, RepositoryEntityTrait;
+    use Builder, ToBuilder, Data;
 
     #[PrimaryKey]
     private ?int $id;
@@ -73,7 +70,7 @@ class EntityErgonomicsTest extends AmtgardTestCase
 
     public function setUp(): void
     {
-        $dotenvPath = dirname(dirname(__DIR__)) . DIRECTORY_SEPARATOR . "test-resources";
+        $dotenvPath = dirname(dirname(dirname(__DIR__))) . DIRECTORY_SEPARATOR . "test-resources";
         $dotenvFile = $dotenvPath . DIRECTORY_SEPARATOR . '.env';
         if (file_exists($dotenvFile)) {
             $dotenv = Dotenv::createImmutable($dotenvPath);
@@ -148,7 +145,8 @@ class EntityErgonomicsTest extends AmtgardTestCase
     public function testNewEntityByCreateEntity(): void {
         $someRepo = EntityManager::getManager()->getRepository(SomeRepository::class);
 
-        $someEntity = $someRepo->createEntity();
+        $someEntity = $someRepo->newRepositoryEntity();
+        $someEntity = $someRepo->persist($someEntity);
         $someEntity->setName("new entity 1");
         assertEquals(4, $someEntity->id);
         EntityManager::getManager()->persist($someEntity);
@@ -165,7 +163,7 @@ class EntityErgonomicsTest extends AmtgardTestCase
 
     public function testNewEntityViaErgonomicRepository(): void {
         $someEntity = SomeEntity::builder()->name("new entity 2")->build();
-        EntityManager::getManager()->persist($someEntity);
+        $someEntity->persist($someEntity->getMapper());
 
         EntityErgonomicsTest::$itemTable->clear();
         EntityErgonomicsTest::$itemTable->string_value = "new entity 2";

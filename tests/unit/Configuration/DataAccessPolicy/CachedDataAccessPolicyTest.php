@@ -13,7 +13,7 @@ use Amtgard\ActiveRecordOrm\Schema\TableSchema;
 use Amtgard\PHPUnit\AmtgardTestCase;
 use Phake;
 use Psr\SimpleCache\CacheInterface;
-use Tests\util\Constants;
+use Tests\Util\Constants;
 
 class CachedDataAccessPolicyTest extends AmtgardTestCase
 {
@@ -43,7 +43,7 @@ class CachedDataAccessPolicyTest extends AmtgardTestCase
         }
         $phakeWhenRef->thenReturn(false);
 
-        Phake::when($this->mockDatabase)->execute("describe integ")->thenReturn($recordSet);
+        Phake::when($this->mockDatabase)->execute("describe test_table")->thenReturn($recordSet);
     }
 
     // Tests for applyTableSchemaPolicy method
@@ -67,11 +67,11 @@ class CachedDataAccessPolicyTest extends AmtgardTestCase
             ->thenReturn(Constants::$JSON_ENCODED_INTEG_SCHEMA);
 
         // First call - should cache an UncachedTableSchema
-        $firstResult = $this->dataAccessPolicy->applyTableSchemaPolicy("integ");
+        $firstResult = $this->dataAccessPolicy->applyTableSchemaPolicy("test_table");
         self::assertInstanceOf(UncachedTableSchema::class, $firstResult);
 
         // Second call - should return the cached schema
-        $secondResult = $this->dataAccessPolicy->applyTableSchemaPolicy("integ");
+        $secondResult = $this->dataAccessPolicy->applyTableSchemaPolicy("test_table");
 
         self::assertInstanceOf(FromJsonTableSchema::class, $secondResult);
         self::assertEquals($firstResult->getTableName(), $secondResult->getTableName());

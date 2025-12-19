@@ -3,6 +3,7 @@
 namespace Amtgard\ActiveRecordOrm\Entity;
 
 use Amtgard\ActiveRecordOrm\EntityManager;
+use Amtgard\ActiveRecordOrm\Exception\AmtgardOrmException;
 use Amtgard\ActiveRecordOrm\Interface\EntityInterface;
 use Amtgard\ActiveRecordOrm\Interface\ActiveRecordTableInterface;
 use Amtgard\ActiveRecordOrm\Interface\EntityMapperInterface;
@@ -23,7 +24,7 @@ class EntityMapper implements ActiveRecordTableInterface, EntityMapperInterface,
     private const QUERY_MODE = 'query';
     private const TABLE_MODE = 'table';
 
-    protected ?EntityManager $em = null;
+    protected EntityManager $em;
     protected Table $table;
     private Database $database;
 
@@ -40,7 +41,7 @@ class EntityMapper implements ActiveRecordTableInterface, EntityMapperInterface,
 
     public function __get(string $name) {
         $primaryKeyField = $this->table->getTableSchema()->getPrimaryKey()->getName();
-        return Optional::ofNullable($this->getEm()->getEntity($this->table->getName(), $this->table->$primaryKeyField))
+        return Optional::ofNullable($this->getEntityManager()->getEntity($this->table->getName(), $this->table->$primaryKeyField))
             ->map(fn($entity) => $entity->$name)
             ->orElseGet(fn() => $this->table->$name);
     }
@@ -68,7 +69,7 @@ class EntityMapper implements ActiveRecordTableInterface, EntityMapperInterface,
             ->mapper($this)
             ->build();
 
-        return $this->getEm()->register($this->table->getName(), $entity);
+        return $this->getEntityManager()->register($this->table->getName(), $entity);
     }
 
     public function fetch($primaryKeyValue = null): ?EntityInterface {
@@ -99,22 +100,8 @@ class EntityMapper implements ActiveRecordTableInterface, EntityMapperInterface,
     }
 
     public function persist(EntityInterface $entity): EntityInterface {
-        return EntityManager::getManager()->register($this->getName(), $entity);
-    }
-
-    public function createInternalEntity(): EntityInterface {
-        $this->table->save();
-        $this->table->find();
-        $this->table->next();
-        return Entity::builder()
-            ->resultSet($this->table->getResultSet())
-            ->schema($this->table->getTableSchema())
-            ->mapper($this)
-            ->build();
-    }
-
-    public function createEntity(): EntityInterface {
-        return $this->getEm()->register($this->table->getName(), $this->createInternalEntity());
+        $entity = $this->getEntityManager()->persist($entity);
+        return $this->getEntityManager()->register($this->getName(), $entity);
     }
 
     public function query($sql): void {
@@ -191,12 +178,11 @@ class EntityMapper implements ActiveRecordTableInterface, EntityMapperInterface,
         return $this->table;
     }
 
-    private function getEm(): EntityManager {
-        return Optional::ofNullable($this->em)
-            ->orElseGet(function() {
-                $this->em = EntityManager::getManager();
-                return $this->em;
-            });
+    protected function getEntityManager(): EntityManager {
+        if (!isset($this->em)) {
+            $this->em = EntityManager::getManager();
+        }
+        return $this->em;
     }
 
     #[PostInit]
@@ -215,5 +201,10 @@ class EntityMapper implements ActiveRecordTableInterface, EntityMapperInterface,
                 ->fieldSet($this->table->getFieldSet())
                 ->build();
         }
+    }
+
+    function getChanges(): array
+    {
+        return $this->changes;
     }
 }

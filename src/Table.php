@@ -13,6 +13,7 @@ use Amtgard\ActiveRecordOrm\Repository\Database;
 use Amtgard\ActiveRecordOrm\Schema\FieldSet;
 use Amtgard\ActiveRecordOrm\Schema\TableSchema;
 use Amtgard\Traits\Builder\Builder;
+use Cake\Database\Schema\TableSchemaInterface;
 use Optional\Optional;
 
 class Table implements TableInterface
@@ -68,7 +69,7 @@ class Table implements TableInterface
             ->orElseThrow(new ValueNotSetException("The field `$name` at " . __FILE__ . ", line " . __LINE__ . " is not set and may not be accessed."));
     }
 
-    public $tableFactory = 'Amtgard\ActiveRecordOrm\TableFactory';
+    public $tableFactory = 'Amtgard\ActiveRecordOrm\Factory\TableFactory';
     public function clear(): void
     {
         $this->recordSet = null;

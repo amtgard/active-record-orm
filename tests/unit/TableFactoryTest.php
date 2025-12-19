@@ -2,16 +2,14 @@
 
 namespace Tests\Unit;
 
-use Amtgard\ActiveRecordOrm\Table;
-use Amtgard\ActiveRecordOrm\TableFactory;
+use Amtgard\ActiveRecordOrm\Factory\TableFactory;
 use Amtgard\ActiveRecordOrm\Interface\DataAccessPolicy;
 use Amtgard\ActiveRecordOrm\Query\QueryBuilder;
 use Amtgard\ActiveRecordOrm\Repository\Database;
-use Amtgard\ActiveRecordOrm\Schema\FieldSet;
 use Amtgard\ActiveRecordOrm\Schema\TableSchema;
+use Amtgard\ActiveRecordOrm\Table;
 use Amtgard\PHPUnit\AmtgardTestCase;
 use Phake;
-use function PHPUnit\Framework\assertNotNull;
 
 class TableFactoryTest extends AmtgardTestCase
 {

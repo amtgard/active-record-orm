@@ -13,11 +13,10 @@ use Amtgard\ActiveRecordOrm\Entity\Policy\UncachedPolicy;
 use Amtgard\ActiveRecordOrm\Entity\Repository\Repository;
 use Amtgard\ActiveRecordOrm\Entity\Repository\RepositoryEntity;
 use Amtgard\ActiveRecordOrm\EntityManager;
+use Amtgard\ActiveRecordOrm\Factory\TableFactory;
 use Amtgard\ActiveRecordOrm\Interface\DataAccessPolicy;
 use Amtgard\ActiveRecordOrm\Repository\Database;
 use Amtgard\ActiveRecordOrm\Table;
-use Amtgard\ActiveRecordOrm\TableFactory;
-use Amtgard\ActiveRecordOrm\Trait\RepositoryEntityTrait;
 use Amtgard\PHPUnit\AmtgardTestCase;
 use Amtgard\Traits\Builder\Builder;
 use Amtgard\Traits\Builder\Data;
@@ -26,7 +25,7 @@ use Dotenv\Dotenv;
 use function PHPUnit\Framework\assertEquals;
 
 trait FieldHiding {
-    private string $textValue;
+    protected string $textValue;
 
     public function getTextValue() {
         return $this->textValue;
@@ -57,7 +56,7 @@ class SomeHiddenRepository extends Repository {
 
 #[EntityOf(SomeHiddenRepository::class)]
 class SomeHiddenEntity extends RepositoryEntity implements FieldHidingInterface {
-    use Builder, ToBuilder, Data, RepositoryEntityTrait, FieldHiding;
+    use Builder, ToBuilder, Data, FieldHiding;
 
     #[PrimaryKey]
     private ?int $id;
@@ -65,7 +64,7 @@ class SomeHiddenEntity extends RepositoryEntity implements FieldHidingInterface 
     private ?string $name;
 
     #[Field('text_value')]
-    private string $textValue;
+    protected string $textValue;
 }
 
 class EntityRepositoryTest extends AmtgardTestCase
@@ -88,9 +87,10 @@ class EntityRepositoryTest extends AmtgardTestCase
     public function testNewEntityByCreateEntity_withHiddenFields(): void {
         $someRepo = EntityManager::getManager()->getRepository(SomeHiddenRepository::class);
 
-        $someEntity = $someRepo->createEntity();
+        $someEntity = $someRepo->newRepositoryEntity();
         $someEntity->setName("new entity 1");
         $someEntity->setTextValue("new text value");
+        $someEntity = $someRepo->persist($someEntity);
         assertEquals(2, $someEntity->id);
         EntityManager::getManager()->persist($someEntity);
 
@@ -107,7 +107,7 @@ class EntityRepositoryTest extends AmtgardTestCase
 
     public function setUp(): void
     {
-        $dotenvPath = dirname(dirname(__DIR__)) . DIRECTORY_SEPARATOR . "test-resources";
+        $dotenvPath = dirname(dirname(dirname(__DIR__))) . DIRECTORY_SEPARATOR . "test-resources";
         $dotenvFile = $dotenvPath . DIRECTORY_SEPARATOR . '.env';
         if (file_exists($dotenvFile)) {
             $dotenv = Dotenv::createImmutable($dotenvPath);

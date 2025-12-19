@@ -14,8 +14,8 @@ class UncachedPolicy extends RepositoryPolicy
 {
     use Builder;
 
-    public function persist(EntityMapper $mapper, EntityInterface $entity)
+    public function persist(EntityMapper $mapper, EntityInterface $entity): EntityInterface
     {
-        $entity->persist($mapper);
+        return $entity->persist($mapper);
     }
 }

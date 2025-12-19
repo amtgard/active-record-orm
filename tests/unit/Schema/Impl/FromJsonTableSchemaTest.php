@@ -6,7 +6,7 @@ use Amtgard\ActiveRecordOrm\Repository\Database;
 use Amtgard\ActiveRecordOrm\Schema\Impl\FromJsonTableSchema;
 use Amtgard\PHPUnit\AmtgardTestCase;
 use Phake;
-use Tests\util\Constants;
+use Tests\Util\Constants;
 
 class FromJsonTableSchemaTest extends AmtgardTestCase
 {
