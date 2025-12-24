@@ -1,11 +1,12 @@
 <?php
 
-namespace Amtgard\ActiveRecordOrm;
+namespace Amtgard\ActiveRecordOrm\Factory;
 
 use Amtgard\ActiveRecordOrm\Interface\DataAccessPolicy;
 use Amtgard\ActiveRecordOrm\Query\QueryBuilder;
 use Amtgard\ActiveRecordOrm\Repository\Database;
 use Amtgard\ActiveRecordOrm\Schema\FieldSet;
+use Amtgard\ActiveRecordOrm\Table;
 
 class TableFactory
 {

@@ -7,7 +7,7 @@ use Amtgard\ActiveRecordOrm\RecordSet\PdoRecordSet;
 use Amtgard\PHPUnit\AmtgardTestCase;
 use PDOStatement;
 use Phake;
-use Tests\util\Constants;
+use Tests\Util\Constants;
 
 class PdoRecordSetTest extends AmtgardTestCase
 {

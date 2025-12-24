@@ -6,6 +6,8 @@ use Amtgard\ActiveRecordOrm\Query\Operation;
 use Amtgard\ActiveRecordOrm\Query\OrderBy;
 use Amtgard\ActiveRecordOrm\ResultSet;
 use Amtgard\ActiveRecordOrm\Schema\FieldSet;
+use Amtgard\ActiveRecordOrm\Schema\TableSchema;
+use Cake\Database\Schema\TableSchemaInterface;
 
 interface TableInterface extends ActiveRecordTableInterface
 {
@@ -38,4 +40,6 @@ interface TableInterface extends ActiveRecordTableInterface
     public function getPrimaryKeyValue();
 
     public function getSetFields(): FieldSet;
-} 
+
+    public function getTableSchema(): TableSchema;
+}

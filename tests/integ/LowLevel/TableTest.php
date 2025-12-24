@@ -1,28 +1,20 @@
 <?php
 
 
-namespace Tests\Integration;
+namespace Tests\Integration\LowLevel;
 
 use Amtgard\ActiveRecordOrm\Configuration\DataAccessPolicy\UncachedDataAccessPolicy;
-use Amtgard\ActiveRecordOrm\Configuration\OrmConfiguration\FileBasedActiveRecordOrmConfiguration;
 use Amtgard\ActiveRecordOrm\Configuration\Repository\DatabaseConfiguration;
 use Amtgard\ActiveRecordOrm\Configuration\Repository\MysqlPdoProvider;
 use Amtgard\ActiveRecordOrm\Exception\ValueNotSetException;
+use Amtgard\ActiveRecordOrm\Factory\TableFactory;
 use Amtgard\ActiveRecordOrm\Interface\ActiveRecordOrmConfiguration;
 use Amtgard\ActiveRecordOrm\Interface\DataAccessPolicy;
 use Amtgard\ActiveRecordOrm\Repository\Database;
 use Amtgard\ActiveRecordOrm\Table;
-use Amtgard\ActiveRecordOrm\TableFactory;
 use Amtgard\PHPUnit\AmtgardTestCase;
-use DateTime;
 use Dotenv\Dotenv;
-use PHPUnit\Framework\TestCase;
-use Amtgard\ActiveRecordOrm\Query\OrderBy;
 use function PHPUnit\Framework\assertEquals;
-use function PHPUnit\Framework\assertFalse;
-use function PHPUnit\Framework\assertGreaterThan;
-use function PHPUnit\Framework\assertNotEqualsIgnoringCase;
-use function PHPUnit\Framework\assertTrue;
 
 class TableTest extends AmtgardTestCase
 {
@@ -38,7 +30,7 @@ class TableTest extends AmtgardTestCase
 
     public static function setUpBeforeClass(): void
     {
-        $dotenvPath = dirname(dirname(__DIR__)) . DIRECTORY_SEPARATOR . "test-resources";
+        $dotenvPath = dirname(dirname(dirname(__DIR__))) . DIRECTORY_SEPARATOR . "test-resources";
         $dotenvFile = $dotenvPath . DIRECTORY_SEPARATOR . '.env';
         if (file_exists($dotenvFile)) {
             $dotenv = Dotenv::createImmutable($dotenvPath);

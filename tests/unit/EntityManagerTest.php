@@ -2,17 +2,13 @@
 
 namespace Tests\Unit;
 
-use Amtgard\ActiveRecordOrm\EntityManager;
 use Amtgard\ActiveRecordOrm\Entity\Entity;
 use Amtgard\ActiveRecordOrm\Entity\EntityMapper;
 use Amtgard\ActiveRecordOrm\Entity\Policy\RepositoryPolicy;
+use Amtgard\ActiveRecordOrm\EntityManager;
 use Amtgard\ActiveRecordOrm\Interface\DataAccessPolicy;
-use Amtgard\ActiveRecordOrm\Interface\TableInterface;
-use Amtgard\ActiveRecordOrm\Interface\ActiveRecordTableInterface;
 use Amtgard\ActiveRecordOrm\Repository\Database;
 use Amtgard\ActiveRecordOrm\Schema\FieldDefinition;
-use Amtgard\ActiveRecordOrm\Table;
-use Amtgard\ActiveRecordOrm\TableFactory;
 use Amtgard\PHPUnit\AmtgardTestCase;
 use Phake;
 use Phake\Mock;

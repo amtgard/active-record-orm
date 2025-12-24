@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Integration;
+namespace Tests\Integration\Entity;
 
 use Amtgard\ActiveRecordOrm\Configuration\DataAccessPolicy\UncachedDataAccessPolicy;
 use Amtgard\ActiveRecordOrm\Configuration\Repository\DatabaseConfiguration;
@@ -8,15 +8,13 @@ use Amtgard\ActiveRecordOrm\Configuration\Repository\MysqlPdoProvider;
 use Amtgard\ActiveRecordOrm\Entity\EntityMapper;
 use Amtgard\ActiveRecordOrm\Entity\Policy\UncachedPolicy;
 use Amtgard\ActiveRecordOrm\EntityManager;
+use Amtgard\ActiveRecordOrm\Factory\EntityFactory;
+use Amtgard\ActiveRecordOrm\Factory\TableFactory;
 use Amtgard\ActiveRecordOrm\Interface\DataAccessPolicy;
 use Amtgard\ActiveRecordOrm\Repository\Database;
 use Amtgard\ActiveRecordOrm\Table;
-use Amtgard\ActiveRecordOrm\TableFactory;
 use Amtgard\PHPUnit\AmtgardTestCase;
-use DateTime;
 use Dotenv\Dotenv;
-use PHPUnit\Framework\TestCase;
-use stdClass;
 use function PHPUnit\Framework\assertEquals;
 use function PHPUnit\Framework\assertGreaterThan;
 use function PHPUnit\Framework\assertNotNull;
@@ -33,7 +31,7 @@ class EntityMapperTest extends AmtgardTestCase
 
     public static function setUpBeforeClass(): void
     {
-        $dotenvPath = dirname(dirname(__DIR__)) . DIRECTORY_SEPARATOR . "test-resources";
+        $dotenvPath = dirname(dirname(dirname(__DIR__))) . DIRECTORY_SEPARATOR . "test-resources";
         $dotenvFile = $dotenvPath . DIRECTORY_SEPARATOR . '.env';
         if (file_exists($dotenvFile)) {
             $dotenv = Dotenv::createImmutable($dotenvPath);
@@ -150,11 +148,14 @@ class EntityMapperTest extends AmtgardTestCase
         self::resetTable();
 
         $itemTable = EntityMapperTest::$itemTable;
+        /** @var EntityMapper $entityMapper */
         $entityMapper = EntityMapper::builder()->em(EntityMapperTest::$em)->table($itemTable)->build();
         $entityMapper->clear();
         $entityMapper->string_value = "bar-baz";
         $entityMapper->int_value = 83;
-        $entity = $entityMapper->createEntity();
+        $entity = EntityFactory::build($entityMapper);
+        $entity = $entityMapper->persist($entity);
+
         assertEquals("bar-baz", $entity->string_value);
         assertEquals(83, $entity->int_value);
         self::assertGreaterThan(0, $entity->id);
@@ -249,11 +250,13 @@ class EntityMapperTest extends AmtgardTestCase
         self::resetTable();
 
         $itemTable = EntityMapperTest::$itemTable;
+        /** @var EntityMapper $entityMapper */
         $entityMapper = EntityMapper::builder()->em(EntityMapperTest::$em)->table($itemTable)->build();
         $entityMapper->clear();
         $entityMapper->string_value = "bar-baz";
         $entityMapper->int_value = 83;
-        $entity = $entityMapper->createEntity();
+        $entity = EntityFactory::build($entityMapper);
+        $entity = $entityMapper->persist($entity);
 
 
         $entityMapper->clear();

@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\util;
+namespace Tests\Util;
 
 class Constants
 {

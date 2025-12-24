@@ -10,6 +10,7 @@ class InMemoryCache implements CacheInterface
 {
     use Builder;
 
+    /** @var mixed[] */
     private array $cache = [];
     /**
      * @inheritDoc
@@ -58,6 +59,7 @@ class InMemoryCache implements CacheInterface
     }
 
     /**
+     * @param mixed[] $values
      * @inheritDoc
      */
     public function setMultiple(iterable $values, \DateInterval|int|null $ttl = null): bool

@@ -81,7 +81,7 @@ class Entity implements EntityInterface
             ->build();
     }
 
-    public function persist(EntityMapper $mapper) {
+    public function persist(EntityMapper $mapper): EntityInterface {
         if ($this->isDirty()) {
             $table = $mapper->getTable();
             $table->clear();
@@ -93,7 +93,9 @@ class Entity implements EntityInterface
                 $table->$field = $value;
             }
             $table->save();
+            $this->$primaryKey = $table->getPrimaryKeyValue();
         }
+        return $this;
     }
 
     public function getMapper(): EntityMapper {

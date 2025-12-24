@@ -2,7 +2,7 @@
 
 namespace Tests\Unit;
 
-use Amtgard\ActiveRecordOrm\Table;
+use Amtgard\ActiveRecordOrm\Factory\TableFactory;
 use Amtgard\ActiveRecordOrm\Interface\DataAccessPolicy;
 use Amtgard\ActiveRecordOrm\Query\FieldOperation;
 use Amtgard\ActiveRecordOrm\Query\Operation;
@@ -15,7 +15,7 @@ use Amtgard\ActiveRecordOrm\ResultSet;
 use Amtgard\ActiveRecordOrm\Schema\FieldDefinition;
 use Amtgard\ActiveRecordOrm\Schema\FieldSet;
 use Amtgard\ActiveRecordOrm\Schema\TableSchema;
-use Amtgard\ActiveRecordOrm\TableFactory;
+use Amtgard\ActiveRecordOrm\Table;
 use Amtgard\PHPUnit\AmtgardTestCase;
 use Phake;
 use function PHPUnit\Framework\anything;

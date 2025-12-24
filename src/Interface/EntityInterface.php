@@ -13,7 +13,7 @@ interface EntityInterface
 
     function getPrimaryKey(): FieldDefinition;
 
-    function persist(EntityMapper $mapper);
+    function persist(EntityMapper $mapper): EntityInterface;
 
     function getSchema(): TableSchema;
 }

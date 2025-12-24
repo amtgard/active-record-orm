@@ -2,21 +2,18 @@
 
 namespace Amtgard\ActiveRecordOrm;
 
-use Amtgard\ActiveRecordOrm\Entity\Entity;
 use Amtgard\ActiveRecordOrm\Entity\EntityMapper;
 use Amtgard\ActiveRecordOrm\Entity\Policy\RepositoryPolicy;
 use Amtgard\ActiveRecordOrm\Exception\AmtgardOrmException;
+use Amtgard\ActiveRecordOrm\Factory\TableFactory;
 use Amtgard\ActiveRecordOrm\Interface\DataAccessPolicy;
 use Amtgard\ActiveRecordOrm\Interface\EntityInterface;
-use Amtgard\ActiveRecordOrm\Interface\EntityMapperInterface;
 use Amtgard\ActiveRecordOrm\Interface\EntityRepositoryInterface;
 use Amtgard\ActiveRecordOrm\Repository\Database;
 use Amtgard\Traits\Builder\Builder;
 use Amtgard\Traits\Builder\Getter;
 use Amtgard\Traits\Builder\PostInit;
 use Optional\Optional;
-use Tests\Integration\EntityErgonomicsTest;
-use Tests\Integration\SomeEntity;
 
 class EntityManager
 {
@@ -53,12 +50,13 @@ class EntityManager
     }
 
     public static function getManager(): EntityManager {
-        return static::$instance;
+        return Optional::ofNullable(static::$instance)
+            ->orElseThrow(new AmtgardOrmException("EntityManager singleton instance is not configured."));
     }
 
     public function registerRepository(string $repository): void {
         if (!class_exists($repository)) {
-            throw new AmtgardOrmException(sprintf('Repository class "%s" does not exist.', $repository));
+            throw new AmtgardOrmException(sprintf('Repository class "%s" does not exist. Did you use the fully qualified class name reference <ClassName>::class', $repository));
         }
         if (!in_array(EntityRepositoryInterface::class, class_implements($repository))) {
             throw new AmtgardOrmException(sprintf('Repository class "%s" must implement EntityRepositoryInterface.', $repository));
@@ -87,7 +85,7 @@ class EntityManager
         if (is_null($persistable)) {
             $this->persistAll();
         } else if ($persistable instanceof EntityInterface) {
-            $this->persistEntity($persistable);
+            return $this->persistEntity($persistable);
         } else {
             $this->persistMapper($persistable);
         }
@@ -101,8 +99,9 @@ class EntityManager
     }
 
     public function persistEntity(EntityInterface $entity) {
+        /** @var RepositoryPolicy $policy */
         $policy = $this->getRepositoryPolicy();
-        $policy->persist($entity->getMapper(), $entity);
+        return $policy->persist($entity->getMapper(), $entity);
     }
 
     public function persistMapper(string|EntityMapper $entityMapper) {
@@ -171,9 +170,10 @@ class EntityManager
     }
 
     protected function mapper(string $mapperName): EntityMapper {
+        $em = $this;
         return Optional::ofNullable($this->getMapper($mapperName))
             ->map(fn($mapper) => $mapper)
-            ->orElseGet(function() use ($mapperName) {
+            ->orElseGet(function() use ($mapperName, $em) {
                 $mapper = $this->getMapperSupplier()($this->getDatabase(), $this->getDataAccessPolicy(), $mapperName);
                 $this->setMapper($mapper);
                 $mapper = $this->getMapper($mapperName);
@@ -186,10 +186,11 @@ class EntityManager
         if (!Optional::ofNullable($this->mapperSupplier)->isPresent()) {
             $this->mapperSupplier = fn($database, $policy, $mapperName) => EntityMapper::builder()
                 ->table(TableFactory::build(
-                    $database(),
+                    $database,
                     $policy,
                     $mapperName))
                 ->name($mapperName)
+                ->em($this)
                 ->build();
         }
         if (!$this->preventShutdown) {

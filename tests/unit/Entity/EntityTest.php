@@ -77,6 +77,7 @@ class EntityTest extends AmtgardTestCase
         // Mock the table interface methods
         Phake::when($this->mockTable)->clear()->thenReturnSelf();
         Phake::when($this->mockTable)->save()->thenReturnSelf();
+        Phake::when($this->mockTable)->getPrimaryKeyValue()->thenReturn(123);
         
         $this->entity->persist($this->mockEntityMapper);
         

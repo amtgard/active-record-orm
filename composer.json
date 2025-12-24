@@ -8,7 +8,8 @@
         "phake/phake": "^4.5",
         "phpunit/phpunit": "^11.3",
         "robmorgan/phinx": "^0.16.8",
-        "ext-openssl": "*"
+        "ext-openssl": "*",
+        "phpstan/phpstan": "^2.1"
     },
     "require": {
         "php": "^8.3",

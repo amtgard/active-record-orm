@@ -66,12 +66,7 @@ Aaro is designed to work natively with aggressive caching policies, including [A
 Basic usage can used uncached policies, including the `UncachedDataAccessPolicy` below.
 
 ```php
-use Amtgard\ActiveRecordOrm\Configuration\Repository\DatabaseConfiguration;
-use Amtgard\ActiveRecordOrm\Configuration\Repository\MysqlPdoProvider;
-use Amtgard\ActiveRecordOrm\Configuration\DataAccessPolicy\UncachedDataAccessPolicy;
-use Amtgard\ActiveRecordOrm\Repository\Database;
-use Amtgard\ActiveRecordOrm\TableFactory;
-use Dotenv\Dotenv;
+use Amtgard\ActiveRecordOrm\Configuration\DataAccessPolicy\UncachedDataAccessPolicy;use Amtgard\ActiveRecordOrm\Configuration\Repository\DatabaseConfiguration;use Amtgard\ActiveRecordOrm\Configuration\Repository\MysqlPdoProvider;use Amtgard\ActiveRecordOrm\Factory\TableFactory;use Amtgard\ActiveRecordOrm\Repository\Database;use Dotenv\Dotenv;
 
 // Configure database connection from local .env file
 $dotenvPath = __DIR__;
@@ -391,14 +386,13 @@ class ItemRepository extends Repository implements EntityRepositoryInterface
 }
 ```
 
-Then, create a RepositoryEntity class that extends `RepositoryEntity` and uses the `RepositoryEntityTrait`:
+Then, create a RepositoryEntity class that extends `RepositoryEntity`:
 
 ```php
 use Amtgard\ActiveRecordOrm\Attribute\EntityOf;
 use Amtgard\ActiveRecordOrm\Attribute\Field;
 use Amtgard\ActiveRecordOrm\Attribute\PrimaryKey;
 use Amtgard\ActiveRecordOrm\Entity\Repository\RepositoryEntity;
-use Amtgard\ActiveRecordOrm\Trait\RepositoryEntityTrait;
 use Amtgard\Traits\Builder\Builder;
 use Amtgard\Traits\Builder\Data;
 use Amtgard\Traits\Builder\ToBuilder;
@@ -406,7 +400,7 @@ use Amtgard\Traits\Builder\ToBuilder;
 #[EntityOf(ItemRepository::class)]
 class ItemEntity extends RepositoryEntity
 {
-    use Builder, ToBuilder, Data, RepositoryEntityTrait;
+    use Builder, ToBuilder, Data;
 
     #[PrimaryKey]
     private ?int $id;
