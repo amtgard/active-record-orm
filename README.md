@@ -456,6 +456,118 @@ EntityManager::getManager()->persist($item);
 - **Change Tracking**: Entities track changes and only persist modified fields
 - **Type Conversions**: Automatic conversion between database types and PHP types (e.g., DateTime)
 
+### AuditRepository Feature
+
+The AuditRepository feature provides automatic audit logging for RepositoryEntity classes. When enabled, all insert, update, and delete operations are automatically logged to an audit log table.
+
+#### Setting Up AuditRepository
+
+To enable audit logging for a RepositoryEntity, simply use the `AuditRepositoryEntityTrait`:
+
+```php
+use Amtgard\ActiveRecordOrm\Attribute\EntityOf;
+use Amtgard\ActiveRecordOrm\Attribute\Field;
+use Amtgard\ActiveRecordOrm\Attribute\PrimaryKey;
+use Amtgard\ActiveRecordOrm\Entity\Repository\RepositoryEntity;
+use Amtgard\ActiveRecordOrm\Feature\Entity\Repository\AuditRepositoryEntityTrait;
+use Amtgard\Traits\Builder\Builder;
+use Amtgard\Traits\Builder\Data;
+use Amtgard\Traits\Builder\ToBuilder;
+
+#[EntityOf(ItemRepository::class)]
+class ItemEntity extends RepositoryEntity
+{
+    use Builder, ToBuilder, Data, AuditRepositoryEntityTrait;
+
+    #[PrimaryKey]
+    private ?int $id;
+
+    #[Field('string_value')]
+    private ?string $name;
+
+    #[Field('int_value')]
+    private ?int $quantity;
+}
+```
+
+#### Audit Log Table Structure
+
+The audit log table is automatically created with the name `{table_name}_audit_log` and includes the following fields:
+
+- **record_id**: Primary key value from the source table
+- **log_datetime**: Timestamp of when the audit entry was created
+- **fields**: JSON array of field names that were affected by the operation
+- **action**: Enum value (`insert`, `update`, or `delete`) indicating the type of operation
+- **by_whom_id**: Integer reference to the actor performing the operation (configurable via `byWhomSupplier`)
+
+#### How It Works
+
+When you use `AuditRepositoryEntityTrait`, the entity automatically:
+
+1. Creates a separate EntityManager that uses `AuditTableFactory` for mapper creation
+2. Wraps all table operations in an `AuditTable` that intercepts `save()` and `delete()` operations
+3. Logs all changes to the audit log table with metadata about what was changed
+
+#### Example Usage
+
+```php
+// Create an entity with audit logging
+$item = ItemEntity::builder()
+    ->name("New Item")
+    ->quantity(10)
+    ->build();
+
+// Persist the entity - this automatically creates an audit log entry
+EntityManager::getManager()->persist($item);
+
+// The audit log table 'items_audit_log' now contains:
+// - record_id: 1 (the new item's ID)
+// - action: "insert"
+// - fields: ["name", "quantity"]
+// - log_datetime: [current timestamp]
+
+// Update the entity
+$item->setQuantity(20);
+EntityManager::getManager()->persist($item);
+
+// The audit log now has a second entry:
+// - record_id: 1
+// - action: "update"
+// - fields: ["quantity"]
+// - log_datetime: [timestamp of update]
+
+// Delete the entity
+EntityManager::getManager()->delete($item);
+
+// The audit log now has a third entry:
+// - record_id: 1
+// - action: "delete"
+// - fields: []
+// - log_datetime: [timestamp of deletion]
+```
+
+#### Accessing Audit Logs
+
+You can query the audit log table directly:
+
+```php
+// Access the audit log table
+$auditLogTable = TableFactory::build($db, $tablePolicy, 'items_audit_log');
+
+// Find all audit entries for a specific record
+$auditLogTable->clear();
+$auditLogTable->record_id = 1;
+$auditLogTable->find();
+
+while ($auditLogTable->next()) {
+    echo "Action: " . $auditLogTable->action . "\n";
+    echo "Fields: " . $auditLogTable->fields . "\n";
+    echo "Date: " . $auditLogTable->log_datetime . "\n";
+}
+```
+
+The AuditRepository feature is particularly useful for compliance requirements, debugging, and maintaining a complete history of data changes.
+
 ## Advanced Features
 
 ### Custom Data Access Policies

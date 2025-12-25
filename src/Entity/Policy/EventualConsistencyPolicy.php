@@ -18,6 +18,6 @@ class EventualConsistencyPolicy extends RepositoryPolicy
 
     public function persist(EntityMapper $mapper, EntityInterface $entity): EntityInterface
     {
-        return $entity;
+        return $entity->persist($mapper);
     }
 }
