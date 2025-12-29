@@ -105,7 +105,7 @@ function printAuditHelp(): void
     $help .= "    Sub-commands:\n";
     $help .= "        --classes            Generate Repository and RepositoryEntity classes with audit support\n";
     $help .= "            Requires: --env, --out-dir\n";
-    $help .= "            Optional: --table (if omitted, generates for all tables)\n";
+    $help .= "            Optional: --table (if omitted, generates for all tables not in .exclusions)\n";
     $help .= "        --schema             Generate MySQL CREATE TABLE SQL for audit log tables\n";
     $help .= "            Option 1: Requires --source (from RepositoryEntity classes)\n";
     $help .= "                      Optional: --table (if omitted, processes all RepositoryEntity classes)\n";
@@ -118,6 +118,9 @@ function printAuditHelp(): void
     $help .= "                      Optional: --table (if omitted, adds all tables to migration)\n";
     $help .= "            Option 2: Requires --env, --out-dir (from MySQL database)\n";
     $help .= "                      Optional: --table (if omitted, generates migrations for all tables)\n";
+    $help .= "        --migrate            Run both --classes and --phinx commands\n";
+    $help .= "            Requires: --env, --out-dir\n";
+    $help .= "            Optional: --table (if omitted, processes all tables not in .exclusions)\n";
     $help .= "        --help, -h           Show this help message\n\n";
     $help .= "    Examples:\n";
     $help .= "        # Generate audit classes for a specific table\n";
@@ -131,7 +134,11 @@ function printAuditHelp(): void
     $help .= "        # Generate audit Phinx migration from RepositoryEntity classes\n";
     $help .= "        repository.php audit --phinx --source=./src/Entity --file=./db/migrations/20251215143314_create_audit_logs.php\n\n";
     $help .= "        # Generate audit Phinx migration from MySQL database\n";
-    $help .= "        repository.php audit --phinx --env=./.env --out-dir=./db/migrations\n";
+    $help .= "        repository.php audit --phinx --env=./.env --out-dir=./db/migrations\n\n";
+    $help .= "        # Generate audit classes and Phinx migration (migrate)\n";
+    $help .= "        repository.php audit --migrate --env=./.env --out-dir=./src/Entity --table=user_profiles\n\n";
+    $help .= "        # Generate audit classes and Phinx migration for all tables\n";
+    $help .= "        repository.php audit --migrate --env=./.env --out-dir=./src/Entity\n";
     
     echo $help;
 }
@@ -166,54 +173,88 @@ function handleAuditClasses(array $args): void
     $provider = MysqlPdoProvider::fromConfiguration($config);
     $db = Database::fromProvider($provider);
     
-    // Get table name
-    $tableName = $args['table'];
-    if (empty($tableName)) {
-        echo "Error: --table parameter is required for --classes\n";
-        exit(1);
-    }
-    
-    // Get schema
-    echo "Inspecting table: $tableName\n";
-    $schema = getTableSchema($db, $tableName);
-    
-    if (empty($schema['fields'])) {
-        echo "Error: Table '$tableName' not found or has no fields\n";
-        exit(1);
-    }
-    
-    if (empty($schema['primaryKey'])) {
-        echo "Warning: Table '$tableName' has no primary key\n";
-    }
-    
     // Create output directory if it doesn't exist
     $outDir = $args['out-dir'];
     if (!is_dir($outDir)) {
         mkdir($outDir, 0755, true);
     }
     
-    // Generate class names
-    $repositoryClassName = toPascalCase($tableName) . 'Repository';
-    $entityClassName = toPascalCase($tableName) . 'RepositoryEntity';
+    // Determine which tables to process
+    $tables = [];
+    if (!empty($args['table'])) {
+        $tables = [$args['table']];
+    } else {
+        // Get all tables (exclusions are handled in getAllTables)
+        echo "Fetching all tables from database...\n";
+        $tables = getAllTables($db);
+        if (empty($tables)) {
+            echo "Error: No tables found in database\n";
+            exit(1);
+        }
+        $exclusions = getExcludedTables();
+        $excludedCount = count($exclusions['exact']) + count($exclusions['patterns']);
+        if ($excludedCount > 0) {
+            echo "Found " . count($tables) . " table(s) (excluding $excludedCount pattern(s) from .exclusions)\n\n";
+        } else {
+            echo "Found " . count($tables) . " table(s)\n\n";
+        }
+    }
     
-    // Generate Repository class
-    $repositoryCode = generateRepositoryClass($tableName, $entityClassName);
-    $repositoryFile = combinePath($outDir, $repositoryClassName . '.php');
-    file_put_contents($repositoryFile, $repositoryCode);
-    echo "Generated: $repositoryFile\n";
+    $successCount = 0;
+    $errorCount = 0;
     
-    // Generate RepositoryEntity class with AuditRepositoryEntityTrait
-    $entityCode = generateAuditRepositoryEntityClass(
-        $tableName,
-        $schema['fields'],
-        $schema['primaryKey'],
-        $repositoryClassName
-    );
-    $entityFile = combinePath($outDir, $entityClassName . '.php');
-    file_put_contents($entityFile, $entityCode);
-    echo "Generated: $entityFile\n";
+    foreach ($tables as $tableName) {
+        echo "Processing table: $tableName\n";
+        
+        try {
+            // Get schema
+            $schema = getTableSchema($db, $tableName);
+            
+            if (empty($schema['fields'])) {
+                echo "  Warning: Table '$tableName' has no fields, skipping\n";
+                $errorCount++;
+                continue;
+            }
+            
+            if (empty($schema['primaryKey'])) {
+                echo "  Warning: Table '$tableName' has no primary key\n";
+            }
+            
+            // Generate class names
+            $repositoryClassName = toPascalCase($tableName) . 'Repository';
+            $entityClassName = toPascalCase($tableName) . 'RepositoryEntity';
+            
+            // Generate Repository class
+            $repositoryCode = generateRepositoryClass($tableName, $entityClassName);
+            $repositoryFile = combinePath($outDir, $repositoryClassName . '.php');
+            file_put_contents($repositoryFile, $repositoryCode);
+            echo "  Generated: $repositoryFile\n";
+            
+            // Generate RepositoryEntity class with AuditRepositoryEntityTrait
+            $entityCode = generateAuditRepositoryEntityClass(
+                $tableName,
+                $schema['fields'],
+                $schema['primaryKey'],
+                $repositoryClassName
+            );
+            $entityFile = combinePath($outDir, $entityClassName . '.php');
+            file_put_contents($entityFile, $entityCode);
+            echo "  Generated: $entityFile\n";
+            
+            $successCount++;
+        } catch (\Exception $e) {
+            echo "  Error processing table '$tableName': " . $e->getMessage() . "\n";
+            $errorCount++;
+        }
+        
+        echo "\n";
+    }
     
-    echo "Done!\n";
+    echo "Done! Successfully processed $successCount table(s)";
+    if ($errorCount > 0) {
+        echo ", $errorCount error(s)";
+    }
+    echo "\n";
 }
 
 /**
@@ -427,6 +468,30 @@ function handleAuditSchema(array $args): void
 }
 
 /**
+ * Handle audit migrate sub-command (runs both classes and phinx)
+ */
+function handleAuditMigrate(array $args): void
+{
+    if (empty($args['env'])) {
+        echo "Error: --env parameter is required for --migrate\n";
+        exit(1);
+    }
+    
+    if (empty($args['out-dir'])) {
+        echo "Error: --out-dir parameter is required for --migrate\n";
+        exit(1);
+    }
+    
+    echo "=== Running audit --classes command ===\n\n";
+    handleAuditClasses($args);
+    
+    echo "\n=== Running audit --phinx command ===\n\n";
+    handleAuditPhinx($args);
+    
+    echo "\n=== Migration complete ===\n";
+}
+
+/**
  * Handle audit phinx sub-command
  */
 function handleAuditPhinx(array $args): void
@@ -490,62 +555,153 @@ function handleAuditPhinx(array $args): void
         $successCount = 0;
         $errorCount = 0;
         
-        foreach ($tables as $tableName) {
-            echo "Processing table: $tableName\n";
+        // Determine if we're generating a single file or multiple files
+        $isSingleFile = empty($args['table']);
+        
+        if ($isSingleFile) {
+            // Generate single migration file with all tables
+            $timestamp = (new \DateTime())->format('YmdHis');
+            $migrationName = $timestamp . '_audit_log';
+            $phinxFile = combinePath($outDir, $migrationName . '.php');
             
-            try {
-                // Get schema from database
-                $schemaData = getTableSchema($db, $tableName);
+            // Collect all table creation code
+            $tableCodes = [];
+            
+            foreach ($tables as $tableName) {
+                echo "Processing table: $tableName\n";
                 
-                if (empty($schemaData['fields'])) {
-                    echo "  Warning: Table '$tableName' has no fields, skipping\n";
-                    $errorCount++;
-                    continue;
-                }
-                
-                // Convert FieldDefinition objects to array format
-                $fields = [];
-                foreach ($schemaData['fields'] as $fieldDef) {
-                    $fields[] = [
-                        'dbName' => $fieldDef->getName(),
-                        'propertyName' => toCamelCase($fieldDef->getName()),
-                        'phpType' => fieldTypeToPhpType($fieldDef->getType(), $fieldDef->getNullable()),
-                        'nullable' => $fieldDef->getNullable(),
-                        'isPrimaryKey' => $fieldDef->getName() === $schemaData['primaryKey'],
+                try {
+                    // Get schema from database
+                    $schemaData = getTableSchema($db, $tableName);
+                    
+                    if (empty($schemaData['fields'])) {
+                        echo "  Warning: Table '$tableName' has no fields, skipping\n";
+                        $errorCount++;
+                        continue;
+                    }
+                    
+                    // Convert FieldDefinition objects to array format
+                    $fields = [];
+                    foreach ($schemaData['fields'] as $fieldDef) {
+                        $fields[] = [
+                            'dbName' => $fieldDef->getName(),
+                            'propertyName' => toCamelCase($fieldDef->getName()),
+                            'phpType' => fieldTypeToPhpType($fieldDef->getType(), $fieldDef->getNullable()),
+                            'nullable' => $fieldDef->getNullable(),
+                            'isPrimaryKey' => $fieldDef->getName() === $schemaData['primaryKey'],
+                        ];
+                    }
+                    
+                    $schema = [
+                        'fields' => $fields,
+                        'primaryKey' => $schemaData['primaryKey'],
+                        'tableName' => $tableName,
                     ];
+                    
+                    // Generate table creation code
+                    $tableCode = generatePhinxTableCode($schema, true);
+                    $tableCodes[] = $tableCode;
+                    
+                    echo "  Added audit log table creation code for: {$tableName}_audit_log\n";
+                    $successCount++;
+                } catch (\Exception $e) {
+                    echo "  Error processing '$tableName': " . $e->getMessage() . "\n";
+                    $errorCount++;
                 }
                 
-                $schema = [
-                    'fields' => $fields,
-                    'primaryKey' => $schemaData['primaryKey'],
-                    'tableName' => $tableName,
-                ];
-                
-                // Generate migration filename based on timestamp and table name
-                $timestamp = date('YmdHis');
-                $migrationName = $timestamp . '_create_' . $tableName . '_audit_log';
-                $phinxFile = combinePath($outDir, $migrationName . '.php');
-                
-                // Generate Phinx migration for audit log table
-                $migrationCode = generatePhinxMigration($schema, $phinxFile, true);
-                file_put_contents($phinxFile, $migrationCode);
-                echo "  Generated Phinx migration: $phinxFile\n";
-                echo "    (Audit log table: {$tableName}_audit_log)\n";
-                
-                $successCount++;
-            } catch (\Exception $e) {
-                echo "  Error processing '$tableName': " . $e->getMessage() . "\n";
-                $errorCount++;
+                echo "\n";
             }
             
+            // Generate complete migration file with all tables
+            $className = 'AuditLog';
+            $migrationCode = "<?php\n\n";
+            $migrationCode .= "declare(strict_types=1);\n\n";
+            $migrationCode .= "use Phinx\Migration\AbstractMigration;\n\n";
+            $migrationCode .= "final class $className extends AbstractMigration\n";
+            $migrationCode .= "{\n";
+            $migrationCode .= "    /**\n";
+            $migrationCode .= "     * Change Method.\n";
+            $migrationCode .= "     *\n";
+            $migrationCode .= "     * Write your reversible migrations using this method.\n";
+            $migrationCode .= "     *\n";
+            $migrationCode .= "     * More information on writing migrations is available here:\n";
+            $migrationCode .= "     * https://book.cakephp.org/phinx/0/en/migrations.html#the-change-method\n";
+            $migrationCode .= "     *\n";
+            $migrationCode .= "     * Remember to call \"create()\" or \"update()\" and NOT \"save()\" when working\n";
+            $migrationCode .= "     * with the Table class.\n";
+            $migrationCode .= "     */\n";
+            $migrationCode .= "    public function change(): void\n";
+            $migrationCode .= "    {\n";
+            $migrationCode .= implode("\n", $tableCodes);
+            $migrationCode .= "    }\n";
+            $migrationCode .= "}\n";
+            
+            file_put_contents($phinxFile, $migrationCode);
+            echo "Generated Phinx migration: $phinxFile\n";
+            echo "Successfully added $successCount audit log table(s)";
+            if ($errorCount > 0) {
+                echo ", $errorCount error(s)";
+            }
+            echo "\n";
+        } else {
+            // Generate individual migration files for each table
+            foreach ($tables as $tableName) {
+                echo "Processing table: $tableName\n";
+                
+                try {
+                    // Get schema from database
+                    $schemaData = getTableSchema($db, $tableName);
+                    
+                    if (empty($schemaData['fields'])) {
+                        echo "  Warning: Table '$tableName' has no fields, skipping\n";
+                        $errorCount++;
+                        continue;
+                    }
+                    
+                    // Convert FieldDefinition objects to array format
+                    $fields = [];
+                    foreach ($schemaData['fields'] as $fieldDef) {
+                        $fields[] = [
+                            'dbName' => $fieldDef->getName(),
+                            'propertyName' => toCamelCase($fieldDef->getName()),
+                            'phpType' => fieldTypeToPhpType($fieldDef->getType(), $fieldDef->getNullable()),
+                            'nullable' => $fieldDef->getNullable(),
+                            'isPrimaryKey' => $fieldDef->getName() === $schemaData['primaryKey'],
+                        ];
+                    }
+                    
+                    $schema = [
+                        'fields' => $fields,
+                        'primaryKey' => $schemaData['primaryKey'],
+                        'tableName' => $tableName,
+                    ];
+                    
+                    // Generate migration filename based on timestamp and table name
+                    $timestamp = date('YmdHis');
+                    $migrationName = $timestamp . '_create_' . $tableName . '_audit_log';
+                    $phinxFile = combinePath($outDir, $migrationName . '.php');
+                    
+                    // Generate Phinx migration for audit log table
+                    $migrationCode = generatePhinxMigration($schema, $phinxFile, true);
+                    file_put_contents($phinxFile, $migrationCode);
+                    echo "  Generated Phinx migration: $phinxFile\n";
+                    echo "    (Audit log table: {$tableName}_audit_log)\n";
+                    
+                    $successCount++;
+                } catch (\Exception $e) {
+                    echo "  Error processing '$tableName': " . $e->getMessage() . "\n";
+                    $errorCount++;
+                }
+                
+                echo "\n";
+            }
+            
+            echo "Done! Successfully generated $successCount migration(s)";
+            if ($errorCount > 0) {
+                echo ", $errorCount error(s)";
+            }
             echo "\n";
         }
-        
-        echo "Done! Successfully generated $successCount migration(s)";
-        if ($errorCount > 0) {
-            echo ", $errorCount error(s)";
-        }
-        echo "\n";
         
     } else {
         // Generate from RepositoryEntity classes
@@ -554,21 +710,10 @@ function handleAuditPhinx(array $args): void
             exit(1);
         }
         
-        if (empty($args['file'])) {
-            echo "Error: --file parameter is required when using --source\n";
-            exit(1);
-        }
-        
         $sourceDir = $args['source'];
-        $phinxFile = $args['file'];
         
         if (!is_dir($sourceDir)) {
             echo "Error: Source directory not found: $sourceDir\n";
-            exit(1);
-        }
-        
-        if (!file_exists($phinxFile)) {
-            echo "Error: Phinx migration file not found: $phinxFile\n";
             exit(1);
         }
         
@@ -594,88 +739,180 @@ function handleAuditPhinx(array $args): void
             echo "Found " . count($entities) . " RepositoryEntity class(es)\n\n";
         }
         
-        // Read existing migration file to extract class structure
-        $existingContent = file_get_contents($phinxFile);
+        // Determine if we're generating a single file or using an existing file
+        $isSingleFile = empty($args['table']);
         
-        // Extract class name from existing file
-        if (preg_match('/class\s+(\w+)\s+extends\s+AbstractMigration/', $existingContent, $matches)) {
-            $className = $matches[1];
-        } else {
-            // Fallback: extract from filename
-            $baseName = basename($phinxFile, '.php');
-            $parts = explode('_', $baseName, 2);
-            $className = isset($parts[1]) ? toPascalCase($parts[1]) : 'Migration';
-        }
-        
-        // Extract change() method content if it exists
-        $existingMethodContent = '';
-        if (preg_match('/public function change\(\): void\s*\{([^}]*)\}/s', $existingContent, $matches)) {
-            $existingMethodContent = trim($matches[1]);
-        }
-        
-        // Generate table creation code for all audit log tables
-        $tableCodes = [];
-        $successCount = 0;
-        $errorCount = 0;
-        
-        foreach ($entities as $tableName => $entityFile) {
-            echo "Processing: $tableName\n";
-            echo "  Found RepositoryEntity file: $entityFile\n";
-            
-            try {
-                // Parse the class
-                $schema = parseRepositoryEntityClass($entityFile, $tableName);
-                
-                // Generate audit log table creation code
-                $tableCode = generatePhinxTableCode($schema, true);
-                $tableCodes[] = $tableCode;
-                
-                echo "  Added audit log table creation code for: {$tableName}_audit_log\n";
-                $successCount++;
-            } catch (\Exception $e) {
-                echo "  Error processing '$tableName': " . $e->getMessage() . "\n";
-                $errorCount++;
+        if ($isSingleFile) {
+            // Generate single timestamped migration file
+            if (empty($args['out-dir'])) {
+                echo "Error: --out-dir parameter is required when --table is omitted\n";
+                exit(1);
             }
             
+            $outDir = $args['out-dir'];
+            if (!is_dir($outDir)) {
+                mkdir($outDir, 0755, true);
+            }
+            
+            $timestamp = (new \DateTime())->format('YmdHis');
+            $migrationName = $timestamp . '_audit_log';
+            $phinxFile = combinePath($outDir, $migrationName . '.php');
+            
+            // Generate table creation code for all audit log tables
+            $tableCodes = [];
+            $successCount = 0;
+            $errorCount = 0;
+            
+            foreach ($entities as $tableName => $entityFile) {
+                echo "Processing: $tableName\n";
+                echo "  Found RepositoryEntity file: $entityFile\n";
+                
+                try {
+                    // Parse the class
+                    $schema = parseRepositoryEntityClass($entityFile, $tableName);
+                    
+                    // Generate audit log table creation code
+                    $tableCode = generatePhinxTableCode($schema, true);
+                    $tableCodes[] = $tableCode;
+                    
+                    echo "  Added audit log table creation code for: {$tableName}_audit_log\n";
+                    $successCount++;
+                } catch (\Exception $e) {
+                    echo "  Error processing '$tableName': " . $e->getMessage() . "\n";
+                    $errorCount++;
+                }
+                
+                echo "\n";
+            }
+            
+            // Generate complete migration file with all tables
+            $className = 'AuditLog';
+            $migrationCode = "<?php\n\n";
+            $migrationCode .= "declare(strict_types=1);\n\n";
+            $migrationCode .= "use Phinx\Migration\AbstractMigration;\n\n";
+            $migrationCode .= "final class $className extends AbstractMigration\n";
+            $migrationCode .= "{\n";
+            $migrationCode .= "    /**\n";
+            $migrationCode .= "     * Change Method.\n";
+            $migrationCode .= "     *\n";
+            $migrationCode .= "     * Write your reversible migrations using this method.\n";
+            $migrationCode .= "     *\n";
+            $migrationCode .= "     * More information on writing migrations is available here:\n";
+            $migrationCode .= "     * https://book.cakephp.org/phinx/0/en/migrations.html#the-change-method\n";
+            $migrationCode .= "     *\n";
+            $migrationCode .= "     * Remember to call \"create()\" or \"update()\" and NOT \"save()\" when working\n";
+            $migrationCode .= "     * with the Table class.\n";
+            $migrationCode .= "     */\n";
+            $migrationCode .= "    public function change(): void\n";
+            $migrationCode .= "    {\n";
+            $migrationCode .= implode("\n", $tableCodes);
+            $migrationCode .= "    }\n";
+            $migrationCode .= "}\n";
+            
+            file_put_contents($phinxFile, $migrationCode);
+            echo "Generated Phinx migration: $phinxFile\n";
+            echo "Successfully added $successCount audit log table(s)";
+            if ($errorCount > 0) {
+                echo ", $errorCount error(s)";
+            }
+            echo "\n";
+        } else {
+            // Use existing file (when --table is specified)
+            if (empty($args['file'])) {
+                echo "Error: --file parameter is required when --table is specified\n";
+                exit(1);
+            }
+            
+            $phinxFile = $args['file'];
+            
+            if (!file_exists($phinxFile)) {
+                echo "Error: Phinx migration file not found: $phinxFile\n";
+                exit(1);
+            }
+            
+            // Read existing migration file to extract class structure
+            $existingContent = file_get_contents($phinxFile);
+            
+            // Extract class name from existing file
+            if (preg_match('/class\s+(\w+)\s+extends\s+AbstractMigration/', $existingContent, $matches)) {
+                $className = $matches[1];
+            } else {
+                // Fallback: extract from filename
+                $baseName = basename($phinxFile, '.php');
+                $parts = explode('_', $baseName, 2);
+                $className = isset($parts[1]) ? toPascalCase($parts[1]) : 'Migration';
+            }
+            
+            // Extract change() method content if it exists
+            $existingMethodContent = '';
+            if (preg_match('/public function change\(\): void\s*\{([^}]*)\}/s', $existingContent, $matches)) {
+                $existingMethodContent = trim($matches[1]);
+            }
+            
+            // Generate table creation code for all audit log tables
+            $tableCodes = [];
+            $successCount = 0;
+            $errorCount = 0;
+            
+            foreach ($entities as $tableName => $entityFile) {
+                echo "Processing: $tableName\n";
+                echo "  Found RepositoryEntity file: $entityFile\n";
+                
+                try {
+                    // Parse the class
+                    $schema = parseRepositoryEntityClass($entityFile, $tableName);
+                    
+                    // Generate audit log table creation code
+                    $tableCode = generatePhinxTableCode($schema, true);
+                    $tableCodes[] = $tableCode;
+                    
+                    echo "  Added audit log table creation code for: {$tableName}_audit_log\n";
+                    $successCount++;
+                } catch (\Exception $e) {
+                    echo "  Error processing '$tableName': " . $e->getMessage() . "\n";
+                    $errorCount++;
+                }
+                
+                echo "\n";
+            }
+            
+            // Combine existing content with new table codes
+            $allTableCode = implode("\n", $tableCodes);
+            if (!empty($existingMethodContent)) {
+                $allTableCode = $existingMethodContent . "\n" . $allTableCode;
+            }
+            
+            // Generate complete migration file
+            $migrationCode = "<?php\n\n";
+            $migrationCode .= "declare(strict_types=1);\n\n";
+            $migrationCode .= "use Phinx\Migration\AbstractMigration;\n\n";
+            $migrationCode .= "final class $className extends AbstractMigration\n";
+            $migrationCode .= "{\n";
+            $migrationCode .= "    /**\n";
+            $migrationCode .= "     * Change Method.\n";
+            $migrationCode .= "     *\n";
+            $migrationCode .= "     * Write your reversible migrations using this method.\n";
+            $migrationCode .= "     *\n";
+            $migrationCode .= "     * More information on writing migrations is available here:\n";
+            $migrationCode .= "     * https://book.cakephp.org/phinx/0/en/migrations.html#the-change-method\n";
+            $migrationCode .= "     *\n";
+            $migrationCode .= "     * Remember to call \"create()\" or \"update()\" and NOT \"save()\" when working\n";
+            $migrationCode .= "     * with the Table class.\n";
+            $migrationCode .= "     */\n";
+            $migrationCode .= "    public function change(): void\n";
+            $migrationCode .= "    {\n";
+            $migrationCode .= $allTableCode;
+            $migrationCode .= "    }\n";
+            $migrationCode .= "}\n";
+            
+            file_put_contents($phinxFile, $migrationCode);
+            echo "Generated Phinx migration: $phinxFile\n";
+            echo "Successfully added $successCount audit log table(s)";
+            if ($errorCount > 0) {
+                echo ", $errorCount error(s)";
+            }
             echo "\n";
         }
-        
-        // Combine existing content with new table codes
-        $allTableCode = implode("\n", $tableCodes);
-        if (!empty($existingMethodContent)) {
-            $allTableCode = $existingMethodContent . "\n" . $allTableCode;
-        }
-        
-        // Generate complete migration file
-        $migrationCode = "<?php\n\n";
-        $migrationCode .= "declare(strict_types=1);\n\n";
-        $migrationCode .= "use Phinx\Migration\AbstractMigration;\n\n";
-        $migrationCode .= "final class $className extends AbstractMigration\n";
-        $migrationCode .= "{\n";
-        $migrationCode .= "    /**\n";
-        $migrationCode .= "     * Change Method.\n";
-        $migrationCode .= "     *\n";
-        $migrationCode .= "     * Write your reversible migrations using this method.\n";
-        $migrationCode .= "     *\n";
-        $migrationCode .= "     * More information on writing migrations is available here:\n";
-        $migrationCode .= "     * https://book.cakephp.org/phinx/0/en/migrations.html#the-change-method\n";
-        $migrationCode .= "     *\n";
-        $migrationCode .= "     * Remember to call \"create()\" or \"update()\" and NOT \"save()\" when working\n";
-        $migrationCode .= "     * with the Table class.\n";
-        $migrationCode .= "     */\n";
-        $migrationCode .= "    public function change(): void\n";
-        $migrationCode .= "    {\n";
-        $migrationCode .= $allTableCode;
-        $migrationCode .= "    }\n";
-        $migrationCode .= "}\n";
-        
-        file_put_contents($phinxFile, $migrationCode);
-        echo "Generated Phinx migration: $phinxFile\n";
-        echo "Successfully added $successCount audit log table(s)";
-        if ($errorCount > 0) {
-            echo ", $errorCount error(s)";
-        }
-        echo "\n";
     }
 }
 
@@ -699,8 +936,10 @@ function handleAuditCommand(array $argv): void
         handleAuditSchema($args);
     } elseif (!empty($args['phinx'])) {
         handleAuditPhinx($args);
+    } elseif (!empty($args['migrate'])) {
+        handleAuditMigrate($args);
     } else {
-        echo "Error: Must specify one of --classes, --schema, or --phinx\n\n";
+        echo "Error: Must specify one of --classes, --schema, --phinx, or --migrate\n\n";
         printAuditHelp();
         exit(1);
     }

@@ -179,6 +179,7 @@ function parseArguments(array $argv): array
         'classes' => false,
         'schema' => false,
         'phinx' => false,
+        'migrate' => false,
         'help' => false,
     ];
     
@@ -199,9 +200,9 @@ function parseArguments(array $argv): array
                 $args[$key] = $value;
             } else {
                 $key = substr($arg, 2);
-                // For boolean flags (like --classes, --schema, --phinx, --help), set to true
+                // For boolean flags (like --classes, --schema, --phinx, --migrate, --help), set to true
                 // Check if it's a known boolean flag
-                if (in_array($key, ['classes', 'schema', 'phinx', 'help'])) {
+                if (in_array($key, ['classes', 'schema', 'phinx', 'migrate', 'help'])) {
                     $args[$key] = true;
                 } else {
                     $currentKey = $key;
