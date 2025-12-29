@@ -9,5 +9,5 @@ use Tests\Util\TestRepository;
 #[EntityOf(TestRepository::class)]
 class TestRepositoryEntity extends RepositoryEntity
 {
-    // Entity class for testing Repository
+    use Builder, ToBuilder, Data;
 }

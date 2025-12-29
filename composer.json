@@ -35,6 +35,10 @@
         }
     },
     "bin": [
-        "./bin/"
+        "bin/repository.php",
+        "bin/repository_classes.php",
+        "bin/repository_schema.php",
+        "bin/repository_phinx.php",
+        "bin/repository_audit.php"
     ]
 }
