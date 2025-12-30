@@ -2,6 +2,8 @@
 
 A modern Active Record ORM for PHP 8.3+ designed for the ORK4 system. This library provides a clean, intuitive interface for database operations with support for both traditional table-based queries and entity-based object mapping.
 
+The library includes a command-line tool (`repository.php`) for generating Repository and RepositoryEntity classes from existing MySQL schemas, creating database migration files, and managing audit logging infrastructure.
+
 ## Introduction
 
 Amtgard Active Record ORM (Aaro) is an active record data access layer, in the vein of PorqDB - a completely dead ORM project from the dawn of time.
@@ -630,6 +632,232 @@ composer test
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Repository Generator Tool
+
+The `repository.php` command-line tool automates the generation of Repository and RepositoryEntity classes, database schemas, and Phinx migrations. This tool helps you quickly scaffold your data access layer from existing MySQL databases or generate migration files from your entity classes.
+
+### Basic Usage
+
+The tool can be run directly (if executable) or via PHP:
+
+```bash
+# Direct execution (if executable)
+./repository <command> [options]
+
+# Or via PHP
+php bin/repository.php <command> [options]
+```
+
+### Commands Overview
+
+- **`classes`** - Generate Repository and RepositoryEntity classes by inspecting MySQL database schemas
+- **`schema`** - Generate MySQL CREATE TABLE SQL from existing RepositoryEntity class definitions
+- **`phinx`** - Generate Phinx migration files from RepositoryEntity class definitions
+- **`audit`** - Generate audit-related classes, schemas, or migrations for audit logging
+
+### Classes Command
+
+The `classes` command generates Repository and RepositoryEntity classes by inspecting an existing MySQL table schema.
+
+**Basic Usage:**
+```bash
+repository.php classes --env=<path> [--table=<table>] --out-dir=<path>
+```
+
+**Options:**
+- `--env=<path>` - Path to `.env` file or directory containing `.env` file (required)
+- `--table=<table>` - Optional: Table name in snake_case (e.g., `user_profiles`). If omitted, generates classes for all tables in the database (excluding tables in `.exclusions`)
+- `--out-dir=<path>` - Output directory for generated PHP files (required)
+
+**Examples:**
+```bash
+# Generate classes for a specific table
+repository.php classes --env=./.env --table=user_profiles --out-dir=./src/Entity
+
+# Generate classes for all tables (excluding .exclusions)
+repository.php classes --env=./.env --out-dir=./src/Entity
+```
+
+**Output:**
+- `{Table}Repository.php` - Repository class extending `Repository`
+- `{Table}RepositoryEntity.php` - RepositoryEntity class with all table fields mapped as properties
+
+### Schema Command
+
+The `schema` command generates MySQL CREATE TABLE SQL from existing RepositoryEntity class definitions.
+
+**Basic Usage:**
+```bash
+repository.php schema --source=<path> [--table=<table>]
+```
+
+**Options:**
+- `--source=<path>` - Directory containing Repository and RepositoryEntity classes (required)
+- `--table=<table>` - Optional: Table name in snake_case. If omitted, generates SQL for all RepositoryEntity classes found
+
+**Examples:**
+```bash
+# Generate SQL for a specific table
+repository.php schema --source=./src/Entity --table=user_profiles
+
+# Generate SQL for all RepositoryEntity classes
+repository.php schema --source=./src/Entity
+```
+
+**Output:**
+- `{table}.sql` - MySQL CREATE TABLE statement for each RepositoryEntity class
+
+### Phinx Command
+
+The `phinx` command generates Phinx migration code from existing RepositoryEntity class definitions.
+
+**Basic Usage:**
+```bash
+repository.php phinx --source=<path> [--table=<table>] --file=<path>
+```
+
+**Options:**
+- `--source=<path>` - Directory containing Repository and RepositoryEntity classes (required)
+- `--table=<table>` - Optional: Table name in snake_case. If omitted, adds CREATE TABLE for all RepositoryEntity classes
+- `--file=<path>` - Path to Phinx migration file to generate (file must exist)
+
+**Examples:**
+```bash
+# Generate Phinx migration for a specific table
+repository.php phinx --source=./src/Entity --table=user_profiles --file=./db/migrations/20251215143314_create_user_profiles.php
+
+# Generate Phinx migration for all RepositoryEntity classes
+repository.php phinx --source=./src/Entity --file=./db/migrations/20251215143314_create_all_tables.php
+```
+
+**Output:**
+- Updates the specified Phinx migration file with `create()` method containing table creation code
+
+### Audit Command
+
+The `audit` command provides sub-commands for generating audit-related infrastructure.
+
+#### Audit Classes Sub-command
+
+Generates Repository and RepositoryEntity classes with audit support (includes `AuditRepositoryEntityTrait`).
+
+**Usage:**
+```bash
+repository.php audit --classes --env=<path> [--table=<table>] --out-dir=<path>
+```
+
+**Options:**
+- `--env=<path>` - Path to `.env` file or directory containing `.env` file (required)
+- `--out-dir=<path>` - Output directory for generated PHP files (required)
+- `--table=<table>` - Optional: Table name. If omitted, generates for all tables not in `.exclusions`
+
+**Examples:**
+```bash
+# Generate audit classes for a specific table
+repository.php audit --classes --env=./.env --table=user_profiles --out-dir=./src/Entity
+
+# Generate audit classes for all tables
+repository.php audit --classes --env=./.env --out-dir=./src/Entity
+```
+
+#### Audit Schema Sub-command
+
+Generates MySQL CREATE TABLE SQL for audit log tables.
+
+**Usage:**
+```bash
+# From RepositoryEntity classes
+repository.php audit --schema --source=<path> [--table=<table>]
+
+# From MySQL database
+repository.php audit --schema --env=<path> [--table=<table>] --out-dir=<path>
+```
+
+**Options:**
+- `--source=<path>` - Directory containing RepositoryEntity classes (for class-based generation)
+- `--env=<path>` - Path to `.env` file (for database-based generation)
+- `--out-dir=<path>` - Output directory (required when using `--env`)
+- `--table=<table>` - Optional: Table name. If omitted, processes all tables/classes
+
+**Output:**
+- `YmdHis.sql` - Timestamped SQL file when `--table` is omitted
+- `audit_log_tables.sql` - SQL file when `--table` is specified
+
+#### Audit Phinx Sub-command
+
+Generates Phinx migration files for audit log tables.
+
+**Usage:**
+```bash
+# From RepositoryEntity classes
+repository.php audit --phinx --source=<path> [--table=<table>] --file=<path>
+
+# From MySQL database
+repository.php audit --phinx --env=<path> [--table=<table>] --out-dir=<path>
+```
+
+**Options:**
+- `--source=<path>` - Directory containing RepositoryEntity classes (for class-based generation)
+- `--file=<path>` - Path to Phinx migration file (required when using `--source` with `--table`)
+- `--env=<path>` - Path to `.env` file (for database-based generation)
+- `--out-dir=<path>` - Output directory (required when using `--env`)
+- `--table=<table>` - Optional: Table name. If omitted, generates `YmdHis_audit_log.php` with all tables
+
+**Output:**
+- `YmdHis_audit_log.php` - Timestamped migration file when `--table` is omitted
+- Individual migration files when `--table` is specified
+
+#### Audit Migrate Sub-command
+
+Runs both `--classes` and `--phinx` commands sequentially to generate complete audit infrastructure.
+
+**Usage:**
+```bash
+repository.php audit --migrate --env=<path> [--table=<table>] --out-dir=<path>
+```
+
+**Options:**
+- `--env=<path>` - Path to `.env` file or directory containing `.env` file (required)
+- `--out-dir=<path>` - Output directory for generated files (required)
+- `--table=<table>` - Optional: Table name. If omitted, processes all tables not in `.exclusions`
+
+**Examples:**
+```bash
+# Generate audit classes and Phinx migration for a specific table
+repository.php audit --migrate --env=./.env --out-dir=./src/Entity --table=user_profiles
+
+# Generate audit classes and Phinx migration for all tables
+repository.php audit --migrate --env=./.env --out-dir=./src/Entity
+```
+
+**What it does:**
+1. Generates Repository and RepositoryEntity classes with `AuditRepositoryEntityTrait`
+2. Generates Phinx migration files for audit log tables
+
+### Exclusions File
+
+The tool supports excluding tables from batch operations using a `.exclusions` file located in the `bin/` directory. This file supports:
+
+- **Exact matches**: Table names listed exactly (e.g., `phinxlog`)
+- **Glob patterns**: Patterns using `*` and `?` wildcards (e.g., `*_audit_log`)
+
+**Example `.exclusions` file:**
+```
+phinxlog
+*_audit_log
+```
+
+Tables matching entries in `.exclusions` are automatically excluded when:
+- Running `classes` command without `--table`
+- Running `audit --classes` without `--table`
+- Running `audit --schema` without `--table` (when using `--env`)
+
+### Environment File Handling
+
+For commands that require `--env`, you can specify either:
+- A full path to a `.env` file: `--env=./path/to/.env`
+- A directory containing a `.env` file: `--env=./path/to/directory` (the tool automatically appends `.env`)
 
 ## Contributing
 
