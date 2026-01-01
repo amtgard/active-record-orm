@@ -3,6 +3,7 @@
 namespace Tests\Unit\Entity\Repository;
 
 use Amtgard\ActiveRecordOrm\Attribute\EntityOf;
+use Amtgard\ActiveRecordOrm\Attribute\EntityReference;
 use Amtgard\ActiveRecordOrm\Attribute\Field;
 use Amtgard\ActiveRecordOrm\Attribute\PrimaryKey;
 use Amtgard\ActiveRecordOrm\Attribute\RepositoryOf;
@@ -70,8 +71,24 @@ class TestRepositoryEntityWithBackingRef extends RepositoryEntity
 
     private ?int $linkId;
 
-    #[Field('int_value', 'linkId')]
+    #[Field('int_value')]
+    #[EntityReference('linkId')]
     private ?TestRepositoryEntity $link;
+}
+
+#[EntityOf(TestRepository::class)]
+class DateTimeTestRepositoryEntity extends RepositoryEntity
+{
+    use Builder, ToBuilder, Data;
+
+    #[PrimaryKey]
+    private ?int $id;
+
+    #[Field('name_field')]
+    private ?string $name;
+
+    #[Field('created_at', \DateTimeInterface::class)]
+    private $createdAt; // No type hint - type comes from Field attribute
 }
 
 class RepositoryEntityTest extends AmtgardTestCase
@@ -442,6 +459,130 @@ class RepositoryEntityTest extends AmtgardTestCase
         $entity->name = 'test_name';
 
         Phake::verify($this->mockEntity)->__set('name_field', 'test_name');
+    }
+
+    public function testDateTimeTestRepositoryEntity_fetch_convertsDateTimeFromDatetime(): void
+    {
+        $mockCreatedAtField = Phake::mock(FieldDefinition::class);
+        $mockIdField = Phake::mock(FieldDefinition::class);
+        $mockNameField = Phake::mock(FieldDefinition::class);
+        $fieldsArray = [
+            'id' => $mockIdField,
+            'name_field' => $mockNameField,
+            'created_at' => $mockCreatedAtField
+        ];
+        Phake::when($this->mockTableSchema)->getFields()->thenReturn($fieldsArray);
+        Phake::when($mockCreatedAtField)->getType()->thenReturn(FieldType::DATETIME);
+        Phake::when($mockIdField)->getType()->thenReturn(FieldType::INTEGER);
+        Phake::when($mockNameField)->getType()->thenReturn(FieldType::STRING);
+        Phake::when($this->mockEntity)->getSchema()->thenReturn($this->mockTableSchema);
+        Phake::when($this->mockEntity)->created_at->thenReturn('2023-01-01 12:00:00');
+        Phake::when($this->mockEntity)->id->thenReturn(1);
+        Phake::when($this->mockEntity)->name_field->thenReturn('test');
+
+        $result = DateTimeTestRepositoryEntity::toRepositoryEntity($this->mockEntity);
+
+        self::assertInstanceOf(DateTimeTestRepositoryEntity::class, $result);
+        $reflection = new \ReflectionClass($result);
+        $createdAtProperty = $reflection->getProperty('createdAt');
+        $createdAtProperty->setAccessible(true);
+        if ($createdAtProperty->isInitialized($result)) {
+            $createdAtValue = $createdAtProperty->getValue($result);
+            self::assertInstanceOf(\DateTime::class, $createdAtValue);
+            self::assertEquals('2023-01-01 12:00:00', $createdAtValue->format('Y-m-d H:i:s'));
+        } else {
+            self::fail('createdAt property should be initialized after conversion');
+        }
+    }
+
+    public function testDateTimeTestRepositoryEntity_fetch_convertsDateTimeFromInteger(): void
+    {
+        $mockCreatedAtField = Phake::mock(FieldDefinition::class);
+        $mockIdField = Phake::mock(FieldDefinition::class);
+        $mockNameField = Phake::mock(FieldDefinition::class);
+        $fieldsArray = [
+            'id' => $mockIdField,
+            'name_field' => $mockNameField,
+            'created_at' => $mockCreatedAtField
+        ];
+        Phake::when($this->mockTableSchema)->getFields()->thenReturn($fieldsArray);
+        Phake::when($mockCreatedAtField)->getType()->thenReturn(FieldType::INTEGER);
+        Phake::when($mockIdField)->getType()->thenReturn(FieldType::INTEGER);
+        Phake::when($mockNameField)->getType()->thenReturn(FieldType::STRING);
+        Phake::when($this->mockEntity)->getSchema()->thenReturn($this->mockTableSchema);
+        $timestamp = 1672574400; // 2023-01-01 12:00:00 UTC
+        Phake::when($this->mockEntity)->created_at->thenReturn($timestamp);
+        Phake::when($this->mockEntity)->id->thenReturn(1);
+        Phake::when($this->mockEntity)->name_field->thenReturn('test');
+
+        $result = DateTimeTestRepositoryEntity::toRepositoryEntity($this->mockEntity);
+
+        self::assertInstanceOf(DateTimeTestRepositoryEntity::class, $result);
+        $reflection = new \ReflectionClass($result);
+        $createdAtProperty = $reflection->getProperty('createdAt');
+        $createdAtProperty->setAccessible(true);
+        if ($createdAtProperty->isInitialized($result)) {
+            $createdAtValue = $createdAtProperty->getValue($result);
+            self::assertInstanceOf(\DateTime::class, $createdAtValue);
+            self::assertEquals($timestamp, $createdAtValue->getTimestamp());
+        } else {
+            self::fail('createdAt property should be initialized after conversion');
+        }
+    }
+
+    public static $mockEntityValueCanary = null;
+    public function testDateTimeTestRepositoryEntity_set_mapsDateTimeToEntity(): void
+    {
+        $mockCreatedAtField = Phake::mock(FieldDefinition::class);
+        Phake::when($this->mockTableSchema)->getFields()->thenReturn([
+            'id' => $this->mockIdField,
+            'name_field' => $this->mockNameField,
+            'created_at' => $mockCreatedAtField
+        ]);
+        Phake::when($this->mockTableSchema)->hasField('created_at')->thenReturn(true);
+        Phake::when($this->mockTableSchema)->getField('created_at')->thenReturn($mockCreatedAtField);
+        Phake::when($mockCreatedAtField)->getType()->thenReturn(FieldType::DATETIME);
+        Phake::when($this->mockEntity)->getSchema()->thenReturn($this->mockTableSchema);
+        RepositoryEntityTest::$mockEntityValueCanary = null;
+        Phake::when($this->mockEntity)->__set(Phake::anyParameters())->thenReturnCallback(function($name, $value) {
+            RepositoryEntityTest::$mockEntityValueCanary = $value;
+        });
+
+        $entity = DateTimeTestRepositoryEntity::builder()
+            ->entity($this->mockEntity)
+            ->build();
+
+        $dateTime = new \DateTime('2023-01-01 12:00:00');
+        $entity->createdAt = $dateTime;
+
+        assertEquals($dateTime, RepositoryEntityTest::$mockEntityValueCanary);
+    }
+
+    public function testDateTimeTestRepositoryEntity_set_mapsDateTimeToEntityIntegerField(): void
+    {
+        $mockCreatedAtField = Phake::mock(FieldDefinition::class);
+        Phake::when($this->mockTableSchema)->getFields()->thenReturn([
+            'id' => $this->mockIdField,
+            'name_field' => $this->mockNameField,
+            'created_at' => $mockCreatedAtField
+        ]);
+        Phake::when($this->mockTableSchema)->hasField('created_at')->thenReturn(true);
+        Phake::when($this->mockTableSchema)->getField('created_at')->thenReturn($mockCreatedAtField);
+        Phake::when($mockCreatedAtField)->getType()->thenReturn(FieldType::INTEGER);
+        Phake::when($this->mockEntity)->getSchema()->thenReturn($this->mockTableSchema);
+        RepositoryEntityTest::$mockEntityValueCanary = null;
+        Phake::when($this->mockEntity)->__set(Phake::anyParameters())->thenReturnCallback(function($name, $value) {
+            RepositoryEntityTest::$mockEntityValueCanary = $value;
+        });
+
+        $entity = DateTimeTestRepositoryEntity::builder()
+            ->entity($this->mockEntity)
+            ->build();
+
+        $dateTime = new \DateTime('2024-01-01 12:00:00');
+        $entity->createdAt = $dateTime;
+
+        assertEquals($dateTime, RepositoryEntityTest::$mockEntityValueCanary);
     }
 
     public function testMapFieldsToInternalEntity_mapsFieldValuesToEntity(): void

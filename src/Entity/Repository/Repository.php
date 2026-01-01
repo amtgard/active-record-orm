@@ -152,7 +152,7 @@ abstract class Repository implements ActiveRecordTableInterface, EntityRepositor
     function fetchBy(string $field, $value): ?EntityInterface
     {
         $repositoryEntityClass = $this->repositoryEntityClass;
-        $repositoryEntityField = $this->entityMapInfo[$field]['source'] ?? $field;
+        $repositoryEntityField = $this->entityMapInfo[$field]->getSource() ?? $field;
         return $repositoryEntityClass::toRepositoryEntity($this->entityMapper->fetchBy($repositoryEntityField, $value));
     }
 

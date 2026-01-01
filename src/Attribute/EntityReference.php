@@ -2,15 +2,14 @@
 
 namespace Amtgard\ActiveRecordOrm\Attribute;
 
-use Amtgard\ActiveRecordOrm\Schema\FieldType;
 use Attribute;
 
 #[Attribute(Attribute::TARGET_PROPERTY | Attribute::IS_REPEATABLE)]
-class Field
+class EntityReference
 {
     public function __construct(
-        public ?string $name = null,
-        public ?string $type = null
+        public ?string $referenceProperty = null
     ) {
     }
+
 }

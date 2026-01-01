@@ -78,6 +78,8 @@ class EntityRepositoryTest extends AmtgardTestCase
     public static EntityManager $em;
 
     public function testHideFieldsWithTraits() {
+        $this->resetTable();
+
         $someRepo = EntityManager::getManager()->getRepository(SomeHiddenRepository::class);
         $someEntity = $someRepo->fetch(1);
         assertEquals("2", $someEntity->getName());
@@ -85,6 +87,8 @@ class EntityRepositoryTest extends AmtgardTestCase
     }
 
     public function testNewEntityByCreateEntity_withHiddenFields(): void {
+        $this->resetTable();
+
         $someRepo = EntityManager::getManager()->getRepository(SomeHiddenRepository::class);
 
         $someEntity = $someRepo->newRepositoryEntity();
