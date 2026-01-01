@@ -3,6 +3,7 @@
 namespace Tests\Integration;
 
 use Amtgard\ActiveRecordOrm\Attribute\EntityOf;
+use Amtgard\ActiveRecordOrm\Attribute\EntityReference;
 use Amtgard\ActiveRecordOrm\Attribute\Field;
 use Amtgard\ActiveRecordOrm\Attribute\PrimaryKey;
 use Amtgard\ActiveRecordOrm\Attribute\RepositoryOf;
@@ -50,7 +51,8 @@ class SomeEntity extends RepositoryEntity {
     #[Field('datetime_value')]
     private ?DateTime $createdAt;
     private ?int $linkId;
-    #[Field('int_value', 'linkId')]
+    #[Field('int_value')]
+    #[EntityReference('linkId')]
     private ?SomeEntity $link;
 }
 

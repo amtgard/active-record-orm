@@ -3,6 +3,7 @@
 namespace Amtgard\ActiveRecordOrm\Entity\Repository;
 
 use Amtgard\ActiveRecordOrm\Attribute\EntityOf;
+use Amtgard\ActiveRecordOrm\Attribute\EntityReference;
 use Amtgard\ActiveRecordOrm\Attribute\Field;
 use Amtgard\ActiveRecordOrm\Attribute\PrimaryKey;
 use Amtgard\ActiveRecordOrm\Entity\EntityMapper;
@@ -18,9 +19,27 @@ use Amtgard\Traits\Builder\Data;
 use Amtgard\Traits\Builder\OnSet;
 use Amtgard\Traits\Builder\PostInit;
 use Amtgard\Traits\Builder\PreInit;
+use Amtgard\Traits\Builder\Setter;
 use Amtgard\Traits\Builder\ToBuilder;
 use DateTime;
 use Optional\Optional;
+
+class MappedInfo {
+    use Builder, Data;
+
+    public string $annotation;
+    public string $source;
+    public string $destinationType;
+    public ?string $backingReferencePk;
+    public bool $nullable;
+
+    #[PostInit]
+    private function postInit() {
+        if (is_subclass_of($this->destinationType, \DateTimeInterface::class, true)) {
+            $this->destinationType = \DateTimeInterface::class;
+        }
+    }
+}
 
 abstract class RepositoryEntity implements EntityInterface
 {
@@ -82,7 +101,7 @@ abstract class RepositoryEntity implements EntityInterface
 
         $schema = $entity->getSchema();
         foreach ($instance->getEntityMapInfo() as $instanceField => $mapInfo) {
-            $sourceField = $mapInfo['source'];
+            $sourceField = $mapInfo->getSource();
             static::fieldTypeConversions($instance, $instanceField, $schema, $mapInfo, $entity, $sourceField);
         }
         return $instance;
@@ -94,30 +113,27 @@ abstract class RepositoryEntity implements EntityInterface
 
     private static function fieldTypeConversions(RepositoryEntity &$instance, $instanceField, TableSchema $sourceSchema, $mapInfo, EntityInterface $entity, $sourceField) {
         $sourceFieldValue = $entity->$sourceField;
-        switch ($mapInfo['destinationType']) {
-            case 'DateTime': {
-                switch ($sourceSchema->getFields()[$sourceField]->getType()) {
-                    case FieldType::DATETIME: $instance->$instanceField = new DateTime($sourceFieldValue); return;
-                    case FieldType::INTEGER: $instance->$instanceField = DateTime::createFromFormat('U', $sourceFieldValue); return;
-                }
-                $instance->$instanceField = new DateTime();
-                return;
+        if ($mapInfo->getDestinationType() == \DateTimeInterface::class) {
+            switch ($sourceSchema->getFields()[$sourceField]->getType()) {
+                case FieldType::DATETIME: $instance->$instanceField = new DateTime($sourceFieldValue); return;
+                case FieldType::INTEGER: $instance->$instanceField = DateTime::createFromFormat('U', $sourceFieldValue); return;
             }
-            default: {
-                $interfaces = class_implements($mapInfo['destinationType']);
-                if ($interfaces && count($interfaces) > 0) {
-                    if (in_array(EntityInterface::class, $interfaces)) {
-                        // Resurrect alternate entity from repo
-                        if (isset($mapInfo['backingReferencePk'])) {
-                            $backingReferencePk = $mapInfo['backingReferencePk'];
-                            $instance->$backingReferencePk = $sourceFieldValue;
-                            return;
-                        }
+            $instance->$instanceField = new DateTime();
+            return;
+        } else {
+            $interfaces = class_implements($mapInfo->getDestinationType());
+            if ($interfaces && count($interfaces) > 0) {
+                if (in_array(EntityInterface::class, $interfaces)) {
+                    // Resurrect alternate entity from repo
+                    if (!is_null($mapInfo->getBackingReferencePk())) {
+                        $backingReferencePk = $mapInfo->getBackingReferencePk();
+                        $instance->$backingReferencePk = $sourceFieldValue;
+                        return;
                     }
                 }
             }
         }
-        if (Optional::ofNullable($sourceFieldValue)->isPresent() || $mapInfo['nullable']) {
+        if (Optional::ofNullable($sourceFieldValue)->isPresent() || $mapInfo->getNullable()) {
             $instance->$instanceField = $sourceFieldValue;
         }
     }
@@ -187,35 +203,33 @@ abstract class RepositoryEntity implements EntityInterface
     private function mapFieldsToInternalEntity() {
         $schema = $this->entity->getSchema();
         foreach ($this->getEntityMapInfo() as $instanceField => $mapInfo) {
-            $sourceField = $mapInfo['source'];
+            $sourceField = $mapInfo->getSource();
             if (!isset($this->$instanceField)) {
                 continue;
             }
-            switch ($mapInfo['destinationType']) {
-                case 'DateTime': {
-                    switch ($schema->getFields()[$sourceField]->getType()) {
-                        case FieldType::DATETIME: $this->entity->$sourceField = $this->$instanceField->format('Y-m-d H:i:s'); break;
-                        case FieldType::INTEGER: $this->entity->$sourceField = $this->$instanceField->getTimestamp(); break;
-                    }
+            if ($mapInfo->getDestinationType() == \DateTimeInterface::class) {
+                switch ($schema->getFields()[$sourceField]->getType()) {
+                    case FieldType::DATETIME: $this->entity->$sourceField = $this->$instanceField->format('Y-m-d H:i:s'); break;
+                    case FieldType::INTEGER: $this->entity->$sourceField = $this->$instanceField->getTimestamp(); break;
                 }
-                default: {
-                    $interfaces = class_implements($mapInfo['destinationType']);
-                    if ($interfaces && count($interfaces) > 0) {
-                        if (in_array(EntityInterface::class, $interfaces)) {
-                            $this->entity->$sourceField = $this->$instanceField->id;
-                        }
-                    } else {
-                        $this->entity->$sourceField = $this->$instanceField;
+            } else {
+                $interfaces = class_implements($mapInfo->getDestinationType());
+                if ($interfaces && count($interfaces) > 0) {
+                    if (in_array(EntityInterface::class, $interfaces)) {
+                        $this->entity->$sourceField = $this->$instanceField->id;
                     }
+                } else {
+                    $this->entity->$sourceField = $this->$instanceField;
                 }
             }
+
         }
     }
 
     private function mapInternalEntityToFields() {
         $schema = $this->entity->getSchema();
         foreach ($this->getEntityMapInfo() as $instanceField => $mapInfo) {
-            $sourceField = $mapInfo['source'];
+            $sourceField = $mapInfo->getSource();
             static::fieldTypeConversions($this, $instanceField, $schema, $mapInfo, $this->entity, $sourceField);
         }
     }
@@ -229,22 +243,85 @@ abstract class RepositoryEntity implements EntityInterface
         $map = [];
         $thisClassReflection = new \ReflectionClass(static::class);
         foreach ($thisClassReflection->getProperties(\ReflectionProperty::IS_PRIVATE | \ReflectionProperty::IS_PROTECTED) as $property) {
-            foreach ($property->getAttributes() as $attribute) {
-                if (in_array($attribute->getName(), [ Field::class, PrimaryKey::class ])) {
-                    $args = $attribute->getArguments();
-                    $entityFieldName = count($args) > 0 ? $args[0] : $property->getName();
-                    $propertyType = $property->getType();
-                    $map[$property->getName()] = [
-                        'annotation' => $attribute->getName(),
-                        'source' => $entityFieldName,
-                        'destinationType' => $propertyType ? $propertyType->getName() : null,
-                        'backingReferencePk' => count($args) > 1 ? $args[1] : null,
-                        'nullable' => $propertyType ? $propertyType->allowsNull() : true,
-                    ];
-                }
+            $mappedInfo = static::extractAttributeData($property);
+            if (Optional::ofNullable($mappedInfo)->isPresent()) {
+                $map[$property->getName()] = $mappedInfo;
             }
         }
         return $map;
+    }
+
+    private static function extractAttributeData(\ReflectionProperty $property): ?MappedInfo
+    {
+        $attributes = $property->getAttributes();
+        if (count(array_intersect(array_map(fn($attribute) => $attribute->getName(), $attributes), [Field::class, FieldType::class, PrimaryKey::class, EntityReference::class])) == 0)
+            return null;
+
+        $mappedInfoBuilder = MappedInfo::builder();
+        $backingReferencePk = null;
+        $fieldTypeFromFieldAttribute = null;
+        $fieldTypeFromFieldTypeAttribute = null;
+        $entityFieldName = null;
+        $annotation = null;
+
+        // First pass: collect all attribute data
+        foreach ($attributes as $attribute) {
+            switch ($attribute->getName()) {
+                case EntityReference::class:
+                    $args = $attribute->getArguments();
+                    $backingReferencePk = count($args) > 0 ? $args[0] : null;
+                    break;
+                case Field::class:
+                case PrimaryKey::class:
+                    $args = $attribute->getArguments();
+                    $entityFieldName = count($args) > 0 ? $args[0] : $property->getName();
+                    $annotation = $attribute->getName();
+                    // Collect type from Field's second parameter (preferred)
+                    if (count($args) > 1) {
+                        $fieldTypeFromFieldAttribute = $args[1];
+                    }
+                    break;
+                case FieldType::class:
+                    // Collect type from FieldType attribute (backward compatibility)
+                    $args = $attribute->getArguments();
+                    if (count($args) > 0) {
+                        $fieldTypeFromFieldTypeAttribute = $args[0];
+                    }
+                    break;
+            }
+        }
+
+        // Set annotation and source
+        if ($annotation) {
+            $mappedInfoBuilder->annotation($annotation);
+            $mappedInfoBuilder->source($entityFieldName ?? $property->getName());
+        } else {
+            return null;
+        }
+
+        // Set backing reference property
+        $mappedInfoBuilder->backingReferencePk($backingReferencePk);
+
+        // Determine destination type: prefer Field's second parameter, then FieldType attribute, then property type
+        $propertyType = $property->getType();
+        if ($fieldTypeFromFieldAttribute) {
+            $mappedInfoBuilder->destinationType($fieldTypeFromFieldAttribute);
+            $mappedInfoBuilder->nullable(Optional::ofNullable($propertyType)
+                ->map(fn($type) => $type->allowsNull())
+                ->orElse(true));
+        } elseif ($fieldTypeFromFieldTypeAttribute) {
+            $mappedInfoBuilder->destinationType(Optional::ofNullable($propertyType)
+                ->map(fn($type) => $type->getName())
+                ->orElse($fieldTypeFromFieldTypeAttribute));
+            $mappedInfoBuilder->nullable(Optional::ofNullable($propertyType)
+                ->map(fn($type) => $type->allowsNull())
+                ->orElse(true));
+        } else {
+            $mappedInfoBuilder->destinationType($propertyType ? $propertyType->getName() : null);
+            $mappedInfoBuilder->nullable($propertyType ? $propertyType->allowsNull() : true);
+        }
+
+        return $mappedInfoBuilder->build();
     }
 
     public function getEntityMapInfo(): array {
@@ -253,7 +330,9 @@ abstract class RepositoryEntity implements EntityInterface
 
     #[OnSet]
     protected function onSetField($name, $value) {
-        $entityFieldName = $this->getEntityMapInfo()[$name]['source'];
+        $entityFieldName = Optional::ofNullable($this->getEntityMapInfo()[$name])
+            ->map(fn($mapInfo) => $mapInfo->getSource())
+            ->orElse(null);
         if (Optional::ofNullable($entityFieldName)->isPresent()) {
             $this->entity->$entityFieldName = $value;
         }
