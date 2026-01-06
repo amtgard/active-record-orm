@@ -35,10 +35,10 @@
         }
     },
     "bin": [
-        "bin/repository.php",
-        "bin/repository_classes.php",
-        "bin/repository_schema.php",
-        "bin/repository_phinx.php",
-        "bin/repository_audit.php"
+        "bin/repository",
+        "bin/repository_classes",
+        "bin/repository_schema",
+        "bin/repository_phinx",
+        "bin/repository_audit"
     ]
 }

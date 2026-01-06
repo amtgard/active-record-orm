@@ -124,7 +124,7 @@ function printPhinxHelp(): void
 {
     $help = "PHINX COMMAND:\n";
     $help .= "    Generate Phinx migration from existing RepositoryEntity class definitions.\n\n";
-    $help .= "    repository.php phinx --source <directory> --file=<path>\n\n";
+    $help .= "    repository phinx --source <directory> --file=<path>\n\n";
     $help .= "    Options:\n";
     $help .= "        --source <directory>  Directory containing Repository and RepositoryEntity classes\n";
     $help .= "                            Processes all PHP files that extend RepositoryEntity\n";
@@ -132,13 +132,13 @@ function printPhinxHelp(): void
     $help .= "        --help, -h           Show this help message\n\n";
     $help .= "    Examples:\n";
     $help .= "        # Generate Phinx migration for all RepositoryEntity classes\n";
-    $help .= "        repository.php phinx --source ./src/Entity --file=./db/migrations/20251215143314_create_all_tables.php\n\n";
+    $help .= "        repository phinx --source ./src/Entity --file=./db/migrations/20251215143314_create_all_tables.php\n\n";
     $help .= "    This will:\n";
     $help .= "        1. Find all PHP files in the source directory that extend RepositoryEntity\n";
     $help .= "        2. Extract table names from the Repository classes (via EntityOf -> RepositoryOf)\n";
     $help .= "        3. Parse the class(es) to extract field definitions\n";
     $help .= "        4. Add create table code to the Phinx migration file\n\n";
-    $help .= "    Note: For audit log table migrations, use 'repository.php audit --phinx'\n";
+    $help .= "    Note: For audit log table migrations, use 'repository audit --phinx'\n";
     
     echo $help;
 }

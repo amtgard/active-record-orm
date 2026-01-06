@@ -96,7 +96,7 @@ function printClassesHelp(): void
 {
     $help = "CLASSES COMMAND:\n";
     $help .= "    Generate Repository and RepositoryEntity classes by inspecting an existing MySQL table.\n\n";
-    $help .= "    repository.php classes --env=<path> [--table=<table>] --out-dir=<path>\n\n";
+    $help .= "    repository classes --env=<path> [--table=<table>] --out-dir=<path>\n\n";
     $help .= "    Options:\n";
     $help .= "        --env=<path>         Path to .env file or directory containing .env file\n";
     $help .= "        --table=<table>      Optional: Table name in snake_case (e.g., 'user_profiles')\n";
@@ -105,9 +105,9 @@ function printClassesHelp(): void
     $help .= "        --help, -h           Show this help message\n\n";
     $help .= "    Examples:\n";
     $help .= "        # Generate classes for a specific table\n";
-    $help .= "        repository.php classes --env=./.env --table=user_profiles --out-dir=./src/Entity\n\n";
+    $help .= "        repository classes --env=./.env --table=user_profiles --out-dir=./src/Entity\n\n";
     $help .= "        # Generate classes for all tables\n";
-    $help .= "        repository.php classes --env=./.env --out-dir=./src/Entity\n\n";
+    $help .= "        repository classes --env=./.env --out-dir=./src/Entity\n\n";
     $help .= "    This will:\n";
     $help .= "        1. Connect to MySQL database using credentials from .env file\n";
     $help .= "        2. Inspect the specified table schema\n";
