@@ -1,8 +1,8 @@
 #!/usr/bin/env php
 <?php
 
-require __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/repository_common.php';
+requireAutoloader();
 
 use Amtgard\ActiveRecordOrm\Configuration\Repository\DatabaseConfiguration;
 use Amtgard\ActiveRecordOrm\Configuration\Repository\MysqlPdoProvider;

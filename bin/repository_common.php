@@ -1,6 +1,52 @@
 #!/usr/bin/env php
 <?php
 
+/**
+ * Find and include the Composer autoloader
+ * Searches parent directories to find vendor/autoload.php
+ */
+function requireAutoloader(): void
+{
+    $candidates = [
+        __DIR__ . '/../vendor/autoload.php',  // When run from bin/
+        __DIR__ . '/../../vendor/autoload.php', // When installed as dependency
+        __DIR__ . '/../../../vendor/autoload.php', // Deeper nesting
+    ];
+    
+    // Also search parent directories dynamically
+    $dir = __DIR__;
+    $maxDepth = 5; // Prevent infinite loops
+    $depth = 0;
+    
+    while ($depth < $maxDepth) {
+        $autoloader = $dir . '/vendor/autoload.php';
+        if (file_exists($autoloader)) {
+            require_once $autoloader;
+            return;
+        }
+        
+        $parent = dirname($dir);
+        if ($parent === $dir) {
+            // Reached filesystem root
+            break;
+        }
+        $dir = $parent;
+        $depth++;
+    }
+    
+    // If not found, try the candidates
+    foreach ($candidates as $candidate) {
+        if (file_exists($candidate)) {
+            require_once $candidate;
+            return;
+        }
+    }
+    
+    throw new \RuntimeException(
+        'Could not find Composer autoloader. Make sure you have run "composer install".'
+    );
+}
+
 use Amtgard\ActiveRecordOrm\Attribute\Field;
 use Amtgard\ActiveRecordOrm\Attribute\PrimaryKey;
 use Amtgard\ActiveRecordOrm\Repository\Database;
@@ -162,6 +208,27 @@ function getPhinxColumnOptions(array $field, bool $isPrimaryKey): array
     }
     
     return $options;
+}
+
+/**
+ * Prompt user for confirmation (defaults to No)
+ * Returns true if user confirms, false otherwise
+ */
+function confirm(string $message, bool $defaultNo = true): bool
+{
+    // Standard convention: default shown in uppercase
+    // [y/N] means default is No, [Y/n] means default is Yes
+    $prompt = $message . ' [' . ($defaultNo ? 'y/N' : 'Y/n') . ']: ';
+    
+    echo $prompt;
+    $input = trim(fgets(STDIN));
+    
+    if (empty($input)) {
+        return !$defaultNo;
+    }
+    
+    $input = strtoupper($input);
+    return $input === 'Y' || $input === 'YES';
 }
 
 /**
@@ -348,20 +415,89 @@ function findAllRepositoryEntityFiles(string $sourceDir): array
         return [];
     }
     
-    $files = glob(combinePath($sourceDir, '*RepositoryEntity.php'));
+    // Find all PHP files in the directory
+    $files = glob(combinePath($sourceDir, '*.php'));
     $entities = [];
     
     foreach ($files as $file) {
-        $className = basename($file, '.php');
-        // Extract table name from class name (e.g., UserProfilesRepositoryEntity -> user_profiles)
-        if (preg_match('/^(.+?)RepositoryEntity$/', $className, $matches)) {
-            $pascalCase = $matches[1];
-            $tableName = toSnakeCase($pascalCase);
+        $tableName = extractTableNameFromRepositoryEntityFile($file);
+        if ($tableName) {
             $entities[$tableName] = $file;
         }
     }
     
     return $entities;
+}
+
+/**
+ * Extract table name from a RepositoryEntity file by inspecting the class
+ * Returns the table name if successful, null otherwise
+ */
+function extractTableNameFromRepositoryEntityFile(string $filePath): ?string
+{
+    try {
+        // Read the file content to extract namespace and class name
+        $content = file_get_contents($filePath);
+        
+        // Extract namespace
+        $namespace = null;
+        if (preg_match('/namespace\s+([^;]+);/', $content, $matches)) {
+            $namespace = trim($matches[1]);
+        }
+        
+        // Extract class name
+        if (!preg_match('/class\s+(\w+)/', $content, $matches)) {
+            return null; // Skip files without a class definition
+        }
+        
+        $className = $matches[1];
+        $fullClassName = $namespace ? "$namespace\\$className" : $className;
+        
+        // Load the class file
+        require_once $filePath;
+        
+        // Check if class exists and extends RepositoryEntity
+        if (!class_exists($fullClassName)) {
+            return null;
+        }
+        
+        $reflection = new \ReflectionClass($fullClassName);
+        
+        // Check if this class extends RepositoryEntity
+        if (!$reflection->isSubclassOf(\Amtgard\ActiveRecordOrm\Entity\Repository\RepositoryEntity::class)) {
+            return null;
+        }
+        
+        // Get the EntityOf attribute to find the Repository class
+        $entityOfAttributes = $reflection->getAttributes(\Amtgard\ActiveRecordOrm\Attribute\EntityOf::class);
+        if (empty($entityOfAttributes)) {
+            return null; // Skip if no EntityOf attribute
+        }
+        
+        $entityOfAttribute = $entityOfAttributes[0];
+        $entityOfArgs = $entityOfAttribute->getArguments();
+        $repositoryClass = $entityOfArgs[0] ?? null;
+        
+        if (!$repositoryClass || !class_exists($repositoryClass)) {
+            return null; // Skip if Repository class not found
+        }
+        
+        // Get the RepositoryOf attribute from the Repository class to extract table name
+        $repositoryReflection = new \ReflectionClass($repositoryClass);
+        $repositoryOfAttributes = $repositoryReflection->getAttributes(\Amtgard\ActiveRecordOrm\Attribute\RepositoryOf::class);
+        
+        if (empty($repositoryOfAttributes)) {
+            return null; // Skip if no RepositoryOf attribute
+        }
+        
+        $repositoryOfAttribute = $repositoryOfAttributes[0];
+        $repositoryOfArgs = $repositoryOfAttribute->getArguments();
+        $tableName = $repositoryOfArgs[0] ?? null;
+        
+        return $tableName;
+    } catch (\Exception $e) {
+        return null;
+    }
 }
 
 /**

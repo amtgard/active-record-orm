@@ -1,8 +1,8 @@
 #!/usr/bin/env php
 <?php
 
-require __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/repository_common.php';
+requireAutoloader();
 
 /**
  * Generate Phinx migration table creation code (without class wrapper)
@@ -124,22 +124,20 @@ function printPhinxHelp(): void
 {
     $help = "PHINX COMMAND:\n";
     $help .= "    Generate Phinx migration from existing RepositoryEntity class definitions.\n\n";
-    $help .= "    repository.php phinx --source=<path> [--table=<table>] --file=<path>\n\n";
+    $help .= "    repository.php phinx --source <directory> --file=<path>\n\n";
     $help .= "    Options:\n";
-    $help .= "        --source=<path>      Directory containing Repository and RepositoryEntity classes\n";
-    $help .= "        --table=<table>      Optional: Table name in snake_case (e.g., 'user_profiles')\n";
-    $help .= "                            If omitted, adds CREATE TABLE for all RepositoryEntity classes\n";
+    $help .= "        --source <directory>  Directory containing Repository and RepositoryEntity classes\n";
+    $help .= "                            Processes all PHP files that extend RepositoryEntity\n";
     $help .= "        --file=<path>        Path to Phinx migration file to generate (file must exist)\n";
     $help .= "        --help, -h           Show this help message\n\n";
     $help .= "    Examples:\n";
-    $help .= "        # Generate Phinx migration for a specific table\n";
-    $help .= "        repository.php phinx --source=./src/Entity --table=user_profiles --file=./db/migrations/20251215143314_create_user_profiles.php\n\n";
     $help .= "        # Generate Phinx migration for all RepositoryEntity classes\n";
-    $help .= "        repository.php phinx --source=./src/Entity --file=./db/migrations/20251215143314_create_all_tables.php\n\n";
+    $help .= "        repository.php phinx --source ./src/Entity --file=./db/migrations/20251215143314_create_all_tables.php\n\n";
     $help .= "    This will:\n";
-    $help .= "        1. Find {Table}RepositoryEntity.php file(s) in the source directory\n";
-    $help .= "        2. Parse the class(es) to extract field definitions\n";
-    $help .= "        3. Add create table code to the Phinx migration file\n\n";
+    $help .= "        1. Find all PHP files in the source directory that extend RepositoryEntity\n";
+    $help .= "        2. Extract table names from the Repository classes (via EntityOf -> RepositoryOf)\n";
+    $help .= "        3. Parse the class(es) to extract field definitions\n";
+    $help .= "        4. Add create table code to the Phinx migration file\n\n";
     $help .= "    Note: For audit log table migrations, use 'repository.php audit --phinx'\n";
     
     echo $help;
@@ -181,27 +179,14 @@ function handlePhinxCommand(array $argv): void
         exit(1);
     }
     
-    // Determine which tables to process
-    $entities = [];
-    if (!empty($args['table'])) {
-        $tableName = $args['table'];
-        $entityFile = findRepositoryEntityFile($sourceDir, $tableName);
-        if (!$entityFile) {
-            echo "Error: Could not find RepositoryEntity file for table '$tableName'\n";
-            echo "Expected file: " . toPascalCase($tableName) . "RepositoryEntity.php\n";
-            exit(1);
-        }
-        $entities[$tableName] = $entityFile;
-    } else {
-        // Find all RepositoryEntity files
-        echo "Finding all RepositoryEntity classes...\n";
-        $entities = findAllRepositoryEntityFiles($sourceDir);
-        if (empty($entities)) {
-            echo "Error: No RepositoryEntity files found in $sourceDir\n";
-            exit(1);
-        }
-        echo "Found " . count($entities) . " RepositoryEntity class(es)\n\n";
+    // Find all RepositoryEntity files
+    echo "Finding all RepositoryEntity classes...\n";
+    $entities = findAllRepositoryEntityFiles($sourceDir);
+    if (empty($entities)) {
+        echo "Error: No RepositoryEntity files found in $sourceDir\n";
+        exit(1);
     }
+    echo "Found " . count($entities) . " RepositoryEntity class(es)\n\n";
     
     // Read existing migration file to extract class structure
     $existingContent = file_get_contents($phinxFile);
@@ -222,10 +207,55 @@ function handlePhinxCommand(array $argv): void
         $existingMethodContent = trim($matches[1]);
     }
     
+    // Parse existing table creations from the migration file
+    $existingTables = [];
+    if (!empty($existingMethodContent)) {
+        // Find all table() calls and match them to their corresponding ->create();
+        // Pattern: $this->table("table_name") followed by column definitions ending with ->create();
+        $offset = 0;
+        while (($pos = strpos($existingMethodContent, '$this->table(', $offset)) !== false) {
+            // Extract table name
+            $tableStart = $pos;
+            $afterTable = substr($existingMethodContent, $pos);
+            
+            // Match: $this->table("table_name")
+            if (preg_match('/\$this->table\(["\']([^"\']+)["\']\)/s', $afterTable, $tableMatch)) {
+                $tableName = $tableMatch[1];
+                
+                // Find the matching ->create(); that ends this table block
+                // Look for ->create(); after the table() call
+                $searchStart = $pos + strlen($tableMatch[0]);
+                $remaining = substr($existingMethodContent, $searchStart);
+                
+                // Match everything up to and including ->create();
+                if (preg_match('/.*?->create\(\);/s', $remaining, $createMatch)) {
+                    $blockEnd = $searchStart + strlen($createMatch[0]);
+                    $blockCode = substr($existingMethodContent, $tableStart, $blockEnd - $tableStart);
+                    
+                    $existingTables[$tableName] = [
+                        'start' => $tableStart,
+                        'end' => $blockEnd,
+                        'code' => $blockCode
+                    ];
+                    
+                    $offset = $blockEnd;
+                } else {
+                    // No matching ->create(); found, skip this one
+                    $offset = $pos + 1;
+                }
+            } else {
+                $offset = $pos + 1;
+            }
+        }
+    }
+    
     // Generate table creation code for all tables
     $tableCodes = [];
+    $tablesToAdd = [];
+    $tablesToReplace = [];
     $successCount = 0;
     $errorCount = 0;
+    $skippedCount = 0;
     
     foreach ($entities as $tableName => $entityFile) {
         echo "Processing: $tableName\n";
@@ -237,10 +267,23 @@ function handlePhinxCommand(array $argv): void
             
             // Generate table creation code
             $tableCode = generatePhinxTableCode($schema, false);
-            $tableCodes[] = $tableCode;
             
-            echo "  Added table creation code for: $tableName\n";
-            $successCount++;
+            // Check if this table already exists in the migration
+            if (isset($existingTables[$tableName])) {
+                echo "  Warning: Table '$tableName' already exists in the migration file.\n";
+                if (confirm("  Replace existing table creation for '$tableName'?", true)) {
+                    $tablesToReplace[$tableName] = $tableCode;
+                    echo "  Will replace table creation code for: $tableName\n";
+                    $successCount++;
+                } else {
+                    echo "  Skipping table '$tableName' (keeping existing code)\n";
+                    $skippedCount++;
+                }
+            } else {
+                $tablesToAdd[$tableName] = $tableCode;
+                echo "  Added table creation code for: $tableName\n";
+                $successCount++;
+            }
         } catch (\Exception $e) {
             echo "  Error processing '$tableName': " . $e->getMessage() . "\n";
             $errorCount++;
@@ -249,10 +292,59 @@ function handlePhinxCommand(array $argv): void
         echo "\n";
     }
     
-    // Combine existing content with new table codes
-    $allTableCode = implode("\n", $tableCodes);
+    // Build the final method content
+    $allTableCode = '';
+    
     if (!empty($existingMethodContent)) {
-        $allTableCode = $existingMethodContent . "\n" . $allTableCode;
+        // Start with existing content
+        $result = $existingMethodContent;
+        $offset = 0;
+        
+        // Replace existing table blocks that were confirmed for replacement
+        // Process in reverse order to maintain correct positions
+        $replacements = [];
+        foreach ($tablesToReplace as $tableName => $newCode) {
+            if (isset($existingTables[$tableName])) {
+                $replacements[] = [
+                    'table' => $tableName,
+                    'start' => $existingTables[$tableName]['start'],
+                    'end' => $existingTables[$tableName]['end'],
+                    'newCode' => $newCode
+                ];
+            }
+        }
+        
+        // Sort by start position in reverse order
+        usort($replacements, function($a, $b) {
+            return $b['start'] - $a['start'];
+        });
+        
+        // Replace from end to beginning to maintain positions
+        foreach ($replacements as $replacement) {
+            $before = substr($result, 0, $replacement['start']);
+            $after = substr($result, $replacement['end']);
+            $result = $before . $replacement['newCode'] . $after;
+        }
+        
+        // Remove tables that were replaced from existingTables so they're not duplicated
+        foreach (array_keys($tablesToReplace) as $tableName) {
+            unset($existingTables[$tableName]);
+        }
+        
+        // Add new tables
+        if (!empty($tablesToAdd)) {
+            $newTableCode = implode("\n", array_values($tablesToAdd));
+            if (!empty($result)) {
+                $result .= "\n" . $newTableCode;
+            } else {
+                $result = $newTableCode;
+            }
+        }
+        
+        $allTableCode = $result;
+    } else {
+        // No existing content, just add all new tables
+        $allTableCode = implode("\n", array_values($tablesToAdd));
     }
     
     // Generate complete migration file
@@ -280,7 +372,10 @@ function handlePhinxCommand(array $argv): void
     
     file_put_contents($phinxFile, $migrationCode);
     echo "Generated Phinx migration: $phinxFile\n";
-    echo "Successfully added $successCount table(s)";
+    echo "Successfully processed $successCount table(s)";
+    if ($skippedCount > 0) {
+        echo ", $skippedCount skipped";
+    }
     if ($errorCount > 0) {
         echo ", $errorCount error(s)";
     }
