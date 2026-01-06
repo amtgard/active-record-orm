@@ -1,8 +1,8 @@
 #!/usr/bin/env php
 <?php
 
-require __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/repository_common.php';
+requireAutoloader();
 
 /**
  * Generate CREATE TABLE SQL
@@ -76,21 +76,19 @@ function printSchemaHelp(): void
 {
     $help = "SCHEMA COMMAND:\n";
     $help .= "    Generate MySQL CREATE TABLE SQL from existing RepositoryEntity class definitions.\n\n";
-    $help .= "    repository.php schema --source=<path> [--table=<table>]\n\n";
+    $help .= "    repository.php schema --source <directory>\n\n";
     $help .= "    Options:\n";
-    $help .= "        --source=<path>      Directory containing Repository and RepositoryEntity classes\n";
-    $help .= "        --table=<table>      Optional: Table name in snake_case (e.g., 'user_profiles')\n";
-    $help .= "                            If omitted, generates SQL for all RepositoryEntity classes found\n";
+    $help .= "        --source <directory>  Directory containing Repository and RepositoryEntity classes\n";
+    $help .= "                            Processes all PHP files that extend RepositoryEntity\n";
     $help .= "        --help, -h           Show this help message\n\n";
     $help .= "    Examples:\n";
-    $help .= "        # Generate SQL for a specific table\n";
-    $help .= "        repository.php schema --source=./src/Entity --table=user_profiles\n\n";
     $help .= "        # Generate SQL for all RepositoryEntity classes\n";
-    $help .= "        repository.php schema --source=./src/Entity\n\n";
+    $help .= "        repository.php schema --source ./src/Entity\n\n";
     $help .= "    This will:\n";
-    $help .= "        1. Find {Table}RepositoryEntity.php file(s) in the source directory\n";
-    $help .= "        2. Parse the class(es) to extract field definitions\n";
-    $help .= "        3. Generate {table}.sql file(s) with CREATE TABLE statement(s)\n\n";
+    $help .= "        1. Find all PHP files in the source directory that extend RepositoryEntity\n";
+    $help .= "        2. Extract table names from the Repository classes (via EntityOf -> RepositoryOf)\n";
+    $help .= "        3. Parse the class(es) to extract field definitions\n";
+    $help .= "        4. Generate {table}.sql file(s) with CREATE TABLE statement(s)\n\n";
     $help .= "    Note: For audit log table schemas, use 'repository.php audit --schema'\n";
     
     echo $help;
@@ -121,27 +119,14 @@ function handleSchemaCommand(array $argv): void
         exit(1);
     }
     
-    // Determine which tables to process
-    $entities = [];
-    if (!empty($args['table'])) {
-        $tableName = $args['table'];
-        $entityFile = findRepositoryEntityFile($sourceDir, $tableName);
-        if (!$entityFile) {
-            echo "Error: Could not find RepositoryEntity file for table '$tableName'\n";
-            echo "Expected file: " . toPascalCase($tableName) . "RepositoryEntity.php\n";
-            exit(1);
-        }
-        $entities[$tableName] = $entityFile;
-    } else {
-        // Find all RepositoryEntity files
-        echo "Finding all RepositoryEntity classes...\n";
-        $entities = findAllRepositoryEntityFiles($sourceDir);
-        if (empty($entities)) {
-            echo "Error: No RepositoryEntity files found in $sourceDir\n";
-            exit(1);
-        }
-        echo "Found " . count($entities) . " RepositoryEntity class(es)\n\n";
+    // Find all RepositoryEntity files
+    echo "Finding all RepositoryEntity classes...\n";
+    $entities = findAllRepositoryEntityFiles($sourceDir);
+    if (empty($entities)) {
+        echo "Error: No RepositoryEntity files found in $sourceDir\n";
+        exit(1);
     }
+    echo "Found " . count($entities) . " RepositoryEntity class(es)\n\n";
     
     $successCount = 0;
     $errorCount = 0;
