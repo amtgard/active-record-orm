@@ -97,11 +97,11 @@ function printAuditHelp(): void
 {
     $help = "AUDIT COMMAND:\n";
     $help .= "    Generate audit-related classes, schemas, or migrations.\n\n";
-    $help .= "    repository.php audit --classes --env=<path> [--table=<table>] --out-dir=<path>\n";
-    $help .= "    repository.php audit --schema --source=<path> [--table=<table>]\n";
-    $help .= "    repository.php audit --schema --env=<path> [--table=<table>] --out-dir=<path>\n";
-    $help .= "    repository.php audit --phinx --source=<path> [--table=<table>] --file=<path>\n";
-    $help .= "    repository.php audit --phinx --env=<path> [--table=<table>] --out-dir=<path>\n\n";
+    $help .= "    repository audit --classes --env=<path> [--table=<table>] --out-dir=<path>\n";
+    $help .= "    repository audit --schema --source=<path> [--table=<table>]\n";
+    $help .= "    repository audit --schema --env=<path> [--table=<table>] --out-dir=<path>\n";
+    $help .= "    repository audit --phinx --source=<path> [--table=<table>] --file=<path>\n";
+    $help .= "    repository audit --phinx --env=<path> [--table=<table>] --out-dir=<path>\n\n";
     $help .= "    Sub-commands:\n";
     $help .= "        --classes            Generate Repository and RepositoryEntity classes with audit support\n";
     $help .= "            Requires: --env, --out-dir\n";
@@ -124,21 +124,21 @@ function printAuditHelp(): void
     $help .= "        --help, -h           Show this help message\n\n";
     $help .= "    Examples:\n";
     $help .= "        # Generate audit classes for a specific table\n";
-    $help .= "        repository.php audit --classes --env=./.env --table=user_profiles --out-dir=./src/Entity\n\n";
+    $help .= "        repository audit --classes --env=./.env --table=user_profiles --out-dir=./src/Entity\n\n";
     $help .= "        # Generate audit classes for all tables\n";
-    $help .= "        repository.php audit --classes --env=./.env --out-dir=./src/Entity\n\n";
+    $help .= "        repository audit --classes --env=./.env --out-dir=./src/Entity\n\n";
     $help .= "        # Generate audit schema from RepositoryEntity classes (single file)\n";
-    $help .= "        repository.php audit --schema --source=./src/Entity\n\n";
+    $help .= "        repository audit --schema --source=./src/Entity\n\n";
     $help .= "        # Generate audit schema from MySQL database (single file)\n";
-    $help .= "        repository.php audit --schema --env=./.env --out-dir=./db/schemas\n\n";
+    $help .= "        repository audit --schema --env=./.env --out-dir=./db/schemas\n\n";
     $help .= "        # Generate audit Phinx migration from RepositoryEntity classes\n";
-    $help .= "        repository.php audit --phinx --source=./src/Entity --file=./db/migrations/20251215143314_create_audit_logs.php\n\n";
+    $help .= "        repository audit --phinx --source=./src/Entity --file=./db/migrations/20251215143314_create_audit_logs.php\n\n";
     $help .= "        # Generate audit Phinx migration from MySQL database\n";
-    $help .= "        repository.php audit --phinx --env=./.env --out-dir=./db/migrations\n\n";
+    $help .= "        repository audit --phinx --env=./.env --out-dir=./db/migrations\n\n";
     $help .= "        # Generate audit classes and Phinx migration (migrate)\n";
-    $help .= "        repository.php audit --migrate --env=./.env --out-dir=./src/Entity --table=user_profiles\n\n";
+    $help .= "        repository audit --migrate --env=./.env --out-dir=./src/Entity --table=user_profiles\n\n";
     $help .= "        # Generate audit classes and Phinx migration for all tables\n";
-    $help .= "        repository.php audit --migrate --env=./.env --out-dir=./src/Entity\n";
+    $help .= "        repository audit --migrate --env=./.env --out-dir=./src/Entity\n";
     
     echo $help;
 }
@@ -353,7 +353,7 @@ function handleAuditSchema(array $args): void
                 ];
                 
                 // Generate SQL for audit log table
-                require_once __DIR__ . '/repository_schema.php';
+                require_once __DIR__ . '/repository_schema';
                 $sql = generateCreateTableSql($schema, true);
                 $allSql[] = $sql;
                 
@@ -434,7 +434,7 @@ function handleAuditSchema(array $args): void
                 $schema = parseRepositoryEntityClass($entityFile, $tableName);
                 
                 // Generate SQL for audit log table
-                require_once __DIR__ . '/repository_schema.php';
+                require_once __DIR__ . '/repository_schema';
                 $sql = generateCreateTableSql($schema, true);
                 $allSql[] = $sql;
                 
@@ -496,7 +496,7 @@ function handleAuditMigrate(array $args): void
  */
 function handleAuditPhinx(array $args): void
 {
-    require_once __DIR__ . '/repository_phinx.php';
+    require_once __DIR__ . '/repository_phinx';
     
     // Check if using --env (from database) or --source (from RepositoryEntity classes)
     if (!empty($args['env'])) {

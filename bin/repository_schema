@@ -76,20 +76,20 @@ function printSchemaHelp(): void
 {
     $help = "SCHEMA COMMAND:\n";
     $help .= "    Generate MySQL CREATE TABLE SQL from existing RepositoryEntity class definitions.\n\n";
-    $help .= "    repository.php schema --source <directory>\n\n";
+    $help .= "    repository schema --source <directory>\n\n";
     $help .= "    Options:\n";
     $help .= "        --source <directory>  Directory containing Repository and RepositoryEntity classes\n";
     $help .= "                            Processes all PHP files that extend RepositoryEntity\n";
     $help .= "        --help, -h           Show this help message\n\n";
     $help .= "    Examples:\n";
     $help .= "        # Generate SQL for all RepositoryEntity classes\n";
-    $help .= "        repository.php schema --source ./src/Entity\n\n";
+    $help .= "        repository schema --source ./src/Entity\n\n";
     $help .= "    This will:\n";
     $help .= "        1. Find all PHP files in the source directory that extend RepositoryEntity\n";
     $help .= "        2. Extract table names from the Repository classes (via EntityOf -> RepositoryOf)\n";
     $help .= "        3. Parse the class(es) to extract field definitions\n";
     $help .= "        4. Generate {table}.sql file(s) with CREATE TABLE statement(s)\n\n";
-    $help .= "    Note: For audit log table schemas, use 'repository.php audit --schema'\n";
+    $help .= "    Note: For audit log table schemas, use 'repository audit --schema'\n";
     
     echo $help;
 }
