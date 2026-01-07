@@ -9,7 +9,7 @@ use Amtgard\Traits\Builder\Data;
 use Amtgard\Traits\Builder\ToBuilder;
 
 #[EntityOf(AuditSourceRepository::class)]
-class AuditSourceRepositoryEntity extends RepositoryEntity
+class AuditSource extends RepositoryEntity
 {
     use Builder, ToBuilder, Data;
 
