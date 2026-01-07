@@ -417,8 +417,14 @@ function findAllRepositoryEntityFiles(string $sourceDir): array
     
     // Find all PHP files in the directory
     $files = glob(combinePath($sourceDir, '*.php'));
-    $entities = [];
     
+    // First pass: Load all PHP files to ensure dependencies are available
+    foreach ($files as $file) {
+        require_once $file;
+    }
+    
+    // Second pass: Extract table names from RepositoryEntity files
+    $entities = [];
     foreach ($files as $file) {
         $tableName = extractTableNameFromRepositoryEntityFile($file);
         if ($tableName) {
@@ -478,8 +484,62 @@ function extractTableNameFromRepositoryEntityFile(string $filePath): ?string
         $entityOfArgs = $entityOfAttribute->getArguments();
         $repositoryClass = $entityOfArgs[0] ?? null;
         
-        if (!$repositoryClass || !class_exists($repositoryClass)) {
-            return null; // Skip if Repository class not found
+        if (!$repositoryClass) {
+            return null;
+        }
+        
+        // Try to find and load the Repository class file if it's not already loaded
+        if (!class_exists($repositoryClass)) {
+            // Extract the class name from the fully qualified class name
+            $repositoryClassName = is_string($repositoryClass) ? $repositoryClass : null;
+            if (!$repositoryClassName) {
+                return null;
+            }
+            
+            // Extract short class name (handle both namespaced and non-namespaced)
+            $parts = explode('\\', $repositoryClassName);
+            $shortClassName = end($parts);
+            
+            // Try to find the Repository file in the same directory
+            $dir = dirname($filePath);
+            $possibleFiles = [
+                combinePath($dir, $shortClassName . '.php'),
+                combinePath($dir, $shortClassName . 'Repository.php'),
+            ];
+            
+            // Also try without "Repository" suffix if it's already there
+            if (str_ends_with($shortClassName, 'Repository')) {
+                $baseName = substr($shortClassName, 0, -10);
+                $possibleFiles[] = combinePath($dir, $baseName . '.php');
+                $possibleFiles[] = combinePath($dir, $baseName . 'Repository.php');
+            }
+            
+            $found = false;
+            foreach ($possibleFiles as $possibleFile) {
+                if (file_exists($possibleFile)) {
+                    require_once $possibleFile;
+                    $found = true;
+                    break;
+                }
+            }
+            
+            // If still not found, try loading all PHP files in the directory
+            if (!$found && !class_exists($repositoryClass)) {
+                $phpFiles = glob(combinePath($dir, '*.php'));
+                foreach ($phpFiles as $phpFile) {
+                    if ($phpFile !== $filePath) {
+                        require_once $phpFile;
+                        if (class_exists($repositoryClass)) {
+                            $found = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        
+        if (!class_exists($repositoryClass)) {
+            return null; // Skip if Repository class still not found after trying to load it
         }
         
         // Get the RepositoryOf attribute from the Repository class to extract table name
@@ -540,10 +600,15 @@ function parseRepositoryEntityClass(string $filePath, string $tableName): array
         $namespace = $matches[1];
     }
     
-    // Extract class name
-    $entityClassName = toPascalCase($tableName) . 'RepositoryEntity';
-    if (preg_match('/class\s+(\w+RepositoryEntity)/', $content, $matches)) {
+    // Extract class name - try to find any class in the file
+    $entityClassName = null;
+    if (preg_match('/class\s+(\w+)/', $content, $matches)) {
         $entityClassName = $matches[1];
+    }
+    
+    // Fallback to expected naming convention if no class found
+    if (!$entityClassName) {
+        $entityClassName = toPascalCase($tableName) . 'RepositoryEntity';
     }
     
     $fullClassName = $namespace ? "$namespace\\$entityClassName" : $entityClassName;
