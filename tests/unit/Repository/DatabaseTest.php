@@ -105,7 +105,7 @@ class DatabaseTest extends AmtgardTestCase
         $result = $database->execute($sql);
         
         self::assertInstanceOf(RecordSet\PdoRecordSet::class, $result);
-        Phake::verify($mockStatement)->bindValue(':id', 123);
+        Phake::verify($mockStatement)->bindValue(':id', 123, PDO::PARAM_INT);
     }
 
     public function testExecuteQuery_withValidQuery_returnsRecordSet(): void

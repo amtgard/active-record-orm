@@ -101,7 +101,7 @@ class RepositoryEntityTest extends AmtgardTestCase
     private RepositoryPolicy $mockRepositoryPolicy;
     #[Mock]
     private EntityMapper $mockEntityMapper;
-    
+
     private EntityManager $mockEntityManager;
     private Entity $mockEntity;
     private TableSchema $mockTableSchema;
@@ -142,22 +142,22 @@ class RepositoryEntityTest extends AmtgardTestCase
         $this->mockIdField = Phake::mock(FieldDefinition::class);
         $this->mockNameField = Phake::mock(FieldDefinition::class);
         $this->mockCreatedAtField = Phake::mock(FieldDefinition::class);
-        
+
         Phake::when($this->mockIdField)->getType()->thenReturn(FieldType::INTEGER);
         Phake::when($this->mockNameField)->getType()->thenReturn(FieldType::STRING);
         Phake::when($this->mockCreatedAtField)->getType()->thenReturn(FieldType::DATETIME);
-        
+
         Phake::when($this->mockTableSchema)->getFields()->thenReturn([
             'id' => $this->mockIdField,
             'name_field' => $this->mockNameField,
             'created_at' => $this->mockCreatedAtField,
         ]);
-        
+
         // Mock getField() for individual field access (used by Entity::valueToFieldType)
         Phake::when($this->mockTableSchema)->getField('id')->thenReturn($this->mockIdField);
         Phake::when($this->mockTableSchema)->getField('name_field')->thenReturn($this->mockNameField);
         Phake::when($this->mockTableSchema)->getField('created_at')->thenReturn($this->mockCreatedAtField);
-        
+
         // Mock hasField() for Entity::__set() validation
         Phake::when($this->mockTableSchema)->hasField('id')->thenReturn(true);
         Phake::when($this->mockTableSchema)->hasField('name_field')->thenReturn(true);
@@ -170,10 +170,10 @@ class RepositoryEntityTest extends AmtgardTestCase
             ->database($this->mockDatabase)
             ->mapperSupplier(fn($name) => $this->mockEntityMapper)
             ->preventShutdown(true)
-            ->build());
+            ->build(), true);
 
         // Also configure the mock EntityManager for RepositoryEntity tests
-        EntityManager::configure($this->mockEntityManager);
+        EntityManager::configure($this->mockEntityManager, true);
         Phake::when($this->mockEntityManager)->getMapper('test_table')->thenReturn($this->mockEntityMapper);
         Phake::when($this->mockEntityManager)->getRepository(TestRepository::class)->thenReturn(Phake::mock(TestRepository::class));
     }
@@ -307,7 +307,7 @@ class RepositoryEntityTest extends AmtgardTestCase
         $mockIdField = Phake::mock(FieldDefinition::class);
         $mockNameField = Phake::mock(FieldDefinition::class);
         $mockCreatedAtField = Phake::mock(FieldDefinition::class);
-        
+
         // Use thenReturn with a fresh array each time to avoid reference issues
         $fieldsArray = [
             'id' => $mockIdField,
@@ -315,11 +315,11 @@ class RepositoryEntityTest extends AmtgardTestCase
             'created_at' => $mockCreatedAtField
         ];
         Phake::when($this->mockTableSchema)->getFields()->thenReturn($fieldsArray);
-        
+
         Phake::when($mockIdField)->getType()->thenReturn(FieldType::INTEGER);
         Phake::when($mockNameField)->getType()->thenReturn(FieldType::STRING);
         Phake::when($mockCreatedAtField)->getType()->thenReturn(FieldType::STRING);
-        
+
         Phake::when($this->mockEntity)->getSchema()->thenReturn($this->mockTableSchema);
         Phake::when($this->mockEntity)->id->thenReturn(1);
         Phake::when($this->mockEntity)->name_field->thenReturn('test_name');
@@ -388,7 +388,7 @@ class RepositoryEntityTest extends AmtgardTestCase
         $instanceProperty = $reflection->getProperty('instance');
         $instanceProperty->setAccessible(true);
         $instanceProperty->setValue(null, $this->mockEntityManager);
-        
+
         // When mapper is not provided, preInit should get it from EntityOf attribute
         $entity = TestRepositoryEntity::builder()->build();
 
@@ -445,7 +445,7 @@ class RepositoryEntityTest extends AmtgardTestCase
         $entityProperty = $reflection->getProperty('entity');
         $entityProperty->setAccessible(true);
         $internalEntity = $entityProperty->getValue($entity);
-        
+
         // The internal entity should have been created and schema accessed during mapping
         self::assertInstanceOf(EntityInterface::class, $internalEntity);
     }
@@ -544,7 +544,7 @@ class RepositoryEntityTest extends AmtgardTestCase
         Phake::when($mockCreatedAtField)->getType()->thenReturn(FieldType::DATETIME);
         Phake::when($this->mockEntity)->getSchema()->thenReturn($this->mockTableSchema);
         RepositoryEntityTest::$mockEntityValueCanary = null;
-        Phake::when($this->mockEntity)->__set(Phake::anyParameters())->thenReturnCallback(function($name, $value) {
+        Phake::when($this->mockEntity)->__set(Phake::anyParameters())->thenReturnCallback(function ($name, $value) {
             RepositoryEntityTest::$mockEntityValueCanary = $value;
         });
 
@@ -571,7 +571,7 @@ class RepositoryEntityTest extends AmtgardTestCase
         Phake::when($mockCreatedAtField)->getType()->thenReturn(FieldType::INTEGER);
         Phake::when($this->mockEntity)->getSchema()->thenReturn($this->mockTableSchema);
         RepositoryEntityTest::$mockEntityValueCanary = null;
-        Phake::when($this->mockEntity)->__set(Phake::anyParameters())->thenReturnCallback(function($name, $value) {
+        Phake::when($this->mockEntity)->__set(Phake::anyParameters())->thenReturnCallback(function ($name, $value) {
             RepositoryEntityTest::$mockEntityValueCanary = $value;
         });
 
@@ -792,7 +792,7 @@ class RepositoryEntityTest extends AmtgardTestCase
         // Create a mock entity that implements EntityInterface but doesn't have backingReferencePk
         $mockEntityInterface = Phake::mock(Entity::class);
         Phake::when($mockEntityInterface)->getSchema()->thenReturn($this->mockTableSchema);
-        
+
         // Setup all fields that are in the entity map info
         $mockIdField = Phake::mock(FieldDefinition::class);
         $mockNameField = Phake::mock(FieldDefinition::class);

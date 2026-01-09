@@ -83,7 +83,7 @@ class EntityManagerTest extends TestCase
         self::resetTable();
 
         $entityId = 1;
-        EntityManager::configure(EntityManagerTest::$em);
+        EntityManager::configure(EntityManagerTest::$em, true);
 
         $itemTable = EntityManagerTest::$itemTable;
         $entityMapper = EntityMapper::builder()->em(EntityManager::getManager())->table($itemTable)->build();

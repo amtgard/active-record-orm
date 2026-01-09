@@ -47,7 +47,7 @@ class EntityManagerTest extends AmtgardTestCase
             ->database($this->mockDatabase)
             ->mapperSupplier(fn($name) => $this->mockEntityMapper)
             ->preventShutdown(true)
-            ->build());
+            ->build(), true);
     }
 
     protected function tearDown(): void
@@ -125,7 +125,7 @@ class EntityManagerTest extends AmtgardTestCase
     public function testGetMapper_withNonExistentMapper_returnsNull(): void
     {
         $result = EntityManager::getManager()->getMappers()['non_existent_table'];
-        
+
         self::assertNull($result);
     }
 
@@ -136,9 +136,9 @@ class EntityManagerTest extends AmtgardTestCase
             ->dataAccessPolicy($this->mockPolicy)
             ->repositoryPolicy($this->mockRepositoryPolicy)
             ->build();
-        
+
         $result = $this->entityManager->getEntity('test_table', 999);
-        
+
         self::assertNull($result);
     }
 
