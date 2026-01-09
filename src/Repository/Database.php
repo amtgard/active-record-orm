@@ -23,7 +23,9 @@ class Database
 
     private PdoProviderInterface $__pdo;
 
-    private function __construct() { }
+    private function __construct()
+    {
+    }
 
     public static function fromProvider(PdoProviderInterface $pdoProvider): Database
     {
@@ -34,11 +36,13 @@ class Database
             ->build();
     }
 
-    public function __set(String $field, String|int|bool $value) {
+    public function __set(string $field, string|int|bool $value)
+    {
         $this->__fields[$field] = $value;
     }
 
-    public function executeQuery(Query $query): RecordSet {
+    public function executeQuery(Query $query): RecordSet
+    {
         $this->__fields = $query->getParams();
         return $this->execute($query->getSql());
     }
@@ -53,14 +57,25 @@ class Database
         return new RecordSet\PdoRecordSet($query);
     }
 
-    private function bindParams(\PDOStatement &$query): array {
+    private function bindParams(\PDOStatement &$query): array
+    {
+        $bound = [];
         foreach ($this->__fields as $field => $value) {
-            $bound[] = $query->bindValue(":$field", $value);
+            $type = PDO::PARAM_STR;
+            if (is_int($value)) {
+                $type = PDO::PARAM_INT;
+            } elseif (is_bool($value)) {
+                $type = PDO::PARAM_BOOL;
+            } elseif (is_null($value)) {
+                $type = PDO::PARAM_NULL;
+            }
+            $bound[] = $query->bindValue(":$field", $value, $type);
         }
         return $bound;
     }
 
-    public function fqTableName($tableName): string {
+    public function fqTableName($tableName): string
+    {
         return $this->__databaseName . '.' . $tableName;
     }
 
@@ -69,7 +84,8 @@ class Database
         $this->__fields = [];
     }
 
-    public function getLastInsertId(): string {
+    public function getLastInsertId(): string
+    {
         return $this->__dbh->lastInsertId();
     }
 }

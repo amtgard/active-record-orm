@@ -69,7 +69,7 @@ class RepositoryTest extends AmtgardTestCase
         ]);
 
         // Configure global EntityManager singleton for RepositoryEntity
-        EntityManager::configure($this->mockEntityManager);
+        EntityManager::configure($this->mockEntityManager, true);
         Phake::when($this->mockEntityManager)->getMapper('test_table')->thenReturn($this->mockEntityMapper);
         Phake::when($this->mockEntityManager)->getRepository(TestRepository::class)->thenReturn(Phake::mock(TestRepository::class));
     }

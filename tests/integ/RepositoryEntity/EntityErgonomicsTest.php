@@ -95,7 +95,7 @@ class EntityErgonomicsTest extends AmtgardTestCase
             ->repositoryPolicy(UncachedPolicy::builder()->build())
             ->build();
 
-        EntityManager::configure(EntityErgonomicsTest::$em);
+        EntityManager::configure(EntityErgonomicsTest::$em, true);
 
         self::resetTable();
 

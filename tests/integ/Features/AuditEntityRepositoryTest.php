@@ -81,7 +81,7 @@ class AuditEntityRepositoryTest extends AmtgardTestCase
             ->repositoryPolicy(UncachedPolicy::builder()->build())
             ->build();
 
-        EntityManager::configure(AuditEntityRepositoryTest::$em);
+        EntityManager::configure(AuditEntityRepositoryTest::$em, true);
 
         AuditEntityRepositoryTest::$auditLog = TableFactory::build(AuditEntityRepositoryTest::$db, AuditEntityRepositoryTest::$tablePolicy, 'audit_source_audit_log');
 

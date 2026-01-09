@@ -24,38 +24,46 @@ use Amtgard\Traits\Builder\ToBuilder;
 use Dotenv\Dotenv;
 use function PHPUnit\Framework\assertEquals;
 
-trait FieldHiding {
+trait FieldHiding
+{
     protected string $textValue;
 
-    public function getTextValue() {
+    public function getTextValue()
+    {
         return $this->textValue;
     }
 
-    public function setTextValue($value) {
+    public function setTextValue($value)
+    {
         $this->textValue = $value;
     }
 
 }
 
-interface FieldHidingInterface {
+interface FieldHidingInterface
+{
     public function getTextValue();
 
     public function setTextValue($value);
 }
 
 #[RepositoryOf("integ", SomeHiddenEntity::class)]
-class SomeHiddenRepository extends Repository {
-    static function getTableName() {
+class SomeHiddenRepository extends Repository
+{
+    static function getTableName()
+    {
         return 'integ';
     }
 
-    public static function getEntityClass() {
+    public static function getEntityClass()
+    {
         return SomeHiddenEntity::class;
     }
 }
 
 #[EntityOf(SomeHiddenRepository::class)]
-class SomeHiddenEntity extends RepositoryEntity implements FieldHidingInterface {
+class SomeHiddenEntity extends RepositoryEntity implements FieldHidingInterface
+{
     use Builder, ToBuilder, Data, FieldHiding;
 
     #[PrimaryKey]
@@ -65,6 +73,9 @@ class SomeHiddenEntity extends RepositoryEntity implements FieldHidingInterface 
 
     #[Field('text_value')]
     protected string $textValue;
+
+    #[Field('int_value')]
+    protected bool $booleanValue;
 }
 
 class EntityRepositoryTest extends AmtgardTestCase
@@ -77,7 +88,8 @@ class EntityRepositoryTest extends AmtgardTestCase
 
     public static EntityManager $em;
 
-    public function testHideFieldsWithTraits() {
+    public function testHideFieldsWithTraits()
+    {
         $this->resetTable();
 
         $someRepo = EntityManager::getManager()->getRepository(SomeHiddenRepository::class);
@@ -86,7 +98,17 @@ class EntityRepositoryTest extends AmtgardTestCase
         assertEquals("text_value", $someEntity->getTextValue());
     }
 
-    public function testNewEntityByCreateEntity_withHiddenFields(): void {
+    public function testIntBackedBoolean() {
+        $this->resetTable();
+
+        $someRepo = EntityManager::getManager()->getRepository(SomeHiddenRepository::class);
+        $someEntity = $someRepo->fetch(1);
+        $someEntity->booleanValue = false;
+        self::assertDoesNotThrow(fn() => $someEntity->persist($someEntity->getMapper()));
+    }
+
+    public function testNewEntityByCreateEntity_withHiddenFields(): void
+    {
         $this->resetTable();
 
         $someRepo = EntityManager::getManager()->getRepository(SomeHiddenRepository::class);
@@ -124,7 +146,8 @@ class EntityRepositoryTest extends AmtgardTestCase
         $provider = MysqlPdoProvider::fromConfiguration($config);
         EntityRepositoryTest::$db = Database::fromProvider($provider);
 
-        EntityRepositoryTest::$tablePolicy = UncachedDataAccessPolicy::builder()->database(EntityRepositoryTest::$db)->build();;
+        EntityRepositoryTest::$tablePolicy = UncachedDataAccessPolicy::builder()->database(EntityRepositoryTest::$db)->build();
+        ;
 
         EntityRepositoryTest::$itemTable = TableFactory::build(EntityRepositoryTest::$db, EntityRepositoryTest::$tablePolicy, 'integ');
 
@@ -134,7 +157,7 @@ class EntityRepositoryTest extends AmtgardTestCase
             ->repositoryPolicy(UncachedPolicy::builder()->build())
             ->build();
 
-        EntityManager::configure(EntityRepositoryTest::$em);
+        EntityManager::configure(EntityRepositoryTest::$em, true);
 
         self::resetTable();
 
