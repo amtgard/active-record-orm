@@ -10,6 +10,7 @@ use Amtgard\ActiveRecordOrm\Attribute\RepositoryOf;
 use Amtgard\ActiveRecordOrm\Entity\Entity;
 use Amtgard\ActiveRecordOrm\Entity\EntityMapper;
 use Amtgard\ActiveRecordOrm\Entity\Policy\RepositoryPolicy;
+use Amtgard\ActiveRecordOrm\Entity\Repository\EntityFieldMap;
 use Amtgard\ActiveRecordOrm\Entity\Repository\Repository;
 use Amtgard\ActiveRecordOrm\Entity\Repository\RepositoryEntity;
 use Amtgard\ActiveRecordOrm\EntityManager;
@@ -368,16 +369,16 @@ class RepositoryEntityTest extends AmtgardTestCase
         $reflection = new \ReflectionClass($entity);
         $mapperProperty = $reflection->getProperty('mapper');
         $mapperProperty->setAccessible(true);
-        $entityMapInfoProperty = $reflection->getProperty('entityMapInfo');
+        $entityMapInfoProperty = $reflection->getProperty('entityFieldMap');
         $entityMapInfoProperty->setAccessible(true);
         $entityMapperEntityIdProperty = $reflection->getProperty('entityMapperEntityId');
         $entityMapperEntityIdProperty->setAccessible(true);
 
         self::assertInstanceOf(EntityMapper::class, $mapperProperty->getValue($entity));
-        $entityMapInfo = $entityMapInfoProperty->getValue($entity);
-        self::assertIsArray($entityMapInfo);
-        self::assertArrayHasKey('id', $entityMapInfo);
-        self::assertArrayHasKey('name', $entityMapInfo);
+        $entityFieldMap = $entityMapInfoProperty->getValue($entity);
+        self::assertInstanceOf(EntityFieldMap::class, $entityFieldMap);
+        self::assertNotNull($entityFieldMap->getField('id'));
+        self::assertNotNull($entityFieldMap->getField('name'));
         self::assertNotEmpty($entityMapperEntityIdProperty->getValue($entity));
     }
 

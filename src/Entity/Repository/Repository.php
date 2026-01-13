@@ -26,13 +26,13 @@ abstract class Repository implements ActiveRecordTableInterface, EntityRepositor
     protected string $tableName;
     protected EntityManager $entityManager;
     protected EntityMapper $entityMapper;
-    protected $entityMapInfo;
+    protected EntityFieldMap $entityFieldMap;
 
     #[PostInit]
     protected function postInit() {
         $this->initRepositoryOf();
         $repositoryEntityClass = $this->repositoryEntityClass;
-        $this->entityMapInfo = $repositoryEntityClass::buildEntityMapInfo();
+        $this->entityFieldMap = $repositoryEntityClass::buildEntityFieldMap();
     }
 
     public function getTable(): TableInterface {
@@ -152,7 +152,7 @@ abstract class Repository implements ActiveRecordTableInterface, EntityRepositor
     function fetchBy(string $field, $value): ?EntityInterface
     {
         $repositoryEntityClass = $this->repositoryEntityClass;
-        $repositoryEntityField = $this->entityMapInfo[$field]->getSource() ?? $field;
+        $repositoryEntityField = $this->entityFieldMap->getField($field)->getSource() ?? $field;
         return $repositoryEntityClass::toRepositoryEntity($this->entityMapper->fetchBy($repositoryEntityField, $value));
     }
 

@@ -19,27 +19,9 @@ use Amtgard\Traits\Builder\Data;
 use Amtgard\Traits\Builder\OnSet;
 use Amtgard\Traits\Builder\PostInit;
 use Amtgard\Traits\Builder\PreInit;
-use Amtgard\Traits\Builder\Setter;
 use Amtgard\Traits\Builder\ToBuilder;
 use DateTime;
 use Optional\Optional;
-
-class MappedInfo {
-    use Builder, Data;
-
-    public string $annotation;
-    public string $source;
-    public string $destinationType;
-    public ?string $backingReferencePk;
-    public bool $nullable;
-
-    #[PostInit]
-    private function postInit() {
-        if (is_subclass_of($this->destinationType, \DateTimeInterface::class, true)) {
-            $this->destinationType = \DateTimeInterface::class;
-        }
-    }
-}
 
 abstract class RepositoryEntity implements EntityInterface
 {
@@ -47,7 +29,7 @@ abstract class RepositoryEntity implements EntityInterface
 
     protected EntityMapper $mapper;
     protected EntityInterface $entity;
-    protected array $entityMapInfo = [];
+    protected EntityFieldMap $entityFieldMap;
     protected string $entityMapperEntityId;
     protected string $repositoryClass;
 
@@ -100,7 +82,8 @@ abstract class RepositoryEntity implements EntityInterface
         $instance = $instanceBuilder->build();
 
         $schema = $entity->getSchema();
-        foreach ($instance->getEntityMapInfo() as $instanceField => $mapInfo) {
+        foreach ($instance->getEntityFieldMap()->getInstanceFields() as $instanceField) {
+            $mapInfo = $instance->getEntityFieldMap()->getField($instanceField);
             $sourceField = $mapInfo->getSource();
             static::fieldTypeConversions($instance, $instanceField, $schema, $mapInfo, $entity, $sourceField);
         }
@@ -185,7 +168,7 @@ abstract class RepositoryEntity implements EntityInterface
     #[PreInit]
     protected function preInit() {
         $this->entityMapperEntityId = md5(microtime());
-        $this->entityMapInfo = static::buildEntityMapInfo();
+        $this->entityFieldMap = static::buildEntityFieldMap();
 
         if (!isset($this->mapper)) {
             $this->getEntityMapperAttributeValue();
@@ -202,7 +185,8 @@ abstract class RepositoryEntity implements EntityInterface
 
     private function mapFieldsToInternalEntity() {
         $schema = $this->entity->getSchema();
-        foreach ($this->getEntityMapInfo() as $instanceField => $mapInfo) {
+        foreach ($this->getEntityFieldMap()->getInstanceFields() as $instanceField) {
+            $mapInfo = $this->getEntityFieldMap()->getField($instanceField);
             $sourceField = $mapInfo->getSource();
             if (!isset($this->$instanceField)) {
                 continue;
@@ -228,7 +212,8 @@ abstract class RepositoryEntity implements EntityInterface
 
     private function mapInternalEntityToFields() {
         $schema = $this->entity->getSchema();
-        foreach ($this->getEntityMapInfo() as $instanceField => $mapInfo) {
+        foreach ($this->getEntityFieldMap()->getInstanceFields() as $instanceField) {
+            $mapInfo = $this->getEntityFieldMap()->getField($instanceField);
             $sourceField = $mapInfo->getSource();
             static::fieldTypeConversions($this, $instanceField, $schema, $mapInfo, $this->entity, $sourceField);
         }
@@ -239,13 +224,13 @@ abstract class RepositoryEntity implements EntityInterface
         $this->mapFieldsToInternalEntity();
     }
 
-    public static function buildEntityMapInfo() {
-        $map = [];
+    public static function buildEntityFieldMap() {
+        $map = EntityFieldMap::builder()->build();
         $thisClassReflection = new \ReflectionClass(static::class);
         foreach ($thisClassReflection->getProperties(\ReflectionProperty::IS_PRIVATE | \ReflectionProperty::IS_PROTECTED) as $property) {
             $mappedInfo = static::extractAttributeData($property);
             if (Optional::ofNullable($mappedInfo)->isPresent()) {
-                $map[$property->getName()] = $mappedInfo;
+                $map->setField($property->getName(), $mappedInfo);
             }
         }
         return $map;
@@ -324,13 +309,13 @@ abstract class RepositoryEntity implements EntityInterface
         return $mappedInfoBuilder->build();
     }
 
-    public function getEntityMapInfo(): array {
-        return $this->entityMapInfo;
+    public function getEntityFieldMap(): EntityFieldMap {
+        return $this->entityFieldMap;
     }
 
     #[OnSet]
     protected function onSetField($name, $value) {
-        $entityFieldName = Optional::ofNullable($this->getEntityMapInfo()[$name])
+        $entityFieldName = Optional::ofNullable($this->getEntityFieldMap()->getField($name))
             ->map(fn($mapInfo) => $mapInfo->getSource())
             ->orElse(null);
         if (Optional::ofNullable($entityFieldName)->isPresent()) {
