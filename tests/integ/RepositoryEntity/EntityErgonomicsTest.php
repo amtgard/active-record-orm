@@ -128,6 +128,14 @@ class EntityErgonomicsTest extends AmtgardTestCase
         assertEquals("2", $someEntity->getName());
     }
 
+    public function testFetchWithDatabaseFieldName() {
+        $someRepo = EntityManager::getManager()->getRepository(SomeRepository::class);
+
+        $missingEntity = $someRepo->fetchBy("string_value", "2");
+
+        assertEquals(3, $missingEntity->getLinkId());
+    }
+
     public function testFetchWithLocalFieldName() {
         $someRepo = EntityManager::getManager()->getRepository(SomeRepository::class);
 
