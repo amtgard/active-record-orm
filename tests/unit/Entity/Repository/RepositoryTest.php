@@ -427,4 +427,32 @@ class RepositoryTest extends AmtgardTestCase
 
         assertEquals(5, $result);
     }
+
+    public function testDelete_delegatesToEntityMapper(): void
+    {
+        $mockEntity = Phake::mock(EntityInterface::class);
+
+        $repository = TestRepository::builder()
+            ->entityManager($this->mockEntityManager)
+            ->tableName('test_table')
+            ->entityMapper($this->mockEntityMapper)
+            ->build();
+
+        $repository->delete($mockEntity);
+
+        Phake::verify($this->mockEntityMapper)->delete($mockEntity);
+    }
+
+    public function testDelete_delegatesToEntityMapper_noArgs(): void
+    {
+        $repository = TestRepository::builder()
+            ->entityManager($this->mockEntityManager)
+            ->tableName('test_table')
+            ->entityMapper($this->mockEntityMapper)
+            ->build();
+
+        $repository->delete(null);
+
+        Phake::verify($this->mockEntityMapper)->delete(null);
+    }
 }

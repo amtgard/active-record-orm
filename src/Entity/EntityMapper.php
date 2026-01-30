@@ -35,11 +35,13 @@ class EntityMapper implements ActiveRecordTableInterface, EntityMapperInterface,
     protected string $name;
     private array $changes = [];
 
-    public function getName(): string {
+    public function getName(): string
+    {
         return $this->name;
     }
 
-    public function __get(string $name) {
+    public function __get(string $name)
+    {
         $primaryKeyField = $this->table->getTableSchema()->getPrimaryKey()->getName();
         return Optional::ofNullable($this->getEntityManager()->getEntity($this->table->getName(), $this->table->$primaryKeyField))
             ->map(fn($entity) => $entity->$name)
@@ -56,7 +58,8 @@ class EntityMapper implements ActiveRecordTableInterface, EntityMapperInterface,
         $this->changes[$name] = $value;
     }
 
-    public function getEntity(): ?EntityInterface {
+    public function getEntity(): ?EntityInterface
+    {
         if ($this->mode === self::QUERY_MODE) {
             $resultSet = call_user_func($this->entityResultSetBuilder);
         } else {
@@ -72,9 +75,29 @@ class EntityMapper implements ActiveRecordTableInterface, EntityMapperInterface,
         return $this->getEntityManager()->register($this->table->getName(), $entity);
     }
 
-    public function fetch($primaryKeyValue = null): ?EntityInterface {
+    function delete(?EntityInterface $entity = null): void
+    {
+        Optional::ofNullable($entity)
+            ->map(function ($entity) {
+                $primaryKeyField = $this->table->getTableSchema()->getPrimaryKey()->getName();
+                $this->table->clear();
+                $this->table->$primaryKeyField = $entity->$primaryKeyField;
+                $this->table->delete();
+                return true;
+            })
+            ->orElseGet(function () {
+                if ($this->mode === self::TABLE_MODE) {
+                    $this->table->delete();
+                } else {
+                    throw new AmtgardOrmException("delete() is not a valid operation in query mode.");
+                }
+            });
+    }
+
+    public function fetch($primaryKeyValue = null): ?EntityInterface
+    {
         return Optional::ofNullable($primaryKeyValue)
-            ->map(function($primaryKeyValue) {
+            ->map(function ($primaryKeyValue) {
                 $primaryKeyField = $this->table->getTableSchema()->getPrimaryKey()->getName();
                 $this->table->clear();
                 $this->table->$primaryKeyField = $primaryKeyValue;
@@ -84,7 +107,7 @@ class EntityMapper implements ActiveRecordTableInterface, EntityMapperInterface,
                 }
                 return null;
             })
-            ->orElseGet(function() {
+            ->orElseGet(function () {
                 if ($this->table->find()) {
                     $this->next();
                     return $this->getEntity();
@@ -93,23 +116,27 @@ class EntityMapper implements ActiveRecordTableInterface, EntityMapperInterface,
             });
     }
 
-    public function fetchBy(string $field, $value): ?EntityInterface {
+    public function fetchBy(string $field, $value): ?EntityInterface
+    {
         $this->table->clear();
         $this->table->$field = $value;
         return $this->fetch();
     }
 
-    public function persist(EntityInterface $entity): EntityInterface {
+    public function persist(EntityInterface $entity): EntityInterface
+    {
         $entity = $this->getEntityManager()->persist($entity);
         return $this->getEntityManager()->register($this->getName(), $entity);
     }
 
-    public function query($sql): void {
+    public function query($sql): void
+    {
         $this->querySql = $sql;
         $this->mode = self::QUERY_MODE;
     }
 
-    public function execute(): int {
+    public function execute(): int
+    {
         $this->recordSet = $this->database->execute($this->querySql);
         return $this->recordSet->size();
     }
@@ -174,11 +201,13 @@ class EntityMapper implements ActiveRecordTableInterface, EntityMapperInterface,
         return $this->table->hasActiveRecord();
     }
 
-    public function getTable(): Table {
+    public function getTable(): Table
+    {
         return $this->table;
     }
 
-    protected function getEntityManager(): EntityManager {
+    protected function getEntityManager(): EntityManager
+    {
         if (!isset($this->em)) {
             $this->em = EntityManager::getManager();
         }
@@ -186,7 +215,8 @@ class EntityMapper implements ActiveRecordTableInterface, EntityMapperInterface,
     }
 
     #[PostInit]
-    private function postInit() {
+    private function postInit()
+    {
         if (!isset($this->table)) {
             throw new \Exception('A table must be set for EntityOf.');
         }
@@ -207,4 +237,5 @@ class EntityMapper implements ActiveRecordTableInterface, EntityMapperInterface,
     {
         return $this->changes;
     }
+
 }

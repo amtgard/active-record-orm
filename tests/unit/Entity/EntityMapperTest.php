@@ -260,4 +260,36 @@ class EntityMapperTest extends AmtgardTestCase
         Phake::verify($this->mockTable)->hasActiveRecord();
     }
 
+    public function testDelete_withEntity_deletesEntityByPrimaryKey(): void
+    {
+        /** @var Entity|Phake_IMock $mockEntity */
+        $mockEntity = Phake::mock(Entity::class);
+        Phake::when($mockEntity)->__get('id')->thenReturn(123);
+        Phake::when($this->mockTableSchema)->getPrimaryKey()->thenReturn($this->mockPrimaryKey);
+        Phake::when($this->mockPrimaryKey)->getName()->thenReturn('id');
+
+        $this->entityMapper->delete($mockEntity);
+
+        Phake::verify($this->mockTable)->clear();
+        Phake::verify($this->mockTable)->__set('id', 123);
+        Phake::verify($this->mockTable)->delete();
+    }
+
+    public function testDelete_withoutEntityInTableMode_deletesCurrentTableContext(): void
+    {
+        $this->entityMapper->delete();
+
+        Phake::verify($this->mockTable)->delete();
+    }
+
+    public function testDelete_withoutEntityInQueryMode_throwsException(): void
+    {
+        $this->entityMapper->query('SELECT * FROM test_table');
+
+        $this->expectException(\Amtgard\ActiveRecordOrm\Exception\AmtgardOrmException::class);
+        $this->expectExceptionMessage("delete() is not a valid operation in query mode.");
+
+        $this->entityMapper->delete();
+    }
+
 }

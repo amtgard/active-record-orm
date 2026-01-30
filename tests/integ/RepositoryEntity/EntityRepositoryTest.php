@@ -131,6 +131,19 @@ class EntityRepositoryTest extends AmtgardTestCase
         assertEquals(2, EntityRepositoryTest::$itemTable->find());
     }
 
+    public function testDelete(): void
+    {
+        $this->resetTable();
+
+        $someRepo = EntityManager::getManager()->getRepository(SomeHiddenRepository::class);
+        $someEntity = $someRepo->fetch(1);
+        
+        $someRepo->delete($someEntity);
+
+        EntityRepositoryTest::$itemTable->clear();
+        assertEquals(0, EntityRepositoryTest::$itemTable->find());
+    }
+
     public function setUp(): void
     {
         $dotenvPath = dirname(dirname(dirname(__DIR__))) . DIRECTORY_SEPARATOR . "test-resources";

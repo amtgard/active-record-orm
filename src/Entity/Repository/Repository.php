@@ -6,6 +6,7 @@ use Amtgard\ActiveRecordOrm\Attribute\RepositoryOf;
 use Amtgard\ActiveRecordOrm\Entity\Entity;
 use Amtgard\ActiveRecordOrm\Entity\EntityMapper;
 use Amtgard\ActiveRecordOrm\EntityManager;
+use Amtgard\ActiveRecordOrm\Exception\AmtgardOrmException;
 use Amtgard\ActiveRecordOrm\Interface\ActiveRecordTableInterface;
 use Amtgard\ActiveRecordOrm\Interface\EntityInterface;
 use Amtgard\ActiveRecordOrm\Interface\EntityMapperInterface;
@@ -33,6 +34,10 @@ abstract class Repository implements ActiveRecordTableInterface, EntityRepositor
         $this->initRepositoryOf();
         $repositoryEntityClass = $this->repositoryEntityClass;
         $this->entityFieldMap = $repositoryEntityClass::buildEntityFieldMap();
+    }
+
+    public function getDatabase() {
+        return $this->entityMapper->getDatabase();
     }
 
     public function getTable(): TableInterface {
@@ -105,6 +110,11 @@ abstract class Repository implements ActiveRecordTableInterface, EntityRepositor
     public function find(): int
     {
         return $this->entityMapper->find();
+    }
+
+    function delete(?EntityInterface $entity): void
+    {
+        $this->entityMapper->delete($entity);
     }
 
     public function count(string $countAlias = 'row_count'): int
@@ -185,12 +195,12 @@ abstract class Repository implements ActiveRecordTableInterface, EntityRepositor
 
     static function getTableName()
     {
-        return static::getTableName();
+        throw new AmtgardOrmException("You must implement getTableName() in your Repository definition.");
     }
 
     public static function getEntityClass()
     {
-        return static::getEntityClass();
+        throw new AmtgardOrmException("You must implement getEntityClass() in your Repository definition.");
     }
 
     function query(string $sql): void

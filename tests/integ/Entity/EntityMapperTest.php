@@ -267,4 +267,18 @@ class EntityMapperTest extends AmtgardTestCase
         EntityMapperTest::$db->execute("select * from integ where string_value = 'bar-baz'");
         assertEquals(83, $entity->int_value);
     }
+
+    public function testDelete() {
+        self::resetTable();
+
+        $itemTable = EntityMapperTest::$itemTable;
+        $entityMapper = EntityMapper::builder()->em(EntityMapperTest::$em)->table($itemTable)->build();
+        
+        $entity = $entityMapper->fetchBy('id', 1);
+        $entityMapper->delete($entity);
+
+        $entityMapper->clear();
+        $entityMapper->id = 1;
+        assertEquals(0, $entityMapper->find());
+    }
 }
