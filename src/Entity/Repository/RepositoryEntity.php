@@ -103,22 +103,34 @@ abstract class RepositoryEntity implements EntityInterface
             }
             $instance->$instanceField = new DateTime();
             return;
-        } else {
-            $interfaces = class_implements($mapInfo->getDestinationType());
-            if ($interfaces && count($interfaces) > 0) {
-                if (in_array(EntityInterface::class, $interfaces)) {
-                    // Resurrect alternate entity from repo
-                    if (!is_null($mapInfo->getBackingReferencePk())) {
-                        $backingReferencePk = $mapInfo->getBackingReferencePk();
-                        $instance->$backingReferencePk = $sourceFieldValue;
-                        return;
-                    }
-                }
-            }
+        } else if (RepositoryEntity::isEntityInterfaceClass($mapInfo)) {
+            $backingReferencePk = $mapInfo->getBackingReferencePk();
+            $instance->$backingReferencePk = $sourceFieldValue;
+            return;
+        } else if (self::isEnumType($mapInfo)) {
+            $enumType = $mapInfo->getDestinationType();
+            $instance->$instanceField = $enumType::tryFrom($sourceFieldValue) ?? null;
+            return;
         }
         if (Optional::ofNullable($sourceFieldValue)->isPresent() || $mapInfo->getNullable()) {
             $instance->$instanceField = $sourceFieldValue;
         }
+    }
+
+    private static function isEnumType($mapInfo) {
+        $interfaces = class_implements($mapInfo->getDestinationType());
+        if ($interfaces && count($interfaces) > 0 && in_array(\BackedEnum::class, $interfaces)) {
+            return true;
+        }
+        return false;
+    }
+
+    private static function isEntityInterfaceClass($mapInfo) {
+        $interfaces = class_implements($mapInfo->getDestinationType());
+        if ($interfaces && count($interfaces) > 0 && in_array(EntityInterface::class, $interfaces) && !is_null($mapInfo->getBackingReferencePk())) {
+            return true;
+        }
+        return false;
     }
 
     private function getEntityMapperAttributeValue(): ?EntityMapper

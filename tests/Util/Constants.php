@@ -162,6 +162,17 @@ class Constants
             "name": "decimal_value",
             "len": 11,
             "precision": 0
+        },
+        {
+            "native_type": "STRING",
+            "pdo_type": 2,
+            "flags": [
+                "not_null"
+            ],
+            "table": "integ",
+            "name": "number_enum",
+            "len": 15,
+            "precision": 0
         }
     ],
     "fieldDefinition": [
@@ -268,6 +279,14 @@ class Constants
             "nativeType": "NEWDECIMAL",
             "nullable": true,
             "extra": null
+        },
+        {
+            "name": "number_enum",
+            "value": "number_enum",
+            "type": 2,
+            "nativeType": "STRING",
+            "nullable": false,
+            "extra": null
         }
     ]
 }
@@ -365,6 +384,13 @@ PDO_RECORD_SET_JSON;
             "type": 105,
             "nativeType": "decimal(10,0)",
             "nullable": true,
+            "extra": ""
+        },
+        "number_enum": {
+            "name": "number_enum",
+            "type": 102,
+            "nativeType": "enum('one','two','three')",
+            "nullable": false,
             "extra": ""
         }
     },
@@ -485,6 +511,14 @@ JSON_ENCODED_INTEG_SCHEMA;
         "Null": "YES",
         "Key": "",
         "Default": null,
+        "Extra": ""
+    },
+    {
+        "Field": "number_enum",
+        "Type": "enum('one','two','three')",
+        "Null": "NO",
+        "Key": "",
+        "Default": "one",
         "Extra": ""
     }
 ]
@@ -618,6 +652,17 @@ DESCRIBE_TABLE;
         "table": "integ",
         "name": "decimal_value",
         "len": 11,
+        "precision": 0
+    },
+    {
+        "native_type": "STRING",
+        "pdo_type": 2,
+        "flags": [
+            "not_null"
+        ],
+        "table": "integ",
+        "name": "number_enum",
+        "len": 15,
         "precision": 0
     }
 ]

@@ -31,8 +31,8 @@ class UncachedTableSchemaTest extends AmtgardTestCase
                 ->database($database)
                 ->build();
         });
-        self::assertEquals(13, count($schema->getFields()));
+        self::assertEquals(14, count($schema->getFields()));
         self::assertEquals("id", $schema->getPrimaryKey()->getName());
-        Phake::verify($__statement, Phake::times(14))->fetch();
+        Phake::verify($__statement, Phake::times(15))->fetch();
     }
 }

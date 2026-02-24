@@ -40,6 +40,12 @@ class SomeRepository extends Repository {
     }
 }
 
+enum NumberEnum: string {
+    case One = 'one';
+    case Two = 'two';
+    case Three = 'three';
+}
+
 #[EntityOf(SomeRepository::class)]
 class SomeEntity extends RepositoryEntity {
     use Builder, ToBuilder, Data;
@@ -54,6 +60,9 @@ class SomeEntity extends RepositoryEntity {
     #[Field('int_value')]
     #[EntityReference('linkId')]
     private ?SomeEntity $link;
+    #[Field('number_enum')]
+    private ?numberEnum $numberEnum;
+
 }
 
 function SomeEntity(EntityInterface $entity): SomeEntity {
@@ -152,12 +161,21 @@ class EntityErgonomicsTest extends AmtgardTestCase
         assertNull($missingEntity);
     }
 
+    public function testFetchHasEnumeratedTypes(): void {
+        $someRepo = EntityManager::getManager()->getRepository(SomeRepository::class);
+
+        $missingEntity = $someRepo->fetchBy("name", "2");
+
+        assertEquals(NumberEnum::One, $missingEntity->getNumberEnum());
+    }
+
     public function testNewEntityByCreateEntity(): void {
         $someRepo = EntityManager::getManager()->getRepository(SomeRepository::class);
 
         $someEntity = $someRepo->newRepositoryEntity();
         $someEntity = $someRepo->persist($someEntity);
         $someEntity->setName("new entity 1");
+        $someEntity->setNumberEnum(NumberEnum::Two);
         assertEquals(4, $someEntity->id);
         EntityManager::getManager()->persist($someEntity);
 
@@ -166,13 +184,14 @@ class EntityErgonomicsTest extends AmtgardTestCase
         self::assertGreaterThan(0, EntityErgonomicsTest::$itemTable->find());
         self::assertTrue(EntityErgonomicsTest::$itemTable->next());
         assertEquals(4, EntityErgonomicsTest::$itemTable->id);
+        assertEquals(NumberEnum::Two->value, EntityErgonomicsTest::$itemTable->number_enum);
 
         EntityErgonomicsTest::$itemTable->clear();
         assertEquals(4, EntityErgonomicsTest::$itemTable->find());
     }
 
     public function testNewEntityViaErgonomicRepository(): void {
-        $someEntity = SomeEntity::builder()->name("new entity 2")->build();
+        $someEntity = SomeEntity::builder()->name("new entity 2")->numberEnum(NumberEnum::Three)->build();
         $someEntity->persist($someEntity->getMapper());
 
         EntityErgonomicsTest::$itemTable->clear();
@@ -180,6 +199,7 @@ class EntityErgonomicsTest extends AmtgardTestCase
         self::assertGreaterThan(0, EntityErgonomicsTest::$itemTable->find());
         self::assertTrue(EntityErgonomicsTest::$itemTable->next());
         assertEquals(4, EntityErgonomicsTest::$itemTable->id);
+        assertEquals(NumberEnum::Three->value, EntityErgonomicsTest::$itemTable->number_enum);
 
         EntityErgonomicsTest::$itemTable->clear();
         assertEquals(4, EntityErgonomicsTest::$itemTable->find());
