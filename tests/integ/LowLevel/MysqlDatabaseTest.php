@@ -53,7 +53,7 @@ class MysqlDatabaseTest extends TestCase
         self::assertEquals(3, $records->int_value);
         self::assertEquals(1, $records->id);
         $definition = json_encode($records->getDefinition());
-        self::assertEquals(13, count($records->getDefinition()));
+        self::assertEquals(14, count($records->getDefinition()));
     }
 
     public function testCaptureDescribeTable() {
@@ -67,7 +67,7 @@ class MysqlDatabaseTest extends TestCase
             $def[] = $tableDefinition->getRecord();
         }
         $capture = json_encode($def, JSON_PRETTY_PRINT);
-        self::assertEquals(13, count($def));
+        self::assertEquals(14, count($def));
 
         $db->clear();
         $record = $db->execute("select * from integ limit 1");

@@ -18,7 +18,7 @@ class FromJsonTableSchemaTest extends AmtgardTestCase
                     ->database($database)
                     ->build();
 
-        self::assertEquals(13, count($schema->getFields()));
+        self::assertEquals(14, count($schema->getFields()));
         self::assertEquals("id", $schema->getPrimaryKey()->getName());
     }
 }

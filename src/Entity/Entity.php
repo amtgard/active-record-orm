@@ -60,6 +60,9 @@ class Entity implements EntityInterface
                 if ($value instanceof Entity && $type == FieldType::INTEGER) {
                     return $value->getPrimaryKey()->getValue();
                 }
+                if ($type == FieldType::ENUM) {
+                    return $value->value;
+                }
                 break;
         }
         return $value;
