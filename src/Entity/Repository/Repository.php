@@ -152,6 +152,12 @@ abstract class Repository implements ActiveRecordTableInterface, EntityRepositor
         return $this->entityMapper->getEntity();
     }
 
+    function getCurrent(): ?RepositoryEntity
+    {
+        $repositoryEntityClass = $this->repositoryEntityClass;
+        return $repositoryEntityClass::toRepositoryEntity($this->entityMapper->getEntity());
+    }
+
     function fetch($primaryKeyValue = null): ?EntityInterface
     {
         $repositoryEntityClass = $this->repositoryEntityClass;

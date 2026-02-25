@@ -71,7 +71,8 @@ class EntityMapperTest extends AmtgardTestCase
         EntityMapperTest::$db->clear();
         EntityMapperTest::$db->string_value = "4";
         EntityMapperTest::$db->int_value = 5;
-        EntityMapperTest::$db->execute("insert into integ (string_value, int_value) values (:string_value, :int_value)");
+        EntityMapperTest::$db->boolean_value = true;
+        EntityMapperTest::$db->execute("insert into integ (string_value, int_value, boolean_value) values (:string_value, :int_value, :boolean_value)");
 
         EntityMapperTest::$db->clear();
         EntityMapperTest::$db->string_value = "Bunny Rabbit Foo-Foo";
@@ -97,6 +98,18 @@ class EntityMapperTest extends AmtgardTestCase
         assertEquals("2", $entity->string_value);
         assertEquals(3, $entity->int_value);
         assertEquals($entityId, EntityMapperTest::$em->getMapperEntities('integ')[1]->id);
+    }
+
+    public function testGetEntityWithBoolean_returnsBooleanValue() {
+        self::resetTable();
+
+        $itemTable = EntityMapperTest::$itemTable;
+        $entityMapper = EntityMapper::builder()->em(EntityMapperTest::$em)->table($itemTable)->build();
+        $entityMapper->clear();
+        $entityMapper->string_value = "4";
+        assertEquals(1, $entityMapper->find());
+        $entityMapper->next();
+        assertEquals(true, $entityMapper->boolean_value);
     }
 
     public function testSubsequentGetEntityReturnsLocalEntityWithChanges() {
