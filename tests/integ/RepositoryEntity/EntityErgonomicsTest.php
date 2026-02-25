@@ -62,7 +62,8 @@ class SomeEntity extends RepositoryEntity {
     private ?SomeEntity $link;
     #[Field('number_enum')]
     private ?numberEnum $numberEnum;
-
+    #[Field('boolean_value')]
+    private bool $boolValue;
 }
 
 function SomeEntity(EntityInterface $entity): SomeEntity {
@@ -122,11 +123,13 @@ class EntityErgonomicsTest extends AmtgardTestCase
 
         EntityErgonomicsTest::$db->clear();
         EntityErgonomicsTest::$db->string_value = "3";
-        EntityErgonomicsTest::$db->execute("insert into integ (string_value) values (:string_value)");
+        EntityErgonomicsTest::$db->boolean_value = false;
+        EntityErgonomicsTest::$db->execute("insert into integ (string_value, boolean_value) values (:string_value, :boolean_value)");
 
         EntityErgonomicsTest::$db->clear();
         EntityErgonomicsTest::$db->string_value = "4";
-        EntityErgonomicsTest::$db->execute("insert into integ (string_value) values (:string_value)");
+        EntityErgonomicsTest::$db->boolean_value = true;
+        EntityErgonomicsTest::$db->execute("insert into integ (string_value, boolean_value) values (:string_value, :boolean_value)");
 
         EntityErgonomicsTest::$em->clearMapper("integ");
     }
@@ -135,6 +138,17 @@ class EntityErgonomicsTest extends AmtgardTestCase
         $someRepo = EntityManager::getManager()->getRepository(SomeRepository::class);
         $someEntity = $someRepo->fetch(1);
         assertEquals("2", $someEntity->getName());
+    }
+
+    public function testBooleanRead(): void {
+        $someRepo = EntityManager::getManager()->getRepository(SomeRepository::class);
+        $someEntity = $someRepo->fetchBy("string_value", "4");
+        assertEquals(true, $someEntity->boolValue);
+        assertEquals(true, $someEntity->getBoolValue());
+
+        $someEntity = $someRepo->fetchBy("string_value", "3");
+        assertEquals(false, $someEntity->boolValue);
+        assertEquals(false, $someEntity->getBoolValue());
     }
 
     public function testFetchWithDatabaseFieldName() {

@@ -63,14 +63,24 @@ class TableTest extends AmtgardTestCase
 
         TableTest::$db->clear();
         TableTest::$db->string_value = "4";
+        TableTest::$db->boolean_value = true;
         TableTest::$db->int_value = 5;
-        TableTest::$db->execute("insert into integ (string_value, int_value) values (:string_value, :int_value)");
+        TableTest::$db->execute("insert into integ (string_value, boolean_value, int_value) values (:string_value, :boolean_value, :int_value)");
 
         TableTest::$db->clear();
         TableTest::$db->string_value = "Bunny Rabbit Foo-Foo";
         TableTest::$db->int_value = 6;
         TableTest::$db->execute("insert into integ (string_value, int_value) values (:string_value, :int_value)");
         TableTest::$db->clear();
+    }
+
+    public function testReadBoolean_returnsBooleanValue() {
+        $itemTable = TableTest::$itemTable;
+        $itemTable->clear();
+        $itemTable->string_value = "4";
+        assertEquals(1, $itemTable->find());
+        $itemTable->next();
+        assertEquals(true, $itemTable->boolean_value);
     }
 
     public function testFindWithoutNext_ThrowsInformativeException()
