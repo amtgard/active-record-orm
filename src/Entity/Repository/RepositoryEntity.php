@@ -117,6 +117,13 @@ abstract class RepositoryEntity implements EntityInterface
         }
     }
 
+    private function extractBackingFieldValue($value) {
+        if (RepositoryEntity::valueIsEntityInterface($value)) {
+            return $value->getId();
+        }
+        return $value;
+    }
+
     private static function isEnumType($mapInfo) {
         $interfaces = class_implements($mapInfo->getDestinationType());
         if ($interfaces && count($interfaces) > 0 && in_array(\BackedEnum::class, $interfaces)) {
@@ -128,6 +135,17 @@ abstract class RepositoryEntity implements EntityInterface
     private static function isEntityInterfaceClass($mapInfo) {
         $interfaces = class_implements($mapInfo->getDestinationType());
         if ($interfaces && count($interfaces) > 0 && in_array(EntityInterface::class, $interfaces) && !is_null($mapInfo->getBackingReferencePk())) {
+            return true;
+        }
+        return false;
+    }
+
+    private static function valueIsEntityInterface($value) {
+        if (!is_object($value)) {
+            return false;
+        }
+        $interfaces = class_implements($value);
+        if ($interfaces && count($interfaces) > 0 && in_array(EntityInterface::class, $interfaces)) {
             return true;
         }
         return false;
@@ -331,7 +349,7 @@ abstract class RepositoryEntity implements EntityInterface
             ->map(fn($mapInfo) => $mapInfo->getSource())
             ->orElse(null);
         if (Optional::ofNullable($entityFieldName)->isPresent()) {
-            $this->entity->$entityFieldName = $value;
+            $this->entity->$entityFieldName = $this->extractBackingFieldValue($value);
         }
         return $value;
     }
