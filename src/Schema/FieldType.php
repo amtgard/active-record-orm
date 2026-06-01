@@ -63,7 +63,7 @@ enum FieldType: int
     }
 
     public static function fromPdoType(int $pdo, string $nativeType): FieldType {
-        $type = self::pdoToFieldMap()[$pdo];
+        $type = self::pdoToFieldMap()[$pdo] ?? null;
         if (is_null($type)) switch ($nativeType) {
             case 'DATETIME': return FieldType::DATETIME;
             case 'DOUBLE': return FieldType::DOUBLE;

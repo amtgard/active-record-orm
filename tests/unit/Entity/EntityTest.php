@@ -20,6 +20,8 @@ class EntityTest extends AmtgardTestCase
     private TableSchema $mockTableSchema;
     private Table $mockTable;
     private FieldDefinition $mockPrimaryKey;
+    private FieldDefinition $mockNameField;
+    private FieldDefinition $mockEmailField;
     private EntityMapper $mockEntityMapper;
 
     protected function setUp(): void
@@ -85,10 +87,10 @@ class EntityTest extends AmtgardTestCase
         Phake::verify($this->mockTable)->clear();
         
         // Verify that the primary key was set
-        Phake::verify($this->mockTable)->id = 123;
+        Phake::verify($this->mockTable)->__set('id', 123);
         
         // Verify that the changed field was set
-        Phake::verify($this->mockTable)->name = 'Updated Name';
+        Phake::verify($this->mockTable)->__set('name', 'Updated Name');
         
         // Verify that save was called
         Phake::verify($this->mockTable)->save();

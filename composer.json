@@ -20,7 +20,7 @@
         "amtgard/builder-traits": "^2.1",
         "jedibc/optional": "^1.0",
         "amtgard/phpunit-extensions": "^1.0",
-        "wyndow/fuzzywuzzy": "^0.6.0"
+        "amtgard/fuzzywuzzy": "^1.0.0"
     },
     "autoload": {
         "psr-4": {

@@ -31,7 +31,7 @@ class Entity implements EntityInterface
     public function __set(string $name, $value) {
         $this->schema->hasField($name);
 
-        if ($value !== $this->fields[$name]) {
+        if ($value !== ($this->fields[$name] ?? null)) {
             $convertedValue = $this->valueToFieldType($name, $value);
             $this->changes[$name] = $convertedValue;
             $this->fields[$name] = $convertedValue;
@@ -85,7 +85,7 @@ class Entity implements EntityInterface
     }
 
     public function persist(EntityMapper $mapper): EntityInterface {
-        if ($this->isDirty()) {
+        if ($this->isDirty() || is_null($this->getPrimaryKey()->getValue())) {
             $table = $mapper->getTable();
             $table->clear();
             $primaryKey = $this->getPrimaryKey()->getName();
@@ -114,7 +114,7 @@ class Entity implements EntityInterface
             ->orElseGet(function() {
                 $fields = [];
                 foreach($this->schema->getFields() as $field) {
-                    $fields[$field->getName()] = $this->changes[$field->getName()];
+                    $fields[$field->getName()] = $this->changes[$field->getName()] ?? null;
                 }
                 return $fields;
             });

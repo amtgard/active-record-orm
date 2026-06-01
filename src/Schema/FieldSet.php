@@ -80,7 +80,7 @@ class FieldSet
     }
 
     public function getField(string $fieldName): ?FieldOperation {
-        return $this->fields[$fieldName];
+        return $this->fields[$fieldName] ?? null;
     }
 
     /** @return string[] */

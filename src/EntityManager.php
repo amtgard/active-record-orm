@@ -77,12 +77,13 @@ class EntityManager
         if (!in_array(EntityRepositoryInterface::class, class_implements($repository))) {
             throw new AmtgardOrmException(sprintf('Repository class "%s" must implement EntityRepositoryInterface.', $repository));
         }
-        $this->repositories[$repository::getTableName()] = Optional::ofNullable($this->repositories[$repository::getTableName()])
-            ->orElseGet(function () use ($repository) {
-                $mapper = $this->mapper($repository::getTableName());
-                return $repository::builder()->entityManager($this)->tableName($repository::getTableName())->entityMapper($mapper)->build();
+        $tableName = $repository::getTableName();
+        $this->repositories[$tableName] = Optional::ofNullable($this->repositories[$tableName] ?? null)
+            ->orElseGet(function () use ($repository, $tableName) {
+                $mapper = $this->mapper($tableName);
+                return $repository::builder()->entityManager($this)->tableName($tableName)->entityMapper($mapper)->build();
             });
-        return $this->repositories[$repository::getTableName()];
+        return $this->repositories[$tableName];
     }
 
     public function persist(string|EntityMapper|EntityInterface|null $persistable = null)
@@ -151,11 +152,14 @@ class EntityManager
             });
     }
 
-    public function getEntity(string $tableName, int $entityId): ?EntityInterface
+    public function getEntity(string $tableName, ?int $entityId): ?EntityInterface
     {
+        if (is_null($entityId)) {
+            return null;
+        }
         return Optional::ofNullable($this->getMapperEntities($tableName))
             ->map(function ($entities) use ($entityId) {
-                return $entities[$entityId];
+                return $entities[$entityId] ?? null;
             })
             ->orElse(null);
     }

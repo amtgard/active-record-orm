@@ -17,6 +17,7 @@ class UncachedDataAccessPolicyTest extends AmtgardTestCase
     private Database $mockDatabase;
     private Query $mockQuery;
     private UncachedDataAccessPolicy $dataAccessPolicy;
+    private ActiveRecordOrmConfiguration $mockConfiguration;
 
     protected function setUp(): void
     {
