@@ -124,7 +124,7 @@ class EntityManagerTest extends AmtgardTestCase
 
     public function testGetMapper_withNonExistentMapper_returnsNull(): void
     {
-        $result = EntityManager::getManager()->getMappers()['non_existent_table'];
+        $result = EntityManager::getManager()->getMappers()['non_existent_table'] ?? null;
 
         self::assertNull($result);
     }

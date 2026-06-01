@@ -29,10 +29,10 @@ class EntityFieldMap
 
     public function getField(string $fieldName): ?MappedInfo
     {
-        return Optional::ofNullable($this->fieldMap[$fieldName])
+        return Optional::ofNullable($this->fieldMap[$fieldName] ?? null)
             ->orElseGet(function () use ($fieldName) {
-                return Optional::ofNullable($this->fieldSourceMap[$fieldName])
-                    ->map(fn($sourceField) => $this->fieldMap[$sourceField])
+                return Optional::ofNullable($this->fieldSourceMap[$fieldName] ?? null)
+                    ->map(fn($sourceField) => $this->fieldMap[$sourceField] ?? null)
                     ->orElse(null);
             });
     }

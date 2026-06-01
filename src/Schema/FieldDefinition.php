@@ -62,10 +62,10 @@ class FieldDefinition implements \JsonSerializable
         return FieldDefinition::builder()
             ->name($json['name'])
             ->type(FieldType::from($json['type']))
-            ->value($json['value'])
+            ->value($json['value'] ?? null)
             ->nativeType($json['nativeType'])
             ->nullable($json['nullable'] ?? false)
-            ->extra($json['extra'])
+            ->extra($json['extra'] ?? null)
             ->build();
     }
 

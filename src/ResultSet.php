@@ -36,7 +36,7 @@ class ResultSet
         $fieldMap = [];
         foreach ($this->schema->getFields() as $field) {
             $fieldName = $field->getName();
-            $fieldMap[$fieldName] = $this->recordSet->$fieldName;
+            $fieldMap[$fieldName] = $this->recordSet?->$fieldName;
         }
         return $fieldMap;
     }

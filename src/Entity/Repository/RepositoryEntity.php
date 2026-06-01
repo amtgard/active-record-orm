@@ -97,6 +97,10 @@ abstract class RepositoryEntity implements EntityInterface
     private static function fieldTypeConversions(RepositoryEntity &$instance, $instanceField, TableSchema $sourceSchema, $mapInfo, EntityInterface $entity, $sourceField) {
         $sourceFieldValue = $entity->$sourceField;
         if ($mapInfo->getDestinationType() == \DateTimeInterface::class) {
+            if (is_null($sourceFieldValue)) {
+                $instance->$instanceField = null;
+                return;
+            }
             switch ($sourceSchema->getFields()[$sourceField]->getType()) {
                 case FieldType::DATETIME: $instance->$instanceField = new DateTime($sourceFieldValue); return;
                 case FieldType::INTEGER: $instance->$instanceField = DateTime::createFromFormat('U', $sourceFieldValue); return;
@@ -109,7 +113,7 @@ abstract class RepositoryEntity implements EntityInterface
             return;
         } else if (self::isEnumType($mapInfo)) {
             $enumType = $mapInfo->getDestinationType();
-            $instance->$instanceField = $enumType::tryFrom($sourceFieldValue) ?? null;
+            $instance->$instanceField = !is_null($sourceFieldValue) ? ($enumType::tryFrom($sourceFieldValue) ?? null) : null;
             return;
         }
         if (Optional::ofNullable($sourceFieldValue)->isPresent() || $mapInfo->getNullable()) {
@@ -125,17 +129,23 @@ abstract class RepositoryEntity implements EntityInterface
     }
 
     private static function isEnumType($mapInfo) {
-        $interfaces = class_implements($mapInfo->getDestinationType());
-        if ($interfaces && count($interfaces) > 0 && in_array(\BackedEnum::class, $interfaces)) {
-            return true;
+        $type = $mapInfo->getDestinationType();
+        if ($type && (class_exists($type) || interface_exists($type))) {
+            $interfaces = class_implements($type);
+            if ($interfaces && count($interfaces) > 0 && in_array(\BackedEnum::class, $interfaces)) {
+                return true;
+            }
         }
         return false;
     }
 
     private static function isEntityInterfaceClass($mapInfo) {
-        $interfaces = class_implements($mapInfo->getDestinationType());
-        if ($interfaces && count($interfaces) > 0 && in_array(EntityInterface::class, $interfaces) && !is_null($mapInfo->getBackingReferencePk())) {
-            return true;
+        $type = $mapInfo->getDestinationType();
+        if ($type && (class_exists($type) || interface_exists($type))) {
+            $interfaces = class_implements($type);
+            if ($interfaces && count($interfaces) > 0 && in_array(EntityInterface::class, $interfaces) && !is_null($mapInfo->getBackingReferencePk())) {
+                return true;
+            }
         }
         return false;
     }
@@ -227,7 +237,8 @@ abstract class RepositoryEntity implements EntityInterface
                     case FieldType::INTEGER: $this->entity->$sourceField = $this->$instanceField->getTimestamp(); break;
                 }
             } else {
-                $interfaces = class_implements($mapInfo->getDestinationType());
+                $type = $mapInfo->getDestinationType();
+                $interfaces = ($type && (class_exists($type) || interface_exists($type))) ? class_implements($type) : [];
                 if ($interfaces && count($interfaces) > 0) {
                     if (in_array(EntityInterface::class, $interfaces)) {
                         $this->entity->$sourceField = $this->$instanceField->id;

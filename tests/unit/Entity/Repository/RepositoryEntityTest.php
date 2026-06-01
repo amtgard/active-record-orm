@@ -92,6 +92,23 @@ class DateTimeTestRepositoryEntity extends RepositoryEntity
     private $createdAt; // No type hint - type comes from Field attribute
 }
 
+enum TestEnum: string {
+    case Foo = 'foo';
+    case Bar = 'bar';
+}
+
+#[EntityOf(TestRepository::class)]
+class EnumTestRepositoryEntity extends RepositoryEntity
+{
+    use Builder, ToBuilder, Data;
+
+    #[PrimaryKey]
+    private ?int $id;
+
+    #[Field('status', TestEnum::class)]
+    private ?TestEnum $status;
+}
+
 class RepositoryEntityTest extends AmtgardTestCase
 {
     #[Mock]
@@ -814,5 +831,26 @@ class RepositoryEntityTest extends AmtgardTestCase
         $result = TestRepositoryEntity::toRepositoryEntity($mockEntityInterface);
 
         self::assertInstanceOf(TestRepositoryEntity::class, $result);
+    }
+
+    public function testToRepositoryEntity_withEnum_convertsToEnum(): void
+    {
+        $mockStatusField = Phake::mock(FieldDefinition::class);
+        $mockIdField = Phake::mock(FieldDefinition::class);
+        $fieldsArray = [
+            'id' => $mockIdField,
+            'status' => $mockStatusField
+        ];
+        Phake::when($this->mockTableSchema)->getFields()->thenReturn($fieldsArray);
+        Phake::when($mockStatusField)->getType()->thenReturn(FieldType::STRING);
+        Phake::when($mockIdField)->getType()->thenReturn(FieldType::INTEGER);
+        Phake::when($this->mockEntity)->getSchema()->thenReturn($this->mockTableSchema);
+        Phake::when($this->mockEntity)->status->thenReturn('foo');
+        Phake::when($this->mockEntity)->id->thenReturn(1);
+
+        $result = EnumTestRepositoryEntity::toRepositoryEntity($this->mockEntity);
+
+        self::assertInstanceOf(EnumTestRepositoryEntity::class, $result);
+        self::assertEquals(TestEnum::Foo, $result->status);
     }
 }

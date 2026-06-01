@@ -47,7 +47,7 @@ class PdoRecordSet implements RecordSet
         if ($this->__fields !== false) {
             $fields = [];
             foreach ($this->getDefinition() as $fieldDef) {
-                $fields[$fieldDef->getName()] = $this->__fields[$fieldDef->getName()];
+                $fields[$fieldDef->getName()] = $this->__fields[$fieldDef->getName()] ?? null;
             }
             return $fields;
         }
