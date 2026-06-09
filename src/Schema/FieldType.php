@@ -72,13 +72,18 @@ enum FieldType: int
     }
 
     public static function fromTableType($fieldType): FieldType {
-        $matches = [];
-        preg_match("/(.+)\((.+)\)/", $fieldType, $matches);
-        $majorType = count($matches) >= 2 ? $matches[1] : $fieldType;
-        switch ($majorType) {
+        $normalized = strtolower(trim((string) $fieldType));
+        $normalized = preg_replace('/\s+unsigned$/', '', $normalized);
+        $normalized = preg_replace('/\(.+?\)/', '', $normalized);
+        $normalized = trim($normalized);
+        switch ($normalized) {
             case 'varchar': return FieldType::STRING;
             case 'tinyint':
+            case 'smallint':
+            case 'mediumint':
+            case 'bigint':
             case 'int': return FieldType::INTEGER;
+            case 'json': return FieldType::STRING;
             case 'datetime': return FieldType::DATETIME;
             case 'longtext':
             case 'tinytext': return FieldType::STRING;
