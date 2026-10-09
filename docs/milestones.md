@@ -27,10 +27,10 @@ Design: [caching-strategy.md](caching-strategy.md).
 
 ### C-01 Lifetime policy and in-memory expiry
 
-- [ ] C-01
+- [x] C-01
 - Branch: `cache/c01-lifetime-policy`
 - Stack on: `optimization-documents`
-- Progress: not started
+- Progress: branch `cache/c01-lifetime-policy`, commit HEAD. Full-suite line coverage start 78.05% (992/1271), end 87.50% (1204/1376). Per-file line coverage: CacheEnvelope 100% (3/3), CacheSubject 100% (4/4), CompositeCacheLifetimeManagementPolicy 100% (37/37), InMemoryCache 100% (46/46), SystemClock 100% (2/2), TtlCacheLifetimeManagementPolicy 100% (25/25). Clock and CacheLifetimeManagementPolicy have no executable lines. Infection MSI 97%, covered MSI 97%. Log-tested decision branches: expiry chosen, entry treated as expired.
 
 Prove expiry without a schema-key or backend change.
 

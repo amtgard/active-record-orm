@@ -9,7 +9,8 @@
         "phpunit/phpunit": "^11.3",
         "robmorgan/phinx": "^0.16.8",
         "ext-openssl": "*",
-        "phpstan/phpstan": "^2.1"
+        "phpstan/phpstan": "^2.1",
+        "infection/infection": "^0.29"
     },
     "require": {
         "php": "^8.3",
@@ -20,7 +21,8 @@
         "amtgard/builder-traits": "^2.1",
         "jedibc/optional": "^1.0",
         "amtgard/phpunit-extensions": "^1.0",
-        "amtgard/fuzzywuzzy": "^1.0.0"
+        "amtgard/fuzzywuzzy": "^1.0.0",
+        "psr/simple-cache": "^3.0"
     },
     "autoload": {
         "psr-4": {
@@ -40,5 +42,10 @@
         "bin/repository_schema",
         "bin/repository_phinx",
         "bin/repository_audit"
-    ]
+    ],
+    "config": {
+        "allow-plugins": {
+            "infection/extension-installer": false
+        }
+    }
 }
