@@ -84,10 +84,10 @@ Prove expiry without a schema-key or backend change.
 
 ### C-04 One schema resolve at construction
 
-- [ ] C-04
+- [x] C-04
 - Branch: `cache/c04-factory-dedup`
 - Stack on: C-03 tip
-- Progress: not started
+- Progress: branch `cache/c04-factory-dedup`, commit HEAD. Full-suite line coverage start 88.80% (1372/1545), end 88.84% (1377/1550). Per-file line coverage: TableFactory 100% (15/15), AuditTableFactory 100% (37/37). Infection MSI 100%, covered MSI 100%. Log-tested decision branches: none.
 
 - `TableFactory::build` resolves each table name once and passes that `TableSchema` into the table and the query builder.
 - `AuditTableFactory::build` resolves the source table once and the audit table once, and reuses those instances for the inner tables and the outer `AuditTable`.

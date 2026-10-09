@@ -23,20 +23,22 @@ class AuditTableFactory extends TableFactory
     public static function build(Database $database, DataAccessPolicy $policy, string $tableName): Table
     {
         $auditTableName = $tableName . "_audit_log";
+        $sourceSchema = $policy->applyTableSchemaPolicy($tableName);
+        $auditSchema = $policy->applyTableSchemaPolicy($auditTableName);
         $srcTable = Table::builder()
             ->tableName($tableName)
             ->database($database)
-            ->tableSchema($policy->applyTableSchemaPolicy($tableName))
+            ->tableSchema($sourceSchema)
             ->dataAccessPolicy($policy)
-            ->queryBuilder(TableFactory::buildQueryBuilder($policy, $tableName))
+            ->queryBuilder(TableFactory::buildQueryBuilder($policy, $tableName, $sourceSchema))
             ->fieldSet(FieldSet::builder()->build())
             ->build();
         $auditTable = Table::builder()
             ->tableName($auditTableName)
             ->database($database)
-            ->tableSchema($policy->applyTableSchemaPolicy($auditTableName))
+            ->tableSchema($auditSchema)
             ->dataAccessPolicy($policy)
-            ->queryBuilder(TableFactory::buildQueryBuilder($policy, $auditTableName))
+            ->queryBuilder(TableFactory::buildQueryBuilder($policy, $auditTableName, $auditSchema))
             ->fieldSet(FieldSet::builder()->build())
             ->build();
         return AuditTable::builder()
@@ -45,9 +47,9 @@ class AuditTableFactory extends TableFactory
             ->byWhomSupplier(fn () => 0)
             ->tableName($tableName)
             ->database($database)
-            ->tableSchema($policy->applyTableSchemaPolicy($auditTableName))
+            ->tableSchema($auditSchema)
             ->dataAccessPolicy($policy)
-            ->queryBuilder(TableFactory::buildQueryBuilder($policy, $auditTableName))
+            ->queryBuilder(TableFactory::buildQueryBuilder($policy, $auditTableName, $auditSchema))
             ->fieldSet(FieldSet::builder()->build())
             ->build();
     }

@@ -10,6 +10,7 @@ use Amtgard\ActiveRecordOrm\Schema\TableSchema;
 use Amtgard\ActiveRecordOrm\Table;
 use Amtgard\PHPUnit\AmtgardTestCase;
 use Phake;
+use ReflectionProperty;
 
 class TableFactoryTest extends AmtgardTestCase
 {
@@ -33,7 +34,9 @@ class TableFactoryTest extends AmtgardTestCase
         $table = TableFactory::build($this->mockDatabase, $this->mockPolicy, 'table_name');
         
         self::assertInstanceOf(Table::class, $table);
-        Phake::verify($this->mockPolicy, Phake::atLeast(1))->applyTableSchemaPolicy('table_name');
+        Phake::verify($this->mockPolicy, Phake::times(1))->applyTableSchemaPolicy('table_name');
+        self::assertSame($this->mockTableSchema, $table->getTableSchema());
+        self::assertSame($this->mockTableSchema, $this->queryBuilderSchema($table));
     }
 
     public function testBuild_createsTableWithCorrectTableName(): void
@@ -44,7 +47,7 @@ class TableFactoryTest extends AmtgardTestCase
         $table = TableFactory::build($this->mockDatabase, $this->mockPolicy, $tableName);
         
         self::assertInstanceOf(Table::class, $table);
-        Phake::verify($this->mockPolicy, Phake::atLeast(1))->applyTableSchemaPolicy($tableName);
+        Phake::verify($this->mockPolicy, Phake::times(1))->applyTableSchemaPolicy($tableName);
     }
 
     public function testBuild_usesDataAccessPolicyCorrectly(): void
@@ -81,8 +84,50 @@ class TableFactoryTest extends AmtgardTestCase
         $table = TableFactory::build($this->mockDatabase, $this->mockPolicy, 'table_name');
         
         self::assertInstanceOf(Table::class, $table);
-        // build() should have called applyTableSchemaPolicy twice: once for the table, once for the query builder
-        Phake::verify($this->mockPolicy, Phake::atLeast(2))->applyTableSchemaPolicy('table_name');
+        Phake::verify($this->mockPolicy, Phake::times(1))->applyTableSchemaPolicy('table_name');
+    }
+
+    public function testBuildQueryBuilder_withResolvedSchema_doesNotApplyPolicy(): void
+    {
+        $queryBuilder = TableFactory::buildQueryBuilder($this->mockPolicy, 'table_name', $this->mockTableSchema);
+
+        self::assertInstanceOf(QueryBuilder::class, $queryBuilder);
+        Phake::verify($this->mockPolicy, Phake::never())->applyTableSchemaPolicy(Phake::anyParameters());
+        self::assertSame($this->mockTableSchema, $this->schemaOf($queryBuilder));
+    }
+
+    public function testClear_afterBuild_appliesSchemaPolicyAgain(): void
+    {
+        $builtSchema = Phake::mock(TableSchema::class);
+        $clearedSchema = Phake::mock(TableSchema::class);
+        Phake::when($this->mockPolicy)->applyTableSchemaPolicy('table_name')
+            ->thenReturn($builtSchema)
+            ->thenReturn($clearedSchema);
+
+        $table = TableFactory::build($this->mockDatabase, $this->mockPolicy, 'table_name');
+        self::assertSame($builtSchema, $table->getTableSchema());
+        self::assertSame($builtSchema, $this->queryBuilderSchema($table));
+
+        $table->clear();
+
+        Phake::verify($this->mockPolicy, Phake::times(2))->applyTableSchemaPolicy('table_name');
+        self::assertSame($clearedSchema, $this->queryBuilderSchema($table));
+    }
+
+    private function queryBuilderSchema(Table $table): TableSchema
+    {
+        $property = new ReflectionProperty(Table::class, 'queryBuilder');
+        $property->setAccessible(true);
+
+        return $this->schemaOf($property->getValue($table));
+    }
+
+    private function schemaOf(QueryBuilder $queryBuilder): TableSchema
+    {
+        $property = new ReflectionProperty(QueryBuilder::class, 'tableSchema');
+        $property->setAccessible(true);
+
+        return $property->getValue($queryBuilder);
     }
 }
 
