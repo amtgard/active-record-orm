@@ -74,6 +74,11 @@ class Database
         return $bound;
     }
 
+    public function getDatabaseName(): string
+    {
+        return $this->__databaseName;
+    }
+
     public function fqTableName($tableName): string
     {
         return $this->__databaseName . '.' . $tableName;

@@ -66,10 +66,10 @@ Prove expiry without a schema-key or backend change.
 
 ### C-03 Database keys, memo, and query split
 
-- [ ] C-03
+- [x] C-03
 - Branch: `cache/c03-schema-policy`
 - Stack on: C-02 tip
-- Progress: not started
+- Progress: branch `cache/c03-schema-policy`, commit HEAD. Full-suite line coverage start 88.14% (1286/1459), end 88.80% (1372/1545). Per-file line coverage: CachedDataAccessPolicy 100% (131/131), Database 96.55% (28/29). Infection MSI 95%, covered MSI 95%. Log-tested decision branches: memo hit, cache hit, cache miss, cache get failure, cache set failure.
 
 - Default schema key is `amtgard_orm:{database}:schema:{table}`. Database name comes from `Database`. Add `getDatabaseName()` if no public getter exists. `schemaKeyNameSupplier` remains an override.
 - Inject `CacheLifetimeManagementPolicy`. Schema `set` uses `expiry()`. `get` builds an envelope and treats `isExpired` as a miss. Call `onStore` after a successful store.

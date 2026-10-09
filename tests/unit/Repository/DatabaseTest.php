@@ -165,6 +165,13 @@ class DatabaseTest extends AmtgardTestCase
         self::assertInstanceOf(RecordSet\PdoRecordSet::class, $result);
     }
 
+    public function testGetDatabaseName_returnsTheConfiguredName(): void
+    {
+        $database = Database::fromProvider($this->mockPdoProvider);
+
+        self::assertSame('test_db', $database->getDatabaseName());
+    }
+
     public function testFqTableName_returnsFullyQualifiedTableName(): void
     {
         $database = Database::fromProvider($this->mockPdoProvider);

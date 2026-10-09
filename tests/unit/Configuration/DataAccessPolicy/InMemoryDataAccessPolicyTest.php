@@ -5,9 +5,7 @@ namespace Tests\Unit\Configuration\DataAccessPolicy;
 use Amtgard\ActiveRecordOrm\Configuration\DataAccessPolicy\InMemoryDataAccessPolicy;
 use Amtgard\ActiveRecordOrm\Query\Query;
 use Amtgard\ActiveRecordOrm\RecordSet;
-use Amtgard\ActiveRecordOrm\RecordSet\InMemoryRecordSet;
 use Amtgard\ActiveRecordOrm\Repository\Database;
-use Amtgard\ActiveRecordOrm\Schema\Impl\FromJsonTableSchema;
 use Amtgard\ActiveRecordOrm\Schema\Impl\UncachedTableSchema;
 use Amtgard\ActiveRecordOrm\Schema\TableSchema;
 use Amtgard\PHPUnit\AmtgardTestCase;
@@ -25,6 +23,7 @@ class InMemoryDataAccessPolicyTest extends AmtgardTestCase
         parent::setUp();
         $this->mockQuery = Phake::mock(Query::class);
         $this->mockDatabase = Phake::mock(Database::class);
+        Phake::when($this->mockDatabase)->getDatabaseName()->thenReturn('testdb');
         $this->dataAccessPolicy = InMemoryDataAccessPolicy::builder()
             ->database($this->mockDatabase)
             ->build();
@@ -58,28 +57,18 @@ class InMemoryDataAccessPolicyTest extends AmtgardTestCase
         self::assertInstanceOf(TableSchema::class, $result);
     }
 
-    public function testApplyTableSchemaPolicy_whenCached_returnsFromJsonTableSchema(): void
+    public function testApplyTableSchemaPolicy_memoizesTheBuiltSchema(): void
     {
+        $firstResult = $this->dataAccessPolicy->applyTableSchemaPolicy('test_table');
+        $secondResult = $this->dataAccessPolicy->applyTableSchemaPolicy('test_table');
 
-        // First call - should cache an UncachedTableSchema
-        $firstResult = $this->dataAccessPolicy->applyTableSchemaPolicy("test_table");
         self::assertInstanceOf(UncachedTableSchema::class, $firstResult);
-        
-        // Second call - should return the cached schema
-        $secondResult = $this->dataAccessPolicy->applyTableSchemaPolicy("test_table");
-
-        self::assertInstanceOf(FromJsonTableSchema::class, $secondResult);
-        self::assertSame($firstResult->getTableName(), $secondResult->getTableName());
-        self::assertSame(count($firstResult->getFields()), count($secondResult->getFields()));
-        self::assertSame($firstResult->getPrimaryKey()->getName(), $secondResult->getPrimaryKey()->getName());
-        self::assertSame($firstResult->getField('id')->getType(), $secondResult->getField('id')->getType());
-        self::assertSame($firstResult->getField('id')->getNullable(), $secondResult->getField('id')->getNullable());
-        self::assertSame($firstResult->getField('id')->getExtra(), $secondResult->getField('id')->getExtra());
-        self::assertSame($firstResult->getField('string_value')->getNullable(), $secondResult->getField('string_value')->getNullable());
+        self::assertSame($firstResult, $secondResult);
         self::assertSame('auto_increment', $secondResult->getField('id')->getExtra());
         self::assertFalse($secondResult->getField('number_enum')->getNullable());
         self::assertTrue($secondResult->getField('string_value')->getNullable());
         Phake::verify($this->mockDatabase, Phake::times(1))->execute('describe test_table');
+        Phake::verify($this->mockDatabase, Phake::times(1))->clear();
     }
 
     public function testApplyTableSchemaPolicy_withDifferentTableNames_createsSeparateCaches(): void
@@ -95,86 +84,52 @@ class InMemoryDataAccessPolicyTest extends AmtgardTestCase
         self::assertNotSame($result1, $result2);
     }
 
-    // Tests for applyQueryPolicy method
-    public function testApplyQueryPolicy_whenNotCached_executesQueryAndCachesResult(): void
+    public function testApplyQueryPolicy_executesTheQueryAndReturnsTheDatabaseRecordSet(): void
     {
-        $queryHash = 'test_query_hash';
         $mockRecordSet = Phake::mock(RecordSet::class);
-        $recordSetVars = [
-            'records' => [],
-            'pdoDefinition' => [],
-            'fieldDefinition' => []
-        ];
-        
-        Phake::when($this->mockQuery)->hash()->thenReturn($queryHash);
         Phake::when($this->mockDatabase)->executeQuery($this->mockQuery)->thenReturn($mockRecordSet);
-        Phake::when($mockRecordSet)->jsonSerialize()->thenReturn($recordSetVars);
-        
+
         $result = $this->dataAccessPolicy->applyQueryPolicy($this->mockQuery);
-        
+
         Phake::verify($this->mockDatabase)->executeQuery($this->mockQuery);
-        Phake::verify($this->mockQuery)->hash();
-        self::assertInstanceOf(InMemoryRecordSet::class, $result);
+        Phake::verify($this->mockQuery)->postQuery();
+        Phake::verify($this->mockQuery, Phake::never())->hash();
+        self::assertSame($mockRecordSet, $result);
     }
 
-    public function testApplyQueryPolicy_whenCached_returnsCachedResultWithoutDatabaseCall(): void
+    public function testApplyQueryPolicy_executesEveryQueryAgainstTheDatabase(): void
     {
-        $queryHash = 'test_query_hash';
-        $mockRecordSet = Phake::mock(RecordSet::class);
-        $recordSetVars = [
-            'records' => [],
-            'pdoDefinition' => [],
-            'fieldDefinition' => []
-        ];
+        $firstSet = Phake::mock(RecordSet::class);
+        $secondSet = Phake::mock(RecordSet::class);
+        Phake::when($this->mockDatabase)->executeQuery($this->mockQuery)
+            ->thenReturn($firstSet)
+            ->thenReturn($secondSet);
 
-        Phake::when($this->mockQuery)->hash()->thenReturn($queryHash);
-        Phake::when($this->mockDatabase)->executeQuery($this->mockQuery)->thenReturn($mockRecordSet);
-        Phake::when($mockRecordSet)->jsonSerialize()->thenReturn($recordSetVars);
-        
-        // First call - should execute query and cache
-        $firstResult = $this->dataAccessPolicy->applyQueryPolicy($this->mockQuery);
-        
-        // Second call - should return cached result without database call
-        $secondResult = $this->dataAccessPolicy->applyQueryPolicy($this->mockQuery);
-        
-        // Verify database was only called once (on first call)
-        Phake::verify($this->mockDatabase, Phake::times(1))->executeQuery($this->mockQuery);
-        self::assertInstanceOf(InMemoryRecordSet::class, $firstResult);
-        self::assertInstanceOf(InMemoryRecordSet::class, $secondResult);
+        $first = $this->dataAccessPolicy->applyQueryPolicy($this->mockQuery);
+        $second = $this->dataAccessPolicy->applyQueryPolicy($this->mockQuery);
+
+        Phake::verify($this->mockDatabase, Phake::times(2))->executeQuery($this->mockQuery);
+        Phake::verify($this->mockQuery, Phake::times(2))->postQuery();
+        self::assertSame($firstSet, $first);
+        self::assertSame($secondSet, $second);
     }
 
-    public function testApplyQueryPolicy_withDifferentQueryHashes_createsSeparateCaches(): void
+    public function testApplyQueryPolicy_withDifferentQueries_executesEachAgainstTheDatabase(): void
     {
-        $queryHash1 = 'hash_one';
         $mockRecordSet = Phake::mock(RecordSet::class);
-        $recordSetVars = [
-            'records' => [],
-            'pdoDefinition' => [],
-            'fieldDefinition' => []
-        ];
-
-        Phake::when($this->mockQuery)->hash()->thenReturn($queryHash1);
-        Phake::when($this->mockDatabase)->executeQuery($this->mockQuery)->thenReturn($mockRecordSet);
-        Phake::when($mockRecordSet)->jsonSerialize()->thenReturn($recordSetVars);
-
-        $queryHash2 = 'hash_two';
-
-        // Create two different queries
         $query1 = Phake::mock(Query::class);
         $query2 = Phake::mock(Query::class);
-        
-        Phake::when($query1)->hash()->thenReturn($queryHash1);
-        Phake::when($query2)->hash()->thenReturn($queryHash2);
         Phake::when($this->mockDatabase)->executeQuery($query1)->thenReturn($mockRecordSet);
         Phake::when($this->mockDatabase)->executeQuery($query2)->thenReturn($mockRecordSet);
-        
+
         $result1 = $this->dataAccessPolicy->applyQueryPolicy($query1);
         $result2 = $this->dataAccessPolicy->applyQueryPolicy($query2);
-        
-        // Both should execute database calls since they have different hashes
+
         Phake::verify($this->mockDatabase)->executeQuery($query1);
         Phake::verify($this->mockDatabase)->executeQuery($query2);
-        self::assertInstanceOf(InMemoryRecordSet::class, $result1);
-        self::assertInstanceOf(InMemoryRecordSet::class, $result2);
+        Phake::verify($query1)->postQuery();
+        Phake::verify($query2)->postQuery();
+        self::assertSame($mockRecordSet, $result1);
+        self::assertSame($mockRecordSet, $result2);
     }
 }
