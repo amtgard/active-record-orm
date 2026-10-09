@@ -122,10 +122,10 @@ Prove expiry without a schema-key or backend change.
 
 ### C-07 Redis adapter
 
-- [ ] C-07
+- [x] C-07
 - Branch: `cache/c07-redis`
 - Stack on: C-06 tip
-- Progress: not started
+- Progress: branch `cache/c07-redis`, commit HEAD. Full-suite line coverage start 90.04% (1564/1737), end 90.74% (1696/1869). Per-file line coverage: RedisCache 100% (72/72), NativeRedisClient 100% (49/49), CacheBackendFactory 100% (44/44). RedisClient has no executable lines. Infection `--filter=Cache/` MSI 96%, covered MSI 96%. Log-tested decision branches: Redis get failure, Redis set failure, backend selected.
 
 - Add a Redis adapter using `ext-redis` behind a narrow client collaborator. Tests use a fake client. Do not add Predis.
 - `CACHE_CONTROL=redis` selects it. A missing extension fails at construction.

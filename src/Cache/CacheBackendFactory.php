@@ -19,6 +19,9 @@ class CacheBackendFactory
     /** @var callable(): bool */
     private $apcuAvailable;
 
+    /** @var callable(): bool */
+    private $redisAvailable;
+
     private function __construct()
     {
     }
@@ -54,6 +57,9 @@ class CacheBackendFactory
         if ($control === 'apcu') {
             return $this->apcuCache();
         }
+        if ($control === 'redis') {
+            return $this->redisCache();
+        }
         throw new \InvalidArgumentException('CACHE_CONTROL is not supported: ' . $control);
     }
 
@@ -77,6 +83,28 @@ class CacheBackendFactory
     private function extensionLoadedApcu(): bool
     {
         return extension_loaded('apcu');
+    }
+
+    private function redisCache(): RedisCache
+    {
+        if (!$this->redisIsLoaded()) {
+            throw new \InvalidArgumentException('ext-redis is not loaded');
+        }
+        return RedisCache::builder()
+            ->logger($this->logger)
+            ->build();
+    }
+
+    private function redisIsLoaded(): bool
+    {
+        $probe = Optional::ofNullable(isset($this->redisAvailable) ? $this->redisAvailable : null)
+            ->orElse($this->extensionLoadedRedis(...));
+        return $probe();
+    }
+
+    private function extensionLoadedRedis(): bool
+    {
+        return extension_loaded('redis');
     }
 
     private function requiredEnv(string $name): string

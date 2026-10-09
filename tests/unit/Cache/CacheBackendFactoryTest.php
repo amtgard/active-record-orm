@@ -7,6 +7,8 @@ use Amtgard\ActiveRecordOrm\Cache\CacheBackendFactory;
 use Amtgard\ActiveRecordOrm\Cache\FilesystemCache;
 use Amtgard\ActiveRecordOrm\Cache\InMemoryCache;
 use Amtgard\ActiveRecordOrm\Cache\NativeApcuStore;
+use Amtgard\ActiveRecordOrm\Cache\NativeRedisClient;
+use Amtgard\ActiveRecordOrm\Cache\RedisCache;
 use Amtgard\PHPUnit\AmtgardTestCase;
 use Psr\Log\LoggerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -108,6 +110,56 @@ class CacheBackendFactoryTest extends AmtgardTestCase
         });
     }
 
+    public function testFromEnvironment_whenControlIsRedisAndProbeIsTrue_returnsRedisCacheWithoutConnecting(): void
+    {
+        $logger = new RecordingLogger();
+        $cache = $this->withoutEnv(['CACHE_PATH', 'REDIS_HOST', 'REDIS_PORT'], function () use ($logger) {
+            return $this->withEnv(['CACHE_CONTROL' => 'redis'], function () use ($logger) {
+                return $this->factoryWithRedisProbe(static fn (): bool => true, $logger)->fromEnvironment();
+            });
+        });
+
+        self::assertInstanceOf(RedisCache::class, $cache);
+        $client = (new \ReflectionProperty(RedisCache::class, 'client'))->getValue($cache);
+        self::assertInstanceOf(NativeRedisClient::class, $client);
+        self::assertFalse((new \ReflectionProperty(NativeRedisClient::class, 'redis'))->isInitialized($client));
+        self::assertSame($logger, (new \ReflectionProperty(RedisCache::class, 'logger'))->getValue($cache));
+    }
+
+    public function testFromEnvironment_whenControlIsRedisAndProbeIsFalse_fails(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('ext-redis is not loaded');
+
+        $this->withoutEnv(['CACHE_PATH', 'REDIS_HOST', 'REDIS_PORT'], function () {
+            $this->withEnv(['CACHE_CONTROL' => 'redis'], function () {
+                $this->factoryWithRedisProbe(static fn (): bool => false)->fromEnvironment();
+            });
+        });
+    }
+
+    public function testFromEnvironment_whenControlIsRedis_defaultProbeMatchesExtension(): void
+    {
+        $loaded = extension_loaded('redis');
+        if ($loaded) {
+            $cache = $this->withoutEnv(['REDIS_HOST', 'REDIS_PORT'], function () {
+                return $this->withEnv(['CACHE_CONTROL' => 'redis'], function () {
+                    return $this->factory()->fromEnvironment();
+                });
+            });
+            self::assertInstanceOf(RedisCache::class, $cache);
+            $client = (new \ReflectionProperty(RedisCache::class, 'client'))->getValue($cache);
+            self::assertFalse((new \ReflectionProperty(NativeRedisClient::class, 'redis'))->isInitialized($client));
+            return;
+        }
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('ext-redis is not loaded');
+        $this->withEnv(['CACHE_CONTROL' => 'redis'], function () {
+            $this->factory()->fromEnvironment();
+        });
+    }
+
     public function testFromEnvironment_whenControlIsNone_returnsNull(): void
     {
         $cache = $this->withoutEnv(['CACHE_PATH'], function () {
@@ -204,7 +256,6 @@ class CacheBackendFactoryTest extends AmtgardTestCase
     public static function unsupportedControls(): array
     {
         return [
-            'redis' => ['redis'],
             'memcached' => ['memcached'],
             'uppercase file' => ['File'],
             'uppercase none' => ['NONE'],
@@ -221,6 +272,15 @@ class CacheBackendFactoryTest extends AmtgardTestCase
     private function factoryWithProbe(callable $probe, ?LoggerInterface $logger = null): CacheBackendFactory
     {
         $builder = CacheBackendFactory::builder()->apcuAvailable($probe);
+        if ($logger !== null) {
+            $builder->logger($logger);
+        }
+        return $builder->build();
+    }
+
+    private function factoryWithRedisProbe(callable $probe, ?LoggerInterface $logger = null): CacheBackendFactory
+    {
+        $builder = CacheBackendFactory::builder()->redisAvailable($probe);
         if ($logger !== null) {
             $builder->logger($logger);
         }

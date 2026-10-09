@@ -13,6 +13,7 @@ class CacheBackendFactoryLoggingTest extends AmtgardTestCase
         $factory = CacheBackendFactory::builder()
             ->logger($logger)
             ->apcuAvailable(static fn (): bool => true)
+            ->redisAvailable(static fn (): bool => true)
             ->build();
         $path = sys_get_temp_dir() . '/aaro-c05-log-' . bin2hex(random_bytes(8));
 
@@ -29,6 +30,9 @@ class CacheBackendFactoryLoggingTest extends AmtgardTestCase
             $factory->fromEnvironment();
         });
         $this->withEnv(['CACHE_CONTROL' => 'apcu'], function () use ($factory) {
+            $factory->fromEnvironment();
+        });
+        $this->withEnv(['CACHE_CONTROL' => 'redis'], function () use ($factory) {
             $factory->fromEnvironment();
         });
 
@@ -52,6 +56,11 @@ class CacheBackendFactoryLoggingTest extends AmtgardTestCase
                 'level' => 'info',
                 'message' => 'backend selected',
                 'context' => ['control' => 'apcu'],
+            ],
+            [
+                'level' => 'info',
+                'message' => 'backend selected',
+                'context' => ['control' => 'redis'],
             ],
         ], $logger->records);
     }
