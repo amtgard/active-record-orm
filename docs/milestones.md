@@ -48,10 +48,10 @@ Prove expiry without a schema-key or backend change.
 
 ### C-02 Schema codec and FromJson hydration
 
-- [ ] C-02
+- [x] C-02
 - Branch: `cache/c02-schema-codec`
 - Stack on: C-01 tip
-- Progress: not started
+- Progress: branch `cache/c02-schema-codec`, commit HEAD. Full-suite line coverage start 87.50% (1204/1376), end 88.14% (1286/1459). Per-file line coverage: TableSchemaCodec 100% (71/71), FromJsonTableSchema 100% (6/6), CachedDataAccessPolicy 100% (46/46). SchemaCodecException has no executable lines. Infection MSI 96%, covered MSI 96%. Log-tested decision branch: codec failure treated as a miss.
 
 `FromJsonTableSchema` becomes a hydrated schema. It stops parsing JSON.
 

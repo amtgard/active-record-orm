@@ -8,19 +8,21 @@ use Amtgard\Traits\Builder\PostInit;
 
 class FromJsonTableSchema extends TableSchema
 {
-    private string $jsonDefinition;
+    /** @var FieldDefinition[] */
+    private array $decodedFields;
+
+    private string $primaryKeyName;
 
     #[PostInit]
     private function postInit()
     {
-        $this->fields = [];
-        $jsonArray = json_decode($this->jsonDefinition, true);
-        foreach ($jsonArray['fields'] as $field) {
-            $field = FieldDefinition::fromJson($field);
-            $this->fields[$field->getName()] = $field;
-            if ($field->getName() == $jsonArray['primaryKey']['name']) {
+        $fields = [];
+        foreach ($this->decodedFields as $field) {
+            $fields[$field->getName()] = $field;
+            if ($field->getName() === $this->primaryKeyName) {
                 $this->primaryKey = $field;
             }
         }
+        $this->fields = $fields;
     }
 }

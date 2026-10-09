@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Configuration\DataAccessPolicy;
 
+use Amtgard\ActiveRecordOrm\Cache\InMemoryCache;
 use Amtgard\ActiveRecordOrm\Configuration\DataAccessPolicy\CachedDataAccessPolicy;
 use Amtgard\ActiveRecordOrm\Query\Query;
 use Amtgard\ActiveRecordOrm\RecordSet;
@@ -33,17 +34,22 @@ class CachedDataAccessPolicyTest extends AmtgardTestCase
             ->cache($this->mockCache)
             ->build();
 
-        $__statement = Phake::mock(\PDOStatement::class);
-        $recordSet = new RecordSet\PdoRecordSet($__statement);
+        Phake::when($this->mockDatabase)->execute(Phake::anyParameters())->thenReturnCallback(function () {
+            return $this->describeRecordSet();
+        });
+    }
 
-        $integ_schema = json_decode(Constants::$DESCRIBE_TABLE_INTEG, true);
-        $phakeWhenRef = Phake::when($__statement)->fetch();
-        foreach ($integ_schema as $column) {
-            $phakeWhenRef = $phakeWhenRef->thenReturn($column);
+    private function describeRecordSet(): RecordSet
+    {
+        $statement = Phake::mock(\PDOStatement::class);
+        $recordSet = new RecordSet\PdoRecordSet($statement);
+        $columns = json_decode(Constants::$DESCRIBE_TABLE_INTEG, true);
+        $fetch = Phake::when($statement)->fetch();
+        foreach ($columns as $column) {
+            $fetch = $fetch->thenReturn($column);
         }
-        $phakeWhenRef->thenReturn(false);
-
-        Phake::when($this->mockDatabase)->execute("describe test_table")->thenReturn($recordSet);
+        $fetch->thenReturn(false);
+        return $recordSet;
     }
 
     // Tests for applyTableSchemaPolicy method
@@ -62,21 +68,78 @@ class CachedDataAccessPolicyTest extends AmtgardTestCase
 
     public function testApplyTableSchemaPolicy_whenCached_returnsFromJsonTableSchema(): void
     {
-        Phake::when($this->mockCache)->get(Phake::anyParameters())
-            ->thenReturn(null)
-            ->thenReturn(Constants::$JSON_ENCODED_INTEG_SCHEMA);
+        $policy = CachedDataAccessPolicy::builder()
+            ->database($this->mockDatabase)
+            ->cache(InMemoryCache::builder()->build())
+            ->build();
 
-        // First call - should cache an UncachedTableSchema
-        $firstResult = $this->dataAccessPolicy->applyTableSchemaPolicy("test_table");
+        $firstResult = $policy->applyTableSchemaPolicy("test_table");
         self::assertInstanceOf(UncachedTableSchema::class, $firstResult);
 
-        // Second call - should return the cached schema
-        $secondResult = $this->dataAccessPolicy->applyTableSchemaPolicy("test_table");
+        $secondResult = $policy->applyTableSchemaPolicy("test_table");
 
         self::assertInstanceOf(FromJsonTableSchema::class, $secondResult);
-        self::assertEquals($firstResult->getTableName(), $secondResult->getTableName());
-        self::assertEquals(count($firstResult->getFields()), count($secondResult->getFields()));
-        self::assertEquals($firstResult->getPrimaryKey()->getName(), $secondResult->getPrimaryKey()->getName());
+        self::assertSame($firstResult->getTableName(), $secondResult->getTableName());
+        self::assertSame(count($firstResult->getFields()), count($secondResult->getFields()));
+        self::assertSame($firstResult->getPrimaryKey()->getName(), $secondResult->getPrimaryKey()->getName());
+        self::assertSame($firstResult->getField('id')->getType(), $secondResult->getField('id')->getType());
+        self::assertSame($firstResult->getField('id')->getExtra(), $secondResult->getField('id')->getExtra());
+        self::assertSame($firstResult->getField('id')->getNullable(), $secondResult->getField('id')->getNullable());
+        self::assertSame($firstResult->getField('string_value')->getNullable(), $secondResult->getField('string_value')->getNullable());
+        self::assertSame('auto_increment', $secondResult->getField('id')->getExtra());
+        self::assertFalse($secondResult->getField('id')->getNullable());
+        self::assertTrue($secondResult->getField('string_value')->getNullable());
+        Phake::verify($this->mockDatabase, Phake::times(1))->execute('describe test_table');
+    }
+
+    public function testApplyTableSchemaPolicy_hydratesTheRequestedTableName(): void
+    {
+        $cache = InMemoryCache::builder()->build();
+        $policy = CachedDataAccessPolicy::builder()
+            ->database($this->mockDatabase)
+            ->cache($cache)
+            ->build();
+        $policy->applyTableSchemaPolicy('test_table');
+        $stored = json_decode($cache->get('amtgard_orm_table_schema_test_table'), true, 512, JSON_THROW_ON_ERROR);
+        $stored['table'] = 'other_table';
+        $cache->set('amtgard_orm_table_schema_test_table', json_encode($stored, JSON_THROW_ON_ERROR));
+
+        $hydrated = $policy->applyTableSchemaPolicy('test_table');
+
+        self::assertInstanceOf(FromJsonTableSchema::class, $hydrated);
+        self::assertSame('test_table', $hydrated->getTableName());
+        Phake::verify($this->mockDatabase, Phake::times(1))->execute('describe test_table');
+    }
+
+    public function testApplyTableSchemaPolicy_whenDocumentIsTruncated_describesAgain(): void
+    {
+        Phake::when($this->mockCache)->get('amtgard_orm_table_schema_test_table')->thenReturn('{');
+
+        $result = $this->dataAccessPolicy->applyTableSchemaPolicy('test_table');
+
+        self::assertInstanceOf(UncachedTableSchema::class, $result);
+        self::assertSame('id', $result->getPrimaryKey()->getName());
+        self::assertSame('auto_increment', $result->getField('id')->getExtra());
+        Phake::verify($this->mockDatabase)->execute('describe test_table');
+        Phake::verify($this->mockCache)->set('amtgard_orm_table_schema_test_table', Phake::capture($stored));
+        $decoded = json_decode($stored, true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame('test_table', $decoded['table']);
+        self::assertSame('id', $decoded['primaryKey']);
+        self::assertArrayNotHasKey('database', $decoded);
+        self::assertArrayNotHasKey('value', $decoded['fields'][0]);
+    }
+
+    public function testApplyTableSchemaPolicy_whenCachedValueIsNotAString_describesAgain(): void
+    {
+        Phake::when($this->mockCache)->get(Phake::anyParameters())->thenReturn(['fields' => []]);
+
+        $result = $this->dataAccessPolicy->applyTableSchemaPolicy('test_table');
+
+        self::assertInstanceOf(UncachedTableSchema::class, $result);
+        self::assertSame('id', $result->getPrimaryKey()->getName());
+        Phake::verify($this->mockDatabase)->execute('describe test_table');
+        Phake::verify($this->mockCache)->set('amtgard_orm_table_schema_test_table', Phake::capture($stored));
+        self::assertIsString($stored);
     }
 
     public function testApplyTableSchemaPolicy_withDifferentTableNames_createsSeparateCaches(): void
@@ -115,11 +178,12 @@ class CachedDataAccessPolicyTest extends AmtgardTestCase
         // Call the method that uses callSchemaKeyNameSupplier
         $result = $dataAccessPolicy->applyTableSchemaPolicy($tableName);
         
-        // Verify that the cache was called with the custom key
         Phake::verify($this->mockCache)->get($customKey);
-        
-        // Verify that the result is an UncachedTableSchema (since cache returned null)
+        Phake::verify($this->mockCache)->set($customKey, Phake::capture($stored));
         self::assertInstanceOf(UncachedTableSchema::class, $result);
+        $decoded = json_decode($stored, true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame($tableName, $decoded['table']);
+        self::assertArrayNotHasKey('database', $decoded);
     }
 
     // Tests for applyQueryPolicy method

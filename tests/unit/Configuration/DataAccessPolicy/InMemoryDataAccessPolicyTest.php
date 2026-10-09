@@ -29,17 +29,22 @@ class InMemoryDataAccessPolicyTest extends AmtgardTestCase
             ->database($this->mockDatabase)
             ->build();
 
-        $__statement = Phake::mock(\PDOStatement::class);
-        $recordSet = new RecordSet\PdoRecordSet($__statement);
+        Phake::when($this->mockDatabase)->execute(Phake::anyParameters())->thenReturnCallback(function () {
+            return $this->describeRecordSet();
+        });
+    }
 
-        $integ_schema = json_decode(Constants::$DESCRIBE_TABLE_INTEG, true);
-        $phakeWhenRef = Phake::when($__statement)->fetch();
-        foreach ($integ_schema as $column) {
-            $phakeWhenRef = $phakeWhenRef->thenReturn($column);
+    private function describeRecordSet(): RecordSet
+    {
+        $statement = Phake::mock(\PDOStatement::class);
+        $recordSet = new RecordSet\PdoRecordSet($statement);
+        $columns = json_decode(Constants::$DESCRIBE_TABLE_INTEG, true);
+        $fetch = Phake::when($statement)->fetch();
+        foreach ($columns as $column) {
+            $fetch = $fetch->thenReturn($column);
         }
-        $phakeWhenRef->thenReturn(false);
-
-        Phake::when($this->mockDatabase)->execute("describe test_table")->thenReturn($recordSet);
+        $fetch->thenReturn(false);
+        return $recordSet;
     }
 
     // Tests for applyTableSchemaPolicy method
@@ -64,9 +69,17 @@ class InMemoryDataAccessPolicyTest extends AmtgardTestCase
         $secondResult = $this->dataAccessPolicy->applyTableSchemaPolicy("test_table");
 
         self::assertInstanceOf(FromJsonTableSchema::class, $secondResult);
-        self::assertEquals($firstResult->getTableName(), $secondResult->getTableName());
-        self::assertEquals(count($firstResult->getFields()), count($secondResult->getFields()));
-        self::assertEquals($firstResult->getPrimaryKey()->getName(), $secondResult->getPrimaryKey()->getName());
+        self::assertSame($firstResult->getTableName(), $secondResult->getTableName());
+        self::assertSame(count($firstResult->getFields()), count($secondResult->getFields()));
+        self::assertSame($firstResult->getPrimaryKey()->getName(), $secondResult->getPrimaryKey()->getName());
+        self::assertSame($firstResult->getField('id')->getType(), $secondResult->getField('id')->getType());
+        self::assertSame($firstResult->getField('id')->getNullable(), $secondResult->getField('id')->getNullable());
+        self::assertSame($firstResult->getField('id')->getExtra(), $secondResult->getField('id')->getExtra());
+        self::assertSame($firstResult->getField('string_value')->getNullable(), $secondResult->getField('string_value')->getNullable());
+        self::assertSame('auto_increment', $secondResult->getField('id')->getExtra());
+        self::assertFalse($secondResult->getField('number_enum')->getNullable());
+        self::assertTrue($secondResult->getField('string_value')->getNullable());
+        Phake::verify($this->mockDatabase, Phake::times(1))->execute('describe test_table');
     }
 
     public function testApplyTableSchemaPolicy_withDifferentTableNames_createsSeparateCaches(): void
