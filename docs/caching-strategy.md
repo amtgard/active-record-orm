@@ -180,6 +180,8 @@ If a request resolves a handful of tables once, the memo is the whole win and a 
 
 ## Phases
 
+The orchestrator checklist is [milestones.md](milestones.md). Caching milestones C-01 through C-08 implement the phases below. C-09 is specified and stays out of that queue.
+
 **1. Prove the mechanism.** Add `psr/simple-cache` to `require`. Add `CacheLifetimeManagementPolicy`, `TtlCacheLifetimeManagementPolicy`, and `CompositeCacheLifetimeManagementPolicy`. Segregate keys by database. Add the schema codec and make `FromJsonTableSchema` hydrate a validated document. Memoize inside `CachedDataAccessPolicy`. Make `applyQueryPolicy` execute against the database and stop writing to the schema cache. Teach `InMemoryCache::set` to replace and to honor expiry. Share one resolved schema per table inside `TableFactory` and `AuditTableFactory`. Add the APCu and filesystem adapters and the `CACHE_CONTROL` factory.
 
 **2. Shared backends.** Add Redis and Memcached adapters behind the same factory. They consume the same envelope and the same lifetime policy.
