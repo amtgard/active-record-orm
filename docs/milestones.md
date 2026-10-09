@@ -110,10 +110,10 @@ Prove expiry without a schema-key or backend change.
 
 ### C-06 APCu adapter
 
-- [ ] C-06
+- [x] C-06
 - Branch: `cache/c06-apcu`
 - Stack on: C-05 tip
-- Progress: not started
+- Progress: branch `cache/c06-apcu`, commit HEAD. Full-suite line coverage start 89.55% (1482/1655), end 90.04% (1564/1737). Per-file line coverage: ApcuCache 100% (61/61), NativeApcuStore 100% (10/10), CacheBackendFactory 100% (33/33). ApcuStore has no executable lines. Infection `--filter=Cache/` MSI 97%, covered MSI 97%. Log-tested decision branches: APCu get failure treated as a miss, backend selected.
 
 - Add an APCu adapter behind `CacheInterface`, using `apcu_*`, honoring the TTL supplied to `set`.
 - `CACHE_CONTROL=apcu` selects it. A missing `ext-apcu` fails at construction.

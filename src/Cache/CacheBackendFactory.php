@@ -16,6 +16,9 @@ class CacheBackendFactory
 
     private LoggerInterface $logger;
 
+    /** @var callable(): bool */
+    private $apcuAvailable;
+
     private function __construct()
     {
     }
@@ -48,7 +51,32 @@ class CacheBackendFactory
         if ($control === 'none') {
             return null;
         }
+        if ($control === 'apcu') {
+            return $this->apcuCache();
+        }
         throw new \InvalidArgumentException('CACHE_CONTROL is not supported: ' . $control);
+    }
+
+    private function apcuCache(): ApcuCache
+    {
+        if (!$this->apcuIsLoaded()) {
+            throw new \InvalidArgumentException('ext-apcu is not loaded');
+        }
+        return ApcuCache::builder()
+            ->logger($this->logger)
+            ->build();
+    }
+
+    private function apcuIsLoaded(): bool
+    {
+        $probe = Optional::ofNullable(isset($this->apcuAvailable) ? $this->apcuAvailable : null)
+            ->orElse($this->extensionLoadedApcu(...));
+        return $probe();
+    }
+
+    private function extensionLoadedApcu(): bool
+    {
+        return extension_loaded('apcu');
     }
 
     private function requiredEnv(string $name): string

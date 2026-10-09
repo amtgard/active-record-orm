@@ -2,10 +2,13 @@
 
 namespace Tests\Unit\Cache;
 
+use Amtgard\ActiveRecordOrm\Cache\ApcuCache;
 use Amtgard\ActiveRecordOrm\Cache\CacheBackendFactory;
 use Amtgard\ActiveRecordOrm\Cache\FilesystemCache;
 use Amtgard\ActiveRecordOrm\Cache\InMemoryCache;
+use Amtgard\ActiveRecordOrm\Cache\NativeApcuStore;
 use Amtgard\PHPUnit\AmtgardTestCase;
+use Psr\Log\LoggerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 class CacheBackendFactoryTest extends AmtgardTestCase
@@ -53,6 +56,56 @@ class CacheBackendFactoryTest extends AmtgardTestCase
         } finally {
             $this->removeTree($path);
         }
+    }
+
+    public function testFromEnvironment_whenControlIsApcuAndProbeIsTrue_returnsApcuCache(): void
+    {
+        $logger = new RecordingLogger();
+        $cache = $this->withoutEnv(['CACHE_PATH'], function () use ($logger) {
+            return $this->withEnv(['CACHE_CONTROL' => 'apcu'], function () use ($logger) {
+                return $this->factoryWithProbe(static fn (): bool => true, $logger)->fromEnvironment();
+            });
+        });
+
+        self::assertInstanceOf(ApcuCache::class, $cache);
+        $store = (new \ReflectionProperty(ApcuCache::class, 'store'))->getValue($cache);
+        self::assertInstanceOf(NativeApcuStore::class, $store);
+        self::assertSame('apcu_fetch', (new \ReflectionProperty(NativeApcuStore::class, 'fetch'))->getValue($store));
+        self::assertSame('apcu_store', (new \ReflectionProperty(NativeApcuStore::class, 'store'))->getValue($store));
+        self::assertSame('apcu_delete', (new \ReflectionProperty(NativeApcuStore::class, 'delete'))->getValue($store));
+        self::assertSame('apcu_exists', (new \ReflectionProperty(NativeApcuStore::class, 'exists'))->getValue($store));
+        self::assertSame('apcu_clear_cache', (new \ReflectionProperty(NativeApcuStore::class, 'clear'))->getValue($store));
+        self::assertSame($logger, (new \ReflectionProperty(ApcuCache::class, 'logger'))->getValue($cache));
+    }
+
+    public function testFromEnvironment_whenControlIsApcuAndProbeIsFalse_fails(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('ext-apcu is not loaded');
+
+        $this->withoutEnv(['CACHE_PATH'], function () {
+            $this->withEnv(['CACHE_CONTROL' => 'apcu'], function () {
+                $this->factoryWithProbe(static fn (): bool => false)->fromEnvironment();
+            });
+        });
+    }
+
+    public function testFromEnvironment_whenControlIsApcu_defaultProbeMatchesExtension(): void
+    {
+        $loaded = extension_loaded('apcu');
+        if ($loaded) {
+            $cache = $this->withEnv(['CACHE_CONTROL' => 'apcu'], function () {
+                return $this->factory()->fromEnvironment();
+            });
+            self::assertInstanceOf(ApcuCache::class, $cache);
+            return;
+        }
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('ext-apcu is not loaded');
+        $this->withEnv(['CACHE_CONTROL' => 'apcu'], function () {
+            $this->factory()->fromEnvironment();
+        });
     }
 
     public function testFromEnvironment_whenControlIsNone_returnsNull(): void
@@ -151,11 +204,11 @@ class CacheBackendFactoryTest extends AmtgardTestCase
     public static function unsupportedControls(): array
     {
         return [
-            'apcu' => ['apcu'],
             'redis' => ['redis'],
             'memcached' => ['memcached'],
             'uppercase file' => ['File'],
             'uppercase none' => ['NONE'],
+            'uppercase apcu' => ['APCU'],
             'unknown' => ['database'],
         ];
     }
@@ -163,6 +216,15 @@ class CacheBackendFactoryTest extends AmtgardTestCase
     private function factory(): CacheBackendFactory
     {
         return CacheBackendFactory::builder()->build();
+    }
+
+    private function factoryWithProbe(callable $probe, ?LoggerInterface $logger = null): CacheBackendFactory
+    {
+        $builder = CacheBackendFactory::builder()->apcuAvailable($probe);
+        if ($logger !== null) {
+            $builder->logger($logger);
+        }
+        return $builder->build();
     }
 
     private function withEnv(array $values, callable $callback): mixed
