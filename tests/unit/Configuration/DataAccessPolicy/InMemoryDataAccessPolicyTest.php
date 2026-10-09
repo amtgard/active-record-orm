@@ -2,6 +2,10 @@
 
 namespace Tests\Unit\Configuration\DataAccessPolicy;
 
+use Amtgard\ActiveRecordOrm\Cache\InMemoryCache;
+use Amtgard\ActiveRecordOrm\Cache\SystemClock;
+use Amtgard\ActiveRecordOrm\Cache\TtlCacheLifetimeManagementPolicy;
+use Amtgard\ActiveRecordOrm\Configuration\DataAccessPolicy\CachedDataAccessPolicy;
 use Amtgard\ActiveRecordOrm\Configuration\DataAccessPolicy\InMemoryDataAccessPolicy;
 use Amtgard\ActiveRecordOrm\Query\Query;
 use Amtgard\ActiveRecordOrm\RecordSet;
@@ -44,6 +48,25 @@ class InMemoryDataAccessPolicyTest extends AmtgardTestCase
         }
         $fetch->thenReturn(false);
         return $recordSet;
+    }
+
+    public function testBuild_injectsInMemoryCacheAndDefaultTtlPolicy(): void
+    {
+        $innerProperty = new \ReflectionProperty(InMemoryDataAccessPolicy::class, 'cachedDataAccessPolicy');
+        $inner = $innerProperty->getValue($this->dataAccessPolicy);
+        $cache = new \ReflectionProperty(CachedDataAccessPolicy::class, 'cache');
+        $lifetime = new \ReflectionProperty(CachedDataAccessPolicy::class, 'lifetimePolicy');
+        $policyClock = new \ReflectionProperty(CachedDataAccessPolicy::class, 'clock');
+        $lifetimeClock = new \ReflectionProperty(TtlCacheLifetimeManagementPolicy::class, 'clock');
+        $ttl = new \ReflectionProperty(TtlCacheLifetimeManagementPolicy::class, 'ttl');
+        $lifetimePolicy = $lifetime->getValue($inner);
+
+        self::assertInstanceOf(InMemoryCache::class, $cache->getValue($inner));
+        self::assertInstanceOf(TtlCacheLifetimeManagementPolicy::class, $lifetimePolicy);
+        self::assertSame(43200, $ttl->getValue($lifetimePolicy));
+        self::assertInstanceOf(SystemClock::class, $policyClock->getValue($inner));
+        self::assertInstanceOf(SystemClock::class, $lifetimeClock->getValue($lifetimePolicy));
+        self::assertNotSame($policyClock->getValue($inner), $lifetimeClock->getValue($lifetimePolicy));
     }
 
     // Tests for applyTableSchemaPolicy method

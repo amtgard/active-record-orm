@@ -97,10 +97,10 @@ Prove expiry without a schema-key or backend change.
 
 ### C-05 Filesystem adapter and backend factory
 
-- [ ] C-05
+- [x] C-05
 - Branch: `cache/c05-filesystem`
 - Stack on: C-04 tip
-- Progress: not started
+- Progress: branch `cache/c05-filesystem`, commit HEAD. Full-suite line coverage start 88.84% (1377/1550), end 89.55% (1482/1655). Per-file line coverage: FilesystemCache 100% (81/81), CacheBackendFactory 100% (22/22), InMemoryDataAccessPolicy 100% (9/9). Infection MSI 96%, covered MSI 96%. Log-tested decision branch: backend selected.
 
 - Add a filesystem `CacheInterface`. The filename is a hash of the key under `CACHE_PATH`. The raw table name is never a path segment. Honor TTL the same way `InMemoryCache` does.
 - Add `CacheBackendFactory::fromEnvironment()` in the style of `DatabaseConfiguration::fromEnvironment`. `CACHE_CONTROL=memory` returns `InMemoryCache`. `file` returns the filesystem adapter rooted at `CACHE_PATH`. `none` is represented by returning no cache so the caller builds `UncachedDataAccessPolicy`. An unknown value fails at construction.
