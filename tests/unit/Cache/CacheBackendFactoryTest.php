@@ -6,7 +6,9 @@ use Amtgard\ActiveRecordOrm\Cache\ApcuCache;
 use Amtgard\ActiveRecordOrm\Cache\CacheBackendFactory;
 use Amtgard\ActiveRecordOrm\Cache\FilesystemCache;
 use Amtgard\ActiveRecordOrm\Cache\InMemoryCache;
+use Amtgard\ActiveRecordOrm\Cache\MemcachedCache;
 use Amtgard\ActiveRecordOrm\Cache\NativeApcuStore;
+use Amtgard\ActiveRecordOrm\Cache\NativeMemcachedClient;
 use Amtgard\ActiveRecordOrm\Cache\NativeRedisClient;
 use Amtgard\ActiveRecordOrm\Cache\RedisCache;
 use Amtgard\PHPUnit\AmtgardTestCase;
@@ -160,6 +162,56 @@ class CacheBackendFactoryTest extends AmtgardTestCase
         });
     }
 
+    public function testFromEnvironment_whenControlIsMemcachedAndProbeIsTrue_returnsMemcachedCacheWithoutConnecting(): void
+    {
+        $logger = new RecordingLogger();
+        $cache = $this->withoutEnv(['CACHE_PATH', 'MEMCACHED_HOST', 'MEMCACHED_PORT'], function () use ($logger) {
+            return $this->withEnv(['CACHE_CONTROL' => 'memcached'], function () use ($logger) {
+                return $this->factoryWithMemcachedProbe(static fn (): bool => true, $logger)->fromEnvironment();
+            });
+        });
+
+        self::assertInstanceOf(MemcachedCache::class, $cache);
+        $client = (new \ReflectionProperty(MemcachedCache::class, 'client'))->getValue($cache);
+        self::assertInstanceOf(NativeMemcachedClient::class, $client);
+        self::assertFalse((new \ReflectionProperty(NativeMemcachedClient::class, 'memcached'))->isInitialized($client));
+        self::assertSame($logger, (new \ReflectionProperty(MemcachedCache::class, 'logger'))->getValue($cache));
+    }
+
+    public function testFromEnvironment_whenControlIsMemcachedAndProbeIsFalse_fails(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('ext-memcached is not loaded');
+
+        $this->withoutEnv(['CACHE_PATH', 'MEMCACHED_HOST', 'MEMCACHED_PORT'], function () {
+            $this->withEnv(['CACHE_CONTROL' => 'memcached'], function () {
+                $this->factoryWithMemcachedProbe(static fn (): bool => false)->fromEnvironment();
+            });
+        });
+    }
+
+    public function testFromEnvironment_whenControlIsMemcached_defaultProbeMatchesExtension(): void
+    {
+        $loaded = extension_loaded('memcached');
+        if ($loaded) {
+            $cache = $this->withoutEnv(['MEMCACHED_HOST', 'MEMCACHED_PORT'], function () {
+                return $this->withEnv(['CACHE_CONTROL' => 'memcached'], function () {
+                    return $this->factory()->fromEnvironment();
+                });
+            });
+            self::assertInstanceOf(MemcachedCache::class, $cache);
+            $client = (new \ReflectionProperty(MemcachedCache::class, 'client'))->getValue($cache);
+            self::assertFalse((new \ReflectionProperty(NativeMemcachedClient::class, 'memcached'))->isInitialized($client));
+            return;
+        }
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('ext-memcached is not loaded');
+        $this->withEnv(['CACHE_CONTROL' => 'memcached'], function () {
+            $this->factory()->fromEnvironment();
+        });
+    }
+
     public function testFromEnvironment_whenControlIsNone_returnsNull(): void
     {
         $cache = $this->withoutEnv(['CACHE_PATH'], function () {
@@ -256,7 +308,6 @@ class CacheBackendFactoryTest extends AmtgardTestCase
     public static function unsupportedControls(): array
     {
         return [
-            'memcached' => ['memcached'],
             'uppercase file' => ['File'],
             'uppercase none' => ['NONE'],
             'uppercase apcu' => ['APCU'],
@@ -281,6 +332,15 @@ class CacheBackendFactoryTest extends AmtgardTestCase
     private function factoryWithRedisProbe(callable $probe, ?LoggerInterface $logger = null): CacheBackendFactory
     {
         $builder = CacheBackendFactory::builder()->redisAvailable($probe);
+        if ($logger !== null) {
+            $builder->logger($logger);
+        }
+        return $builder->build();
+    }
+
+    private function factoryWithMemcachedProbe(callable $probe, ?LoggerInterface $logger = null): CacheBackendFactory
+    {
+        $builder = CacheBackendFactory::builder()->memcachedAvailable($probe);
         if ($logger !== null) {
             $builder->logger($logger);
         }

@@ -14,6 +14,7 @@ class CacheBackendFactoryLoggingTest extends AmtgardTestCase
             ->logger($logger)
             ->apcuAvailable(static fn (): bool => true)
             ->redisAvailable(static fn (): bool => true)
+            ->memcachedAvailable(static fn (): bool => true)
             ->build();
         $path = sys_get_temp_dir() . '/aaro-c05-log-' . bin2hex(random_bytes(8));
 
@@ -33,6 +34,9 @@ class CacheBackendFactoryLoggingTest extends AmtgardTestCase
             $factory->fromEnvironment();
         });
         $this->withEnv(['CACHE_CONTROL' => 'redis'], function () use ($factory) {
+            $factory->fromEnvironment();
+        });
+        $this->withEnv(['CACHE_CONTROL' => 'memcached'], function () use ($factory) {
             $factory->fromEnvironment();
         });
 
@@ -61,6 +65,11 @@ class CacheBackendFactoryLoggingTest extends AmtgardTestCase
                 'level' => 'info',
                 'message' => 'backend selected',
                 'context' => ['control' => 'redis'],
+            ],
+            [
+                'level' => 'info',
+                'message' => 'backend selected',
+                'context' => ['control' => 'memcached'],
             ],
         ], $logger->records);
     }

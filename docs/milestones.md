@@ -134,10 +134,10 @@ Prove expiry without a schema-key or backend change.
 
 ### C-08 Memcached adapter
 
-- [ ] C-08
+- [x] C-08
 - Branch: `cache/c08-memcached`
 - Stack on: C-07 tip
-- Progress: not started
+- Progress: branch `cache/c08-memcached`, commit HEAD. Full-suite line coverage start 90.74% (1696/1869), end 91.33% (1832/2006). Per-file line coverage: MemcachedCache 100% (72/72), NativeMemcachedClient 98.15% (53/54), CacheBackendFactory 100% (55/55). MemcachedClient has no executable lines. Infection `--filter=Cache/` MSI 95%, covered MSI 95%. Log-tested decision branches: Memcached get failure, Memcached set failure, backend selected.
 
 - Add a Memcached adapter using `ext-memcached` behind a narrow client collaborator. Tests use a fake client.
 - `CACHE_CONTROL=memcached` selects it. A missing extension fails at construction.

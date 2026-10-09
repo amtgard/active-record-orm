@@ -22,6 +22,9 @@ class CacheBackendFactory
     /** @var callable(): bool */
     private $redisAvailable;
 
+    /** @var callable(): bool */
+    private $memcachedAvailable;
+
     private function __construct()
     {
     }
@@ -59,6 +62,9 @@ class CacheBackendFactory
         }
         if ($control === 'redis') {
             return $this->redisCache();
+        }
+        if ($control === 'memcached') {
+            return $this->memcachedCache();
         }
         throw new \InvalidArgumentException('CACHE_CONTROL is not supported: ' . $control);
     }
@@ -105,6 +111,28 @@ class CacheBackendFactory
     private function extensionLoadedRedis(): bool
     {
         return extension_loaded('redis');
+    }
+
+    private function memcachedCache(): MemcachedCache
+    {
+        if (!$this->memcachedIsLoaded()) {
+            throw new \InvalidArgumentException('ext-memcached is not loaded');
+        }
+        return MemcachedCache::builder()
+            ->logger($this->logger)
+            ->build();
+    }
+
+    private function memcachedIsLoaded(): bool
+    {
+        $probe = Optional::ofNullable(isset($this->memcachedAvailable) ? $this->memcachedAvailable : null)
+            ->orElse($this->extensionLoadedMemcached(...));
+        return $probe();
+    }
+
+    private function extensionLoadedMemcached(): bool
+    {
+        return extension_loaded('memcached');
     }
 
     private function requiredEnv(string $name): string
