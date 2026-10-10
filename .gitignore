@@ -5,3 +5,4 @@ vendor/*
 *.gdoc
 .phpunit.cache/*
 coverage/*
+build/*

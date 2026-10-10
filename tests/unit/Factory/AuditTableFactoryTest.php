@@ -7,11 +7,13 @@ use Amtgard\ActiveRecordOrm\Factory\AuditTableFactory;
 use Amtgard\ActiveRecordOrm\Feature\AuditTable;
 use Amtgard\ActiveRecordOrm\Interface\DataAccessPolicy;
 use Amtgard\ActiveRecordOrm\Interface\TableInterface;
+use Amtgard\ActiveRecordOrm\Query\QueryBuilder;
 use Amtgard\ActiveRecordOrm\Repository\Database;
 use Amtgard\ActiveRecordOrm\Schema\TableSchema;
 use Amtgard\ActiveRecordOrm\Table;
 use Amtgard\PHPUnit\AmtgardTestCase;
 use Phake;
+use ReflectionProperty;
 
 class AuditTableFactoryTest extends AmtgardTestCase
 {
@@ -136,10 +138,40 @@ class AuditTableFactoryTest extends AmtgardTestCase
         $table = AuditTableFactory::build($this->mockDatabase, $this->mockPolicy, $tableName);
         
         self::assertInstanceOf(TableInterface::class, $table);
-        // Verify policy was called for source table (multiple times due to internal table and query builder creation)
-        Phake::verify($this->mockPolicy, Phake::atLeast(1))->applyTableSchemaPolicy($tableName);
-        // Verify policy was called for audit table (multiple times)
-        Phake::verify($this->mockPolicy, Phake::atLeast(1))->applyTableSchemaPolicy($auditTableName);
+        Phake::verify($this->mockPolicy, Phake::times(1))->applyTableSchemaPolicy($tableName);
+        Phake::verify($this->mockPolicy, Phake::times(1))->applyTableSchemaPolicy($auditTableName);
+    }
+
+    public function testBuild_resolvesSourceAndAuditSchemaOnce(): void
+    {
+        $table = AuditTableFactory::build($this->mockDatabase, $this->mockPolicy, 'test_table');
+
+        Phake::verify($this->mockPolicy, Phake::times(1))->applyTableSchemaPolicy('test_table');
+        Phake::verify($this->mockPolicy, Phake::times(1))->applyTableSchemaPolicy('test_table_audit_log');
+        self::assertSame($this->mockSourceTableSchema, $this->innerTable($table, 'srcTable')->getTableSchema());
+        self::assertSame($this->mockAuditTableSchema, $this->innerTable($table, 'auditTable')->getTableSchema());
+        self::assertSame($this->mockAuditTableSchema, $table->getTableSchema());
+        self::assertSame($this->mockSourceTableSchema, $this->queryBuilderSchema($this->innerTable($table, 'srcTable')));
+        self::assertSame($this->mockAuditTableSchema, $this->queryBuilderSchema($this->innerTable($table, 'auditTable')));
+        self::assertSame($this->mockAuditTableSchema, $this->queryBuilderSchema($table));
+    }
+
+    private function innerTable(Table $table, string $propertyName): Table
+    {
+        $property = new ReflectionProperty($table, $propertyName);
+        $property->setAccessible(true);
+
+        return $property->getValue($table);
+    }
+
+    private function queryBuilderSchema(Table $table): TableSchema
+    {
+        $queryBuilder = new ReflectionProperty(Table::class, 'queryBuilder');
+        $queryBuilder->setAccessible(true);
+        $schema = new ReflectionProperty(QueryBuilder::class, 'tableSchema');
+        $schema->setAccessible(true);
+
+        return $schema->getValue($queryBuilder->getValue($table));
     }
 }
 

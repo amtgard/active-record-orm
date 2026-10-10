@@ -77,7 +77,11 @@ class Table implements TableInterface
         $this->offset = 0;
         $this->rowCount = null;
         $tableFactory = $this->tableFactory;
-        $this->queryBuilder = $tableFactory::buildQueryBuilder($this->dataAccessPolicy, $this->tableName);
+        $this->queryBuilder = $tableFactory::buildQueryBuilder(
+            $this->dataAccessPolicy,
+            $this->tableName,
+            $this->tableSchema
+        );
         $this->fieldSet->clear();
     }
 
@@ -136,6 +140,7 @@ class Table implements TableInterface
 
     public function save(): void
     {
+        $this->bindCurrentRowToQueryBuilder();
         $this->queryBuilder->upsert(function() {
             $this->setFieldValue($this->tableSchema->getPrimaryKey()->getName(), $this->database->getLastInsertId());
         });
@@ -144,6 +149,7 @@ class Table implements TableInterface
 
     public function delete(): void
     {
+        $this->bindCurrentRowToQueryBuilder();
         $this->queryBuilder->delete();
         $this->dataAccessPolicy->applyQueryPolicy($this->queryBuilder->compile());
     }
@@ -162,8 +168,32 @@ class Table implements TableInterface
     public function next(): bool {
         $hasNext = $this->recordSet->next();
         $this->fieldSet->clear();
-        $this->fieldSet->mapRecord($this->tableSchema, $this->recordSet, fn($fieldName, $fieldOp) => $this->queryBuilder->$fieldName = $fieldOp);
+        $this->fieldSet->mapRecordForRead(
+            $this->tableSchema,
+            $this->recordSet,
+            $this->readBindingFieldNames()
+        );
         return $hasNext;
+    }
+
+    /** @return string[]|null Null means bind every schema column present on the row. */
+    private function readBindingFieldNames(): ?array {
+        $selected = $this->queryBuilder->getFieldSelectors();
+        if ($selected === []) {
+            return null;
+        }
+
+        $primaryKey = $this->tableSchema->getPrimaryKey()->getName();
+        $selected[$primaryKey] = $primaryKey;
+
+        return array_values($selected);
+    }
+
+    private function bindCurrentRowToQueryBuilder(): void {
+        $this->fieldSet->materializeReadRow(
+            $this->tableSchema,
+            fn ($fieldName, $fieldOp) => $this->queryBuilder->$fieldName = $fieldOp
+        );
     }
 
     private function setFieldValue(string $name, mixed $value, ?Operation $operation = Operation::Set) {

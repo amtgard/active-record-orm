@@ -513,6 +513,64 @@ class RepositoryEntityTest extends AmtgardTestCase
         }
     }
 
+    public function testSharedEntityFieldMap_returnsSameInstanceForRepositoryClass(): void
+    {
+        $first = TestRepositoryEntity::sharedEntityFieldMap();
+        $second = TestRepositoryEntity::sharedEntityFieldMap();
+
+        self::assertSame($first, $second);
+    }
+
+    public function testToRepositoryEntity_withHydratedEntity_reusesInternalEntity(): void
+    {
+        $mockIdField = Phake::mock(FieldDefinition::class);
+        $mockNameField = Phake::mock(FieldDefinition::class);
+        $mockCreatedAtField = Phake::mock(FieldDefinition::class);
+        Phake::when($this->mockTableSchema)->getFields()->thenReturn([
+            'id' => $mockIdField,
+            'name_field' => $mockNameField,
+            'created_at' => $mockCreatedAtField,
+        ]);
+        Phake::when($mockIdField)->getType()->thenReturn(FieldType::INTEGER);
+        Phake::when($mockNameField)->getType()->thenReturn(FieldType::STRING);
+        Phake::when($mockCreatedAtField)->getType()->thenReturn(FieldType::STRING);
+        Phake::when($this->mockEntity)->getSchema()->thenReturn($this->mockTableSchema);
+        Phake::when($this->mockEntity)->id->thenReturn(1);
+        Phake::when($this->mockEntity)->name_field->thenReturn('test');
+        Phake::when($this->mockEntity)->created_at->thenReturn(null);
+
+        $result = TestRepositoryEntity::toRepositoryEntity($this->mockEntity);
+
+        self::assertSame($this->mockEntity, $result->getInternalEntity());
+        self::assertSame(TestRepositoryEntity::sharedEntityFieldMap(), $result->getEntityFieldMap());
+    }
+
+    public function testDateTimeTestRepositoryEntity_fetch_leavesNullWhenSourceTypeIsUnsupported(): void
+    {
+        $mockCreatedAtField = Phake::mock(FieldDefinition::class);
+        $mockIdField = Phake::mock(FieldDefinition::class);
+        $mockNameField = Phake::mock(FieldDefinition::class);
+        $fieldsArray = [
+            'id' => $mockIdField,
+            'name_field' => $mockNameField,
+            'created_at' => $mockCreatedAtField,
+        ];
+        Phake::when($this->mockTableSchema)->getFields()->thenReturn($fieldsArray);
+        Phake::when($mockCreatedAtField)->getType()->thenReturn(FieldType::STRING);
+        Phake::when($mockIdField)->getType()->thenReturn(FieldType::INTEGER);
+        Phake::when($mockNameField)->getType()->thenReturn(FieldType::STRING);
+        Phake::when($this->mockEntity)->getSchema()->thenReturn($this->mockTableSchema);
+        Phake::when($this->mockEntity)->created_at->thenReturn('not-a-valid-datetime-column');
+        Phake::when($this->mockEntity)->id->thenReturn(1);
+        Phake::when($this->mockEntity)->name_field->thenReturn('test');
+
+        $result = DateTimeTestRepositoryEntity::toRepositoryEntity($this->mockEntity);
+
+        $createdAtProperty = new \ReflectionProperty($result, 'createdAt');
+        self::assertTrue($createdAtProperty->isInitialized($result));
+        self::assertNull($createdAtProperty->getValue($result));
+    }
+
     public function testDateTimeTestRepositoryEntity_fetch_convertsDateTimeFromInteger(): void
     {
         $mockCreatedAtField = Phake::mock(FieldDefinition::class);
@@ -727,21 +785,12 @@ class RepositoryEntityTest extends AmtgardTestCase
         Phake::when($this->mockEntity)->id->thenReturn(1);
         Phake::when($this->mockEntity)->name_field->thenReturn('test');
 
-        $result = TestRepositoryEntity::toRepositoryEntity($this->mockEntity);
+        $result = DateTimeTestRepositoryEntity::toRepositoryEntity($this->mockEntity);
 
-        self::assertInstanceOf(TestRepositoryEntity::class, $result);
-        $reflection = new \ReflectionClass($result);
-        $createdAtProperty = $reflection->getProperty('createdAt');
-        $createdAtProperty->setAccessible(true);
-        // Check if property is initialized
-        if ($createdAtProperty->isInitialized($result)) {
-            $createdAtValue = $createdAtProperty->getValue($result);
-            // Default case creates a new DateTime() with current time
-            self::assertInstanceOf(\DateTime::class, $createdAtValue);
-        } else {
-            // Property should be set by fieldTypeConversions
-            self::fail('createdAt property should be initialized after conversion');
-        }
+        self::assertInstanceOf(DateTimeTestRepositoryEntity::class, $result);
+        $createdAtProperty = new \ReflectionProperty($result, 'createdAt');
+        self::assertTrue($createdAtProperty->isInitialized($result));
+        self::assertNull($createdAtProperty->getValue($result));
     }
 
     public function testToRepositoryEntity_handlesDefaultFieldType(): void

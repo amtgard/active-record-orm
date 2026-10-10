@@ -1,0 +1,191 @@
+{
+    "label": "after-cache",
+    "measured_at": "2026-10-10T01:13:09+00:00",
+    "git": {
+        "branch": "perf/mariadb-after-cache",
+        "commit": "ef66b422bf32407eb734e1249f7bcbe4762be957"
+    },
+    "php": "8.4.22",
+    "database": {
+        "version": "12.0.2-MariaDB-ubu2404",
+        "image": "mariadb:latest",
+        "container": "amtgard-orm-db",
+        "host": "127.0.0.1",
+        "port": "24306",
+        "name": "integtest"
+    },
+    "shape": {
+        "wide_rows": 200,
+        "wide_columns": 16,
+        "narrow_rows": 200,
+        "narrow_columns": 2,
+        "point_fetches": 50,
+        "page_tables": 5,
+        "page_rows_each": 20,
+        "saves": 100,
+        "repeats": 5,
+        "cold_sample": "first repeat, including schema load on clear or construct",
+        "warm_median": "median of repeats after the first",
+        "memory_policy": "On main, InMemoryDataAccessPolicy also caches query results, so warm repeats can skip SQL. The cache stack stops caching queries. Compare uncached to uncached for the default path."
+    },
+    "policies": {
+        "uncached": {
+            "narrow_find_200_next": {
+                "cold_seconds": 0.087698458,
+                "warm_median_seconds": 0.0773083125,
+                "samples_seconds": [
+                    0.087698458,
+                    0.077214208,
+                    0.077402417,
+                    0.075659792,
+                    0.080496041
+                ]
+            },
+            "wide_find_200_next": {
+                "cold_seconds": 6.261606792,
+                "warm_median_seconds": 6.4882381250000005,
+                "samples_seconds": [
+                    6.261606792,
+                    6.501066375,
+                    6.214578833,
+                    6.475409875,
+                    6.705205083
+                ]
+            },
+            "wide_find_200_entity": {
+                "cold_seconds": 6.355841375,
+                "warm_median_seconds": 6.498778854,
+                "samples_seconds": [
+                    6.355841375,
+                    6.472896458,
+                    6.52466125,
+                    6.571233541,
+                    6.296149416
+                ]
+            },
+            "wide_find_200_repository": {
+                "cold_seconds": 12.830436375,
+                "warm_median_seconds": 13.339502646,
+                "samples_seconds": [
+                    12.830436375,
+                    12.641288333,
+                    12.597127334,
+                    15.399297458,
+                    14.037716959
+                ]
+            },
+            "point_fetch_50": {
+                "cold_seconds": 2.224939333,
+                "warm_median_seconds": 1.972202583,
+                "samples_seconds": [
+                    2.224939333,
+                    1.92965425,
+                    2.006982542,
+                    1.950103625,
+                    1.994301541
+                ]
+            },
+            "construct_and_read_five_tables": {
+                "cold_seconds": 3.502671917,
+                "warm_median_seconds": 3.7044285209999996,
+                "samples_seconds": [
+                    3.502671917,
+                    4.26117425,
+                    3.933908125,
+                    3.4533155,
+                    3.474948917
+                ]
+            },
+            "save_100": {
+                "cold_seconds": 1.95952225,
+                "warm_median_seconds": 1.7917551459999999,
+                "samples_seconds": [
+                    1.95952225,
+                    1.781966625,
+                    1.881815959,
+                    1.743054958,
+                    1.801543667
+                ]
+            }
+        },
+        "memory": {
+            "narrow_find_200_next": {
+                "cold_seconds": 0.076689791,
+                "warm_median_seconds": 0.077590396,
+                "samples_seconds": [
+                    0.076689791,
+                    0.078028,
+                    0.077055917,
+                    0.077152792,
+                    0.084237375
+                ]
+            },
+            "wide_find_200_next": {
+                "cold_seconds": 6.444312292,
+                "warm_median_seconds": 6.5786897915,
+                "samples_seconds": [
+                    6.444312292,
+                    6.792248917,
+                    6.608739958,
+                    6.409920708,
+                    6.548639625
+                ]
+            },
+            "wide_find_200_entity": {
+                "cold_seconds": 6.622317459,
+                "warm_median_seconds": 7.283657646,
+                "samples_seconds": [
+                    6.622317459,
+                    7.089906708,
+                    8.010549417,
+                    7.174037292,
+                    7.393278
+                ]
+            },
+            "wide_find_200_repository": {
+                "cold_seconds": 14.536426458,
+                "warm_median_seconds": 14.571130395499999,
+                "samples_seconds": [
+                    14.536426458,
+                    14.696310042,
+                    14.553574375,
+                    14.588686416,
+                    13.851648458
+                ]
+            },
+            "point_fetch_50": {
+                "cold_seconds": 1.859194166,
+                "warm_median_seconds": 1.7898301245,
+                "samples_seconds": [
+                    1.859194166,
+                    1.799775833,
+                    1.814564083,
+                    1.779884416,
+                    1.767592833
+                ]
+            },
+            "construct_and_read_five_tables": {
+                "cold_seconds": 3.660324417,
+                "warm_median_seconds": 3.301455125,
+                "samples_seconds": [
+                    3.660324417,
+                    3.654139208,
+                    3.295760042,
+                    3.307150208,
+                    3.238522584
+                ]
+            },
+            "save_100": {
+                "cold_seconds": 1.349529791,
+                "warm_median_seconds": 1.365635729,
+                "samples_seconds": [
+                    1.349529791,
+                    1.349071041,
+                    1.324578,
+                    1.397966208,
+                    1.382200417
+                ]
+            }
+        }
+    }
+}

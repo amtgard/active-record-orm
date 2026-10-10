@@ -63,7 +63,7 @@ CACHE_CONTROL="file"
 CACHE_PATH="./table_cache"
 ```
 
-Aaro is designed to work natively with aggressive caching policies, including [Amtgard Redis SetQueues](https://github.com/amtgard/redis-set-queue), which provides eventually-consistent persistence.
+Aaro is designed to work natively with aggressive caching policies, including [Amtgard Redis SetQueues](https://github.com/amtgard/redis-set-queue), which provides eventually-consistent persistence. The schema-cache design, including lifetime policy and backend adapters, is in [docs/caching-strategy.md](docs/caching-strategy.md). The query-path latency assessment is in [docs/query-enrichment-latency.md](docs/query-enrichment-latency.md). The implementation checklists are in [docs/milestones.md](docs/milestones.md).
 
 Basic usage can used uncached policies, including the `UncachedDataAccessPolicy` below.
 

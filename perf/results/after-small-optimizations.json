@@ -1,0 +1,53 @@
+{
+    "label": "small-optimizations",
+    "measured_at": "2026-10-10T22:12:48+00:00",
+    "git": {
+        "branch": "small-optimizations",
+        "commit": "65f84c61bb7432f08bb07ded6bfddd9b70dfe0a8"
+    },
+    "php": "8.4.22",
+    "database": {
+        "version": "12.0.2-MariaDB-ubu2404",
+        "image": "mariadb:latest",
+        "container": "amtgard-orm-db",
+        "host": "127.0.0.1",
+        "port": "24306",
+        "name": "integtest"
+    },
+    "shape": {
+        "wide_rows": 200,
+        "wide_columns": 16,
+        "narrow_rows": 200,
+        "narrow_columns": 2,
+        "point_fetches": 50,
+        "page_tables": 5,
+        "page_rows_each": 20,
+        "saves": 100,
+        "repeats": 3,
+        "cold_sample": "first repeat, including schema load on clear or construct",
+        "warm_median": "median of repeats after the first",
+        "memory_policy": "On main, InMemoryDataAccessPolicy also caches query results, so warm repeats can skip SQL. The cache stack stops caching queries. Compare uncached to uncached for the default path."
+    },
+    "policies": {
+        "uncached": {
+            "wide_find_200_next": {
+                "cold_seconds": 0.018074833,
+                "warm_median_seconds": 0.012601041,
+                "samples_seconds": [
+                    0.018074833,
+                    0.012640916,
+                    0.012561166
+                ]
+            },
+            "point_fetch_50": {
+                "cold_seconds": 0.044423417,
+                "warm_median_seconds": 0.16714525,
+                "samples_seconds": [
+                    0.044423417,
+                    0.166911875,
+                    0.167378625
+                ]
+            }
+        }
+    }
+}

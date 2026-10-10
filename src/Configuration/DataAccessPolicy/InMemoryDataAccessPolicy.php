@@ -3,6 +3,7 @@
 namespace Amtgard\ActiveRecordOrm\Configuration\DataAccessPolicy;
 
 use Amtgard\ActiveRecordOrm\Cache\InMemoryCache;
+use Amtgard\ActiveRecordOrm\Cache\TtlCacheLifetimeManagementPolicy;
 use Amtgard\ActiveRecordOrm\Interface\DataAccessPolicy;
 use Amtgard\ActiveRecordOrm\Query\Query;
 use Amtgard\ActiveRecordOrm\RecordSet;
@@ -25,9 +26,11 @@ class InMemoryDataAccessPolicy extends CachedDataAccessPolicy
     #[PostInit]
     private function postInit() {
         $cache = InMemoryCache::builder()->build();
+        $lifetimePolicy = TtlCacheLifetimeManagementPolicy::builder()->build();
         $this->cachedDataAccessPolicy = CachedDataAccessPolicy::builder()
             ->database($this->database)
             ->cache($cache)
+            ->lifetimePolicy($lifetimePolicy)
             ->build();
     }
 

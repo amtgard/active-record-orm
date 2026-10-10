@@ -1,0 +1,71 @@
+{
+    "label": "after-l03",
+    "measured_at": "2026-10-10T21:55:51+00:00",
+    "git": {
+        "branch": "latency/l03-lazy-has-field",
+        "commit": "1afdb438d6e576f194fbba4da03ce487e546ca1f"
+    },
+    "php": "8.4.22",
+    "database": {
+        "version": "12.0.2-MariaDB-ubu2404",
+        "image": "mariadb:latest",
+        "container": "amtgard-orm-db",
+        "host": "127.0.0.1",
+        "port": "24306",
+        "name": "integtest"
+    },
+    "shape": {
+        "wide_rows": 200,
+        "wide_columns": 16,
+        "narrow_rows": 200,
+        "narrow_columns": 2,
+        "point_fetches": 50,
+        "page_tables": 5,
+        "page_rows_each": 20,
+        "saves": 100,
+        "repeats": 3,
+        "cold_sample": "first repeat, including schema load on clear or construct",
+        "warm_median": "median of repeats after the first",
+        "memory_policy": "On main, InMemoryDataAccessPolicy also caches query results, so warm repeats can skip SQL. The cache stack stops caching queries. Compare uncached to uncached for the default path."
+    },
+    "policies": {
+        "uncached": {
+            "wide_find_200_next": {
+                "cold_seconds": 0.093713875,
+                "warm_median_seconds": 0.0870886245,
+                "samples_seconds": [
+                    0.093713875,
+                    0.087003041,
+                    0.087174208
+                ]
+            },
+            "wide_find_200_entity": {
+                "cold_seconds": 0.109339334,
+                "warm_median_seconds": 0.11493395849999999,
+                "samples_seconds": [
+                    0.109339334,
+                    0.117984917,
+                    0.111883
+                ]
+            },
+            "wide_find_200_repository": {
+                "cold_seconds": 0.327212625,
+                "warm_median_seconds": 0.325021438,
+                "samples_seconds": [
+                    0.327212625,
+                    0.327867417,
+                    0.322175459
+                ]
+            },
+            "point_fetch_50": {
+                "cold_seconds": 0.19528275,
+                "warm_median_seconds": 0.136921833,
+                "samples_seconds": [
+                    0.19528275,
+                    0.137680458,
+                    0.136163208
+                ]
+            }
+        }
+    }
+}

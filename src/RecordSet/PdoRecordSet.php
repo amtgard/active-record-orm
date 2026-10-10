@@ -57,9 +57,24 @@ class PdoRecordSet implements RecordSet
 
     public function next(): bool {
         try {
-            $this->__fields = $this->__statement->fetch();
-            $this->__hasActiveRecord = $this->__fields === false ? false : true;
-            return $this->hasActiveRecord();
+            $row = $this->__statement->fetch();
+            if ($row === false || $row === null) {
+                $this->__fields = false;
+                $this->__hasActiveRecord = false;
+
+                return false;
+            }
+            if (is_array($row)) {
+                $row = array_filter(
+                    $row,
+                    static fn ($key) => !is_numeric($key),
+                    ARRAY_FILTER_USE_KEY
+                );
+            }
+            $this->__fields = $row;
+            $this->__hasActiveRecord = true;
+
+            return true;
         } catch (PDOException $e) {
             return false;
         }

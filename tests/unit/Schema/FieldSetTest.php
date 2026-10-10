@@ -156,6 +156,85 @@ class FieldSetTest extends AmtgardTestCase
         self::assertEquals(2, count($this->fieldSet->getFieldNames()));
     }
 
+    public function testMapRecordForRead_doesNotCreateFieldOperations(): void
+    {
+        $mockSchema = Phake::mock(Schema::class);
+        $mockRecordSet = Phake::mock(RecordSet::class);
+
+        $mockField = Phake::mock(FieldDefinition::class);
+        Phake::when($mockField)->getName()->thenReturn('field1');
+        Phake::when($mockSchema)->getFields()->thenReturn(['field1' => $mockField]);
+        Phake::when($mockRecordSet)->hasField('field1')->thenReturn(true);
+        Phake::when($mockRecordSet)->__get('field1')->thenReturn('value1');
+
+        $this->fieldSet->mapRecordForRead($mockSchema, $mockRecordSet, null);
+
+        self::assertEquals([], $this->fieldSet->getFieldNames());
+        self::assertTrue($this->fieldSet->hasPendingReadRow());
+        self::assertEquals('value1', $this->fieldSet->getReadRowValue('field1'));
+    }
+
+    public function testMapRecordForRead_withFieldNames_onlyMapsPresentColumns(): void
+    {
+        $mockSchema = Phake::mock(Schema::class);
+        $mockRecordSet = Phake::mock(RecordSet::class);
+
+        $mockField1 = Phake::mock(FieldDefinition::class);
+        $mockField2 = Phake::mock(FieldDefinition::class);
+        Phake::when($mockField1)->getName()->thenReturn('field1');
+        Phake::when($mockField2)->getName()->thenReturn('field2');
+        Phake::when($mockRecordSet)->hasField('field1')->thenReturn(true);
+        Phake::when($mockRecordSet)->hasField('field2')->thenReturn(false);
+        Phake::when($mockRecordSet)->__get('field1')->thenReturn('value1');
+
+        $this->fieldSet->mapRecordForRead($mockSchema, $mockRecordSet, ['field1', 'field2']);
+
+        self::assertEquals('value1', $this->fieldSet->getReadRowValue('field1'));
+        self::assertTrue($this->fieldSet->hasPendingReadRow());
+        self::assertEquals([], $this->fieldSet->getFieldNames());
+    }
+
+    public function testMaterializeReadRow_skipsFieldsAlreadyMaterializedByUser(): void
+    {
+        $mockSchema = Phake::mock(Schema::class);
+        $mockRecordSet = Phake::mock(RecordSet::class);
+
+        $mockField = Phake::mock(FieldDefinition::class);
+        Phake::when($mockField)->getName()->thenReturn('field1');
+        Phake::when($mockSchema)->getFields()->thenReturn(['field1' => $mockField]);
+        Phake::when($mockSchema)->hasField('field1')->thenReturn(true);
+        Phake::when($mockSchema)->getField('field1')->thenReturn($mockField);
+        Phake::when($mockRecordSet)->__get('field1')->thenReturn('from-read');
+
+        $this->fieldSet->mapRecordForRead($mockSchema, $mockRecordSet);
+        $userOp = $this->fieldSet->setFieldValue($mockSchema, 'field1', 'user-edit', Operation::Set);
+
+        $this->fieldSet->materializeReadRow($mockSchema);
+
+        self::assertSame($userOp, $this->fieldSet->getField('field1'));
+        self::assertSame('user-edit', $this->fieldSet->getField('field1')->getValue());
+    }
+
+    public function testMaterializeReadRow_createsFieldOperationsAndClearsPendingRow(): void
+    {
+        $mockSchema = Phake::mock(Schema::class);
+        $mockRecordSet = Phake::mock(RecordSet::class);
+
+        $mockField = Phake::mock(FieldDefinition::class);
+        Phake::when($mockField)->getName()->thenReturn('field1');
+        Phake::when($mockSchema)->getFields()->thenReturn(['field1' => $mockField]);
+        Phake::when($mockSchema)->hasField('field1')->thenReturn(true);
+        Phake::when($mockSchema)->getField('field1')->thenReturn($mockField);
+        Phake::when($mockRecordSet)->hasField('field1')->thenReturn(true);
+        Phake::when($mockRecordSet)->__get('field1')->thenReturn('value1');
+
+        $this->fieldSet->mapRecordForRead($mockSchema, $mockRecordSet);
+        $this->fieldSet->materializeReadRow($mockSchema);
+
+        self::assertFalse($this->fieldSet->hasPendingReadRow());
+        self::assertEquals(['field1'], $this->fieldSet->getFieldNames());
+    }
+
     public function testMapRecord_withoutCallback_createsFieldOperations(): void
     {
         $mockSchema = Phake::mock(Schema::class);
