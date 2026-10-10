@@ -136,6 +136,7 @@ class Table implements TableInterface
 
     public function save(): void
     {
+        $this->bindCurrentRowToQueryBuilder();
         $this->queryBuilder->upsert(function() {
             $this->setFieldValue($this->tableSchema->getPrimaryKey()->getName(), $this->database->getLastInsertId());
         });
@@ -144,6 +145,7 @@ class Table implements TableInterface
 
     public function delete(): void
     {
+        $this->bindCurrentRowToQueryBuilder();
         $this->queryBuilder->delete();
         $this->dataAccessPolicy->applyQueryPolicy($this->queryBuilder->compile());
     }
@@ -162,8 +164,15 @@ class Table implements TableInterface
     public function next(): bool {
         $hasNext = $this->recordSet->next();
         $this->fieldSet->clear();
-        $this->fieldSet->mapRecord($this->tableSchema, $this->recordSet, fn($fieldName, $fieldOp) => $this->queryBuilder->$fieldName = $fieldOp);
+        $this->fieldSet->mapRecordForRead($this->tableSchema, $this->recordSet);
         return $hasNext;
+    }
+
+    private function bindCurrentRowToQueryBuilder(): void {
+        $this->fieldSet->materializeReadRow(
+            $this->tableSchema,
+            fn ($fieldName, $fieldOp) => $this->queryBuilder->$fieldName = $fieldOp
+        );
     }
 
     private function setFieldValue(string $name, mixed $value, ?Operation $operation = Operation::Set) {

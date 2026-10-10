@@ -40,6 +40,7 @@ class ResultSetTest extends AmtgardTestCase
         $mockFieldOperation = Phake::mock(FieldOperation::class);
         
         Phake::when($this->mockSchema)->hasField('name')->thenReturn(true);
+        Phake::when($this->mockRecordSet)->hasField('name')->thenReturn(false);
         Phake::when($this->mockFieldSet)->getField('name')->thenReturn($mockFieldOperation);
         Phake::when($mockFieldOperation)->getValue()->thenReturn('John Doe');
         
@@ -48,6 +49,16 @@ class ResultSetTest extends AmtgardTestCase
         self::assertEquals('John Doe', $result);
         Phake::verify($this->mockSchema)->hasField('name');
         Phake::verify($this->mockFieldSet)->getField('name');
+    }
+
+    public function testGet_withActiveRecordSet_returnsRecordValueWithoutFieldOperation(): void
+    {
+        Phake::when($this->mockSchema)->hasField('name')->thenReturn(true);
+        Phake::when($this->mockRecordSet)->hasField('name')->thenReturn(true);
+        Phake::when($this->mockRecordSet)->name->thenReturn('from-record');
+
+        self::assertEquals('from-record', $this->resultSet->name);
+        Phake::verify($this->mockFieldSet, Phake::never())->getField(Phake::anyParameters());
     }
 
     public function testGet_withNonExistentField_returnsNull(): void
@@ -68,28 +79,59 @@ class ResultSetTest extends AmtgardTestCase
     {
         Phake::when($this->mockRecordSet)->next()->thenReturn(true);
         Phake::when($this->mockFieldSet)->clear()->thenReturnSelf();
-        Phake::when($this->mockFieldSet)->mapRecord($this->mockSchema, $this->mockRecordSet)->thenReturnSelf();
+        Phake::when($this->mockFieldSet)->mapRecordForRead($this->mockSchema, $this->mockRecordSet)->thenReturnSelf();
         
         $result = $this->resultSet->next();
         
         self::assertTrue($result);
         Phake::verify($this->mockRecordSet)->next();
         Phake::verify($this->mockFieldSet)->clear();
-        Phake::verify($this->mockFieldSet)->mapRecord($this->mockSchema, $this->mockRecordSet);
+        Phake::verify($this->mockFieldSet)->mapRecordForRead($this->mockSchema, $this->mockRecordSet);
     }
 
     public function testNext_withNoMoreRecords_returnsFalseAndStillMapsRecord(): void
     {
         Phake::when($this->mockRecordSet)->next()->thenReturn(false);
         Phake::when($this->mockFieldSet)->clear()->thenReturnSelf();
-        Phake::when($this->mockFieldSet)->mapRecord($this->mockSchema, $this->mockRecordSet)->thenReturnSelf();
+        Phake::when($this->mockFieldSet)->mapRecordForRead($this->mockSchema, $this->mockRecordSet)->thenReturnSelf();
         
         $result = $this->resultSet->next();
         
         self::assertFalse($result);
         Phake::verify($this->mockRecordSet)->next();
         Phake::verify($this->mockFieldSet)->clear();
-        Phake::verify($this->mockFieldSet)->mapRecord($this->mockSchema, $this->mockRecordSet);
+        Phake::verify($this->mockFieldSet)->mapRecordForRead($this->mockSchema, $this->mockRecordSet);
+    }
+
+    public function testGet_withoutRecordSet_fallsBackToFieldSet(): void
+    {
+        $mockFieldOperation = Phake::mock(FieldOperation::class);
+        $resultSet = ResultSet::builder()
+            ->schema($this->mockSchema)
+            ->recordSet(null)
+            ->fieldSet($this->mockFieldSet)
+            ->build();
+
+        Phake::when($this->mockSchema)->hasField('name')->thenReturn(true);
+        Phake::when($this->mockFieldSet)->getField('name')->thenReturn($mockFieldOperation);
+        Phake::when($mockFieldOperation)->getValue()->thenReturn('field-set-value');
+
+        self::assertEquals('field-set-value', $resultSet->name);
+    }
+
+    public function testGetFieldMap_withoutRecordSet_returnsNullValues(): void
+    {
+        $mockField = Phake::mock(FieldDefinition::class);
+        Phake::when($mockField)->getName()->thenReturn('id');
+        Phake::when($this->mockSchema)->getFields()->thenReturn(['id' => $mockField]);
+
+        $resultSet = ResultSet::builder()
+            ->schema($this->mockSchema)
+            ->recordSet(null)
+            ->fieldSet($this->mockFieldSet)
+            ->build();
+
+        self::assertEquals(['id' => null], $resultSet->getFieldMap());
     }
 
     public function testGetFieldMap_returnsFieldNameToValueMap(): void

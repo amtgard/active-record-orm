@@ -20,6 +20,10 @@ class ResultSet
     public function __get(string $name) {
         $this->schema->hasField($name);
 
+        if ($this->recordSet !== null && $this->recordSet->hasField($name)) {
+            return $this->recordSet->$name;
+        }
+
         return Optional::ofNullable($this->fieldSet->getField($name))
             ->map(fn ($field) => $field->getValue())
             ->orElse(null);
@@ -28,7 +32,7 @@ class ResultSet
     public function next(): bool {
         $hasNext = $this->recordSet->next();
         $this->fieldSet->clear();
-        $this->fieldSet->mapRecord($this->schema, $this->recordSet);
+        $this->fieldSet->mapRecordForRead($this->schema, $this->recordSet);
         return $hasNext;
     }
 

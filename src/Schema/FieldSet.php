@@ -15,10 +15,14 @@ class FieldSet
     /** @var FieldOperation[] */
     private array $fields = [];
 
+    /** @var array<string, mixed> Row values bound on read until save/delete materializes FieldOperations. */
+    private array $readRowValues = [];
+
     private function __construct() { }
 
     public function clear() {
         $this->fields = [];
+        $this->readRowValues = [];
     }
 
     public function subSet(array $fieldNames): FieldSet {
@@ -42,7 +46,7 @@ class FieldSet
         return array_key_exists(is_string($field) ? $field : $field->getName(), $this->fields);
     }
 
-    public function mapRecord(Schema $schema, RecordSet $record, Callable $callback = null) {
+    public function mapRecord(Schema $schema, RecordSet $record, ?Callable $callback = null) {
         foreach ($schema->getFields() as $field) {
             $fieldName = $field->getName();
             $fieldOp = $this->setFieldValue($schema, $fieldName, $record->$fieldName, Operation::Equals);
@@ -50,6 +54,39 @@ class FieldSet
                 $callback($fieldName, $fieldOp);
             }
         }
+    }
+
+    public function mapRecordForRead(Schema $schema, RecordSet $record): void {
+        $this->readRowValues = [];
+        foreach ($schema->getFields() as $field) {
+            $fieldName = $field->getName();
+            $this->readRowValues[$fieldName] = $record->$fieldName;
+        }
+    }
+
+    public function hasPendingReadRow(): bool {
+        return $this->readRowValues !== [];
+    }
+
+    public function getReadRowValue(string $fieldName): mixed {
+        return $this->readRowValues[$fieldName] ?? null;
+    }
+
+    public function materializeReadRow(Schema $schema, ?callable $callback = null): void {
+        if ($this->readRowValues === []) {
+            return;
+        }
+
+        foreach ($this->readRowValues as $fieldName => $value) {
+            if (isset($this->fields[$fieldName])) {
+                continue;
+            }
+            $fieldOp = $this->setFieldValue($schema, $fieldName, $value, Operation::Equals);
+            if ($callback) {
+                $callback($fieldName, $fieldOp);
+            }
+        }
+        $this->readRowValues = [];
     }
 
     public function getFieldMap(): array {

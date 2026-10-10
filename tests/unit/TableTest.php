@@ -299,14 +299,14 @@ class TableTest extends AmtgardTestCase
         
         Phake::when($this->mockRecordSet)->next()->thenReturn(true);
         Phake::when($this->mockFieldSet)->clear()->thenReturnSelf();
-        Phake::when($this->mockFieldSet)->mapRecord->thenReturnSelf();
+        Phake::when($this->mockFieldSet)->mapRecordForRead->thenReturnSelf();
         
         $result = $this->table->next();
         
         self::assertTrue($result);
         Phake::verify($this->mockRecordSet)->next();
         Phake::verify($this->mockFieldSet)->clear();
-        Phake::verify($this->mockFieldSet)->mapRecord(self::anything(), self::anything(), anything());
+        Phake::verify($this->mockFieldSet)->mapRecordForRead(self::anything(), self::anything());
     }
 
     public function testHasActiveRecord_delegatesToRecordSet(): void

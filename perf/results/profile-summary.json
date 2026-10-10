@@ -1,0 +1,59 @@
+{
+    "measured_at": "2026-10-10T15:22:00+00:00",
+    "branch": "perf/mariadb-after-cache",
+    "database": "MariaDB 12.0.2 in docker (amtgard-orm-db, port 24306)",
+    "methodology": {
+        "wall_clock": "perf/run.php, 5 warm repeats, uncached policy. See after-cache.json and baseline.json.",
+        "xdebug": "php -d xdebug.mode=profile per scenario (AARO_PERF_REPEATS=1). Summarized with perf/summarize_cachegrind.php. Profiler adds large overhead; use wall clock for seconds, Xdebug for ranking.",
+        "note": "Function-block sums in cachegrind are useful for ranking, not for adding to 100% across nested calls."
+    },
+    "wall_clock_warm_median_seconds_uncached": {
+        "narrow_find_200_next_2_columns": 0.077,
+        "wide_find_200_next_16_columns": 6.49,
+        "wide_find_200_entity": 6.50,
+        "wide_find_200_repository_getCurrent": 13.34,
+        "point_fetch_50": 1.97,
+        "construct_and_read_five_tables": 3.70,
+        "save_100": 1.79
+    },
+    "scaling": {
+        "columns": "200 rows at 2 columns ~0.08s vs 16 columns ~6.5s (~80x). Cost scales with schema width, not row count alone.",
+        "repository_layer": "getCurrent ~2x entity path (~13s vs ~6.5s) for same 200 rows.",
+        "schema_cache": "after-cache uncached vs baseline main uncached: wide read unchanged (~6.5s). Caching removes DESCRIBE; it does not remove per-row enrichment."
+    },
+    "xdebug_rankings": {
+        "wide_find_200_next": {
+            "profile_file": "/tmp/aaro-profile/wide.cachegrind",
+            "wall_clock_under_profile_seconds": 29.0,
+            "top_function_blocks": [
+                "Amtgard\\ActiveRecordOrm\\Table->__get (~75% of parsed blocks)",
+                "Amtgard\\ActiveRecordOrm\\Schema\\FieldSet->mapRecord",
+                "Amtgard\\ActiveRecordOrm\\Schema\\Schema->hasField + suggestField (FuzzyWuzzy)",
+                "php::PDOStatement->execute (<0.1%)"
+            ]
+        },
+        "wide_find_200_repository": {
+            "profile_file": "/tmp/aaro-profile/repo.cachegrind",
+            "wall_clock_under_profile_seconds": 57.4,
+            "top_function_blocks": [
+                "Perf\\PerfOrderEntity->__get (~79% of parsed blocks)",
+                "Amtgard\\ActiveRecordOrm\\Entity\\Repository\\RepositoryEntity::fieldTypeConversions (~87% of RepositoryEntity-filtered time)",
+                "Amtgard\\ActiveRecordOrm\\Schema\\FieldSet->mapRecord",
+                "Amtgard\\ActiveRecordOrm\\Schema\\Schema->hasField + suggestField"
+            ]
+        }
+    },
+    "holistic_conclusion": [
+        "The database is not the bottleneck for list reads and repository hydration on MariaDB.",
+        "Every row pays a full-schema walk on next(): FieldOperation build + hasField (with fuzzy match even on success).",
+        "Repository getCurrent adds fieldTypeConversions and property/entity assignment, which shows up as PerfOrderEntity __get/__set and dominates that scenario.",
+        "Schema/metadata caching is still worth keeping for clear/fetch/id loops and multi-worker deployments, but it will not fix wide reads.",
+        "Next wins align with latency milestones L-03 through L-06: lazy hasField, read-only row bind, reuse field map, trim type conversion."
+    ],
+    "how_to_profile_again": {
+        "wall_clock": "php perf/run.php perf/results/my-run.json label",
+        "single_scenario": "AARO_PERF_REPEATS=1 AARO_PERF_SCENARIOS=wide_find_200_repository AARO_PERF_POLICIES=uncached php -d xdebug.mode=profile -d xdebug.output_dir=/tmp/aaro-profile perf/run.php /tmp/out.json profile",
+        "summarize": "php perf/summarize_cachegrind.php /tmp/aaro-profile/wide.cachegrind --prefix=Amtgard",
+        "phase_timer_stash": "git stash list shows 'opt-in query path profiler' (QueryPathProfiler + AARO_PROFILE=1) for lower-overhead phase totals on real apps"
+    }
+}

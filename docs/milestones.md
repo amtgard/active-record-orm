@@ -197,11 +197,12 @@ Run the six scenarios in the latency document. Append a Measurement section with
 
 ### L-04 Read path without a per-column write bind
 
-- [ ] L-04
-- Status: blocked on L-02 showing the `row_map` remainder, after `schema_has_field`, as a large fraction of wall clock
+- [x] L-04
 - Branch: `latency/l04-read-bind`
 - Stack on: L-03 tip
-- Progress: not started
+- Progress: branch `latency/l04-read-bind`, commit HEAD. Full-suite line coverage start 91.38% (1835/2008), end 91.29% (1855/2032). Per-file line coverage: FieldSet 100% (59/59), Table 96.47% (82/85), ResultSet 93.75% (15/16). Infection MSI 100%, covered MSI 100% on FieldSet. Log-tested decision branches: none.
+
+Perf (uncached warm median vs after-l03): `wide_find_200_next` 0.0871s → 0.0146s; `wide_find_200_repository` 0.3250s → 0.3332s (within noise).
 
 A read that only calls `next` and hydrates an entity does not build a `FieldOperation` per schema column. `save()` after `next()` still sees the current row as the write field set. `select()` narrowing is in scope only if it can be done without changing which columns `save()` writes. `query()` mode already skips this bind; keep that difference.
 

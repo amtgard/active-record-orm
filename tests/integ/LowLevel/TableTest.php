@@ -83,6 +83,23 @@ class TableTest extends AmtgardTestCase
         assertEquals(true, $itemTable->boolean_value);
     }
 
+    public function testSaveAfterNext_updatesExistingRow(): void
+    {
+        $itemTable = TableTest::$itemTable;
+        $itemTable->clear();
+        assertEquals(3, $itemTable->find());
+        self::assertTrue($itemTable->next());
+        $rowId = $itemTable->id;
+        $originalString = $itemTable->string_value;
+        $itemTable->string_value = $originalString . '-updated';
+        $itemTable->save();
+        $itemTable->clear();
+        $itemTable->id = $rowId;
+        assertEquals(1, $itemTable->find());
+        $itemTable->next();
+        assertEquals($originalString . '-updated', $itemTable->string_value);
+    }
+
     public function testFindWithoutNext_ThrowsInformativeException()
     {
         $itemTable = TableTest::$itemTable;
