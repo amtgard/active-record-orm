@@ -226,6 +226,13 @@ Perf (uncached warm median vs after-l04): `wide_find_200_repository` 0.3332s →
 
 Cache `class_implements` results for a destination type for the process. A `DateTimeInterface` destination whose source column is neither `DATETIME` nor `INTEGER` does not silently become `new DateTime()`. Choose an explicit failure or a null, and test it. Do not change valid datetime and integer conversions.
 
+### Small optimizations (post–L-05/L-06)
+
+- [x] Small optimizations
+- Branch: `small-optimizations`
+- Stack on: `latency/l05-l06-field-map-types`
+- Progress: branch `small-optimizations`, commit HEAD. See [small-optimizations.md](small-optimizations.md). Full-suite green; perf in `perf/results/after-small-optimizations.json`. No query-result or entity row cache added.
+
 ### L-07 Single-key PDO rows
 
 - [ ] L-07

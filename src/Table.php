@@ -77,7 +77,11 @@ class Table implements TableInterface
         $this->offset = 0;
         $this->rowCount = null;
         $tableFactory = $this->tableFactory;
-        $this->queryBuilder = $tableFactory::buildQueryBuilder($this->dataAccessPolicy, $this->tableName);
+        $this->queryBuilder = $tableFactory::buildQueryBuilder(
+            $this->dataAccessPolicy,
+            $this->tableName,
+            $this->tableSchema
+        );
         $this->fieldSet->clear();
     }
 
@@ -164,8 +168,25 @@ class Table implements TableInterface
     public function next(): bool {
         $hasNext = $this->recordSet->next();
         $this->fieldSet->clear();
-        $this->fieldSet->mapRecordForRead($this->tableSchema, $this->recordSet);
+        $this->fieldSet->mapRecordForRead(
+            $this->tableSchema,
+            $this->recordSet,
+            $this->readBindingFieldNames()
+        );
         return $hasNext;
+    }
+
+    /** @return string[]|null Null means bind every schema column present on the row. */
+    private function readBindingFieldNames(): ?array {
+        $selected = $this->queryBuilder->getFieldSelectors();
+        if ($selected === []) {
+            return null;
+        }
+
+        $primaryKey = $this->tableSchema->getPrimaryKey()->getName();
+        $selected[$primaryKey] = $primaryKey;
+
+        return array_values($selected);
     }
 
     private function bindCurrentRowToQueryBuilder(): void {

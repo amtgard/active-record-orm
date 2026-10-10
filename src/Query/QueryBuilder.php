@@ -56,6 +56,11 @@ class QueryBuilder
         }
     }
 
+    /** @return string[] Column names from select(); empty when the statement uses all columns. */
+    public function getFieldSelectors(): array {
+        return array_values($this->fieldSelectors);
+    }
+
     public function hash() {
         return md5("");
     }

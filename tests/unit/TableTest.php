@@ -46,7 +46,9 @@ class TableTest extends AmtgardTestCase
         $this->mockTableFactory = Phake::mock(TableFactory::class);
         
         // Mock TableFactory
-        Phake::whenStatic($this->mockTableFactory)->buildQueryBuilder($this->mockDataAccessPolicy, 'test_table')->thenReturn($this->mockQueryBuilder);
+        Phake::whenStatic($this->mockTableFactory)->buildQueryBuilder(
+            Phake::anyParameters()
+        )->thenReturn($this->mockQueryBuilder);
         
         $this->table = Table::builder()
             ->database($this->mockDatabase)
@@ -112,7 +114,11 @@ class TableTest extends AmtgardTestCase
         $this->table->clear();
         
         Phake::verify($this->mockFieldSet)->clear();
-        Phake::verifyStatic($this->mockTableFactory)->buildQueryBuilder(self::anything(), self::anything());
+        Phake::verifyStatic($this->mockTableFactory)->buildQueryBuilder(
+            self::anything(),
+            self::anything(),
+            self::anything()
+        );
     }
 
     public function testOrderBy_delegatesToQueryBuilder(): void
@@ -306,7 +312,7 @@ class TableTest extends AmtgardTestCase
         self::assertTrue($result);
         Phake::verify($this->mockRecordSet)->next();
         Phake::verify($this->mockFieldSet)->clear();
-        Phake::verify($this->mockFieldSet)->mapRecordForRead(self::anything(), self::anything());
+        Phake::verify($this->mockFieldSet)->mapRecordForRead(self::anything(), self::anything(), self::anything());
     }
 
     public function testHasActiveRecord_delegatesToRecordSet(): void

@@ -39,6 +39,26 @@ class SchemaTest extends AmtgardTestCase
         self::assertTrue($this->schema->hasField('fuzzy'));
     }
 
+    public function testHasField_onHit_doesNotInvokeSuggestField(): void
+    {
+        $spy = SpySchema::builder()->fields(['fuzzy' => $this->fuzzy, 'bear' => $this->bear])->build();
+
+        self::assertTrue($spy->hasField('fuzzy'));
+        self::assertSame(0, $spy->suggestFieldCallCount);
+    }
+
+    public function testHasField_onMiss_invokesSuggestFieldOnce(): void
+    {
+        $spy = SpySchema::builder()->fields(['fuzzy' => $this->fuzzy, 'bear' => $this->bear])->build();
+
+        try {
+            $spy->hasField('wuzzy');
+        } catch (\InvalidArgumentException) {
+        }
+
+        self::assertSame(1, $spy->suggestFieldCallCount);
+    }
+
     public function testHasField_withNoMatch() {
         self::assertThrows(\InvalidArgumentException::class, function () {
             self::assertFalse($this->schema->hasField('wuzzy'));

@@ -96,13 +96,10 @@ class TableFactoryTest extends AmtgardTestCase
         self::assertSame($this->mockTableSchema, $this->schemaOf($queryBuilder));
     }
 
-    public function testClear_afterBuild_appliesSchemaPolicyAgain(): void
+    public function testClear_afterBuild_reusesTableSchemaWithoutSecondPolicyCall(): void
     {
         $builtSchema = Phake::mock(TableSchema::class);
-        $clearedSchema = Phake::mock(TableSchema::class);
-        Phake::when($this->mockPolicy)->applyTableSchemaPolicy('table_name')
-            ->thenReturn($builtSchema)
-            ->thenReturn($clearedSchema);
+        Phake::when($this->mockPolicy)->applyTableSchemaPolicy('table_name')->thenReturn($builtSchema);
 
         $table = TableFactory::build($this->mockDatabase, $this->mockPolicy, 'table_name');
         self::assertSame($builtSchema, $table->getTableSchema());
@@ -110,8 +107,9 @@ class TableFactoryTest extends AmtgardTestCase
 
         $table->clear();
 
-        Phake::verify($this->mockPolicy, Phake::times(2))->applyTableSchemaPolicy('table_name');
-        self::assertSame($clearedSchema, $this->queryBuilderSchema($table));
+        Phake::verify($this->mockPolicy, Phake::times(1))->applyTableSchemaPolicy('table_name');
+        self::assertSame($builtSchema, $table->getTableSchema());
+        self::assertSame($builtSchema, $this->queryBuilderSchema($table));
     }
 
     private function queryBuilderSchema(Table $table): TableSchema

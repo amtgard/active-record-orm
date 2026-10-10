@@ -56,11 +56,23 @@ class FieldSet
         }
     }
 
-    public function mapRecordForRead(Schema $schema, RecordSet $record): void {
+    public function mapRecordForRead(Schema $schema, RecordSet $record, ?array $fieldNames = null): void {
         $this->readRowValues = [];
+        if ($fieldNames !== null) {
+            foreach ($fieldNames as $fieldName) {
+                if ($record->hasField($fieldName)) {
+                    $this->readRowValues[$fieldName] = $record->$fieldName;
+                }
+            }
+
+            return;
+        }
+
         foreach ($schema->getFields() as $field) {
             $fieldName = $field->getName();
-            $this->readRowValues[$fieldName] = $record->$fieldName;
+            if ($record->hasField($fieldName)) {
+                $this->readRowValues[$fieldName] = $record->$fieldName;
+            }
         }
     }
 

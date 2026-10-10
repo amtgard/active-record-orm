@@ -50,6 +50,27 @@
         "Schema/metadata caching is still worth keeping for clear/fetch/id loops and multi-worker deployments, but it will not fix wide reads.",
         "Next wins align with latency milestones L-03 through L-06: lazy hasField, read-only row bind, reuse field map, trim type conversion."
     ],
+    "post_l03_l06_reanalysis": {
+        "measured_at": "2026-10-10T22:00:00+00:00",
+        "branch": "latency/l05-l06-field-map-types",
+        "wall_clock_warm_median_uncached_seconds": {
+            "wide_find_200_next": 0.016,
+            "wide_find_200_repository": 0.189,
+            "point_fetch_50": 0.263
+        },
+        "interpretation": {
+            "list_reads": "Wide list scenarios dropped ~100-400x because work was O(rows x columns) in PHP (eager hasField/fuzzy, FieldOperation bind). That work is largely gone.",
+            "point_fetch": "Improved ~8x (2.03s to 0.26s), not ~100x, because the scenario is 50 independent find cycles: each clear() rebuilds QueryBuilder via applyTableSchemaPolicy(), which on UncachedDataAccessPolicy runs DESCRIBE again, plus one SQL execute and one next() per id.",
+            "xdebug_point_fetch_ranking": "Under profiler, Table->__get still ranks high (customer_id after next); PDOStatement->execute and prepareSchema/DDL are the next meaningful blocks at real wall-clock scale (~0.12s execute in profile vs ~0.26s total)."
+        },
+        "recommended_next_hotspots": [
+            "Table::clear() pass existing tableSchema into TableFactory::buildQueryBuilder (avoid 50x DESCRIBE on point-fetch loops with uncached policy).",
+            "L-07 PdoRecordSet FETCH_ASSOC / slimmer row access (less column metadata work on hot paths).",
+            "Optional narrow mapRecordForRead when select() narrowed (only if save() semantics preserved).",
+            "Query-result memo for identical PK finds only if a caching milestone explicitly wants it."
+        ],
+        "profile_file_point_fetch": "/tmp/aaro-profile/cachegrind.out.12626"
+    },
     "how_to_profile_again": {
         "wall_clock": "php perf/run.php perf/results/my-run.json label",
         "single_scenario": "AARO_PERF_REPEATS=1 AARO_PERF_SCENARIOS=wide_find_200_repository AARO_PERF_POLICIES=uncached php -d xdebug.mode=profile -d xdebug.output_dir=/tmp/aaro-profile perf/run.php /tmp/out.json profile",
