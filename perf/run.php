@@ -31,7 +31,9 @@ Dotenv::createImmutable($dotenvPath)->safeLoad();
 
 $outputPath = $argv[1] ?? __DIR__ . '/results/baseline.json';
 $label = $argv[2] ?? 'baseline';
-$repeats = 5;
+$repeats = max(1, (int) (getenv('AARO_PERF_REPEATS') ?: 5));
+$onlyPolicies = array_values(array_filter(array_map('trim', explode(',', (string) getenv('AARO_PERF_POLICIES')))));
+$onlyScenarios = array_values(array_filter(array_map('trim', explode(',', (string) getenv('AARO_PERF_SCENARIOS')))));
 
 $wide = 'perf_order';
 $narrow = 'perf_narrow';
@@ -83,11 +85,16 @@ $report = [
 ];
 
 $policies = ['uncached' => 'uncached'];
-$memoryProbe = probeMemoryPolicy($provider);
-if ($memoryProbe === null) {
-    $policies['memory'] = 'memory';
-} else {
-    $report['policies']['memory'] = ['error' => $memoryProbe];
+if ($onlyPolicies === [] || in_array('memory', $onlyPolicies, true)) {
+    $memoryProbe = probeMemoryPolicy($provider);
+    if ($memoryProbe === null) {
+        $policies['memory'] = 'memory';
+    } else {
+        $report['policies']['memory'] = ['error' => $memoryProbe];
+    }
+}
+if ($onlyPolicies !== []) {
+    $policies = array_intersect_key($policies, array_flip($onlyPolicies));
 }
 
 foreach ($policies as $policyName => $_) {
@@ -100,32 +107,39 @@ foreach ($policies as $policyName => $_) {
     $mapper = EntityMapper::builder()->em($manager)->table($wideTable)->name($wide)->build();
     $repository = $manager->getRepository(\Perf\PerfOrderRepository::class);
 
-    $report['policies'][$policyName] = [
-        'narrow_find_200_next' => runSamples($repeats, function () use ($narrowTable) {
+    $scenarios = [
+        'narrow_find_200_next' => function () use ($narrowTable) {
             readAll($narrowTable, 200);
-        }),
-        'wide_find_200_next' => runSamples($repeats, function () use ($wideTable) {
+        },
+        'wide_find_200_next' => function () use ($wideTable) {
             readAll($wideTable, 200);
-        }),
-        'wide_find_200_entity' => runSamples($repeats, function () use ($manager, $mapper) {
+        },
+        'wide_find_200_entity' => function () use ($manager, $mapper) {
             $manager->clearAll();
             readEntities($mapper, 200);
-        }),
-        'wide_find_200_repository' => runSamples($repeats, function () use ($manager, $repository) {
+        },
+        'wide_find_200_repository' => function () use ($manager, $repository) {
             $manager->clearAll();
             readRepository($repository, 200);
-        }),
-        'point_fetch_50' => runSamples($repeats, function () use ($wideTable) {
+        },
+        'point_fetch_50' => function () use ($wideTable) {
             pointFetch($wideTable, 50);
-        }),
-        'construct_and_read_five_tables' => runSamples($repeats, function () use ($db, $policy, $pages) {
+        },
+        'construct_and_read_five_tables' => function () use ($db, $policy, $pages) {
             readPages($db, $policy, $pages, 20);
-        }),
-        'save_100' => runSamples($repeats, function () use ($pdo, $draft, $draftTable) {
+        },
+        'save_100' => function () use ($pdo, $draft, $draftTable) {
             $pdo->exec('TRUNCATE TABLE ' . $draft);
             saveDrafts($draftTable, 100);
-        }),
+        },
     ];
+    if ($onlyScenarios !== []) {
+        $scenarios = array_intersect_key($scenarios, array_flip($onlyScenarios));
+    }
+    $report['policies'][$policyName] = [];
+    foreach ($scenarios as $scenarioName => $scenario) {
+        $report['policies'][$policyName][$scenarioName] = runSamples($repeats, $scenario);
+    }
     fwrite(STDOUT, $policyName . " done\n");
 }
 
@@ -258,11 +272,14 @@ function runSamples(int $repeats, callable $scenario): array
         $samples[] = (hrtime(true) - $start) / 1e9;
     }
     $warm = array_slice($samples, 1);
-    sort($warm);
-    $mid = intdiv(count($warm), 2);
-    $warmMedian = count($warm) % 2 === 1
-        ? $warm[$mid]
-        : ($warm[$mid - 1] + $warm[$mid]) / 2;
+    $warmMedian = null;
+    if (count($warm) > 0) {
+        sort($warm);
+        $mid = intdiv(count($warm), 2);
+        $warmMedian = count($warm) % 2 === 1
+            ? $warm[$mid]
+            : ($warm[$mid - 1] + $warm[$mid]) / 2;
+    }
 
     return [
         'cold_seconds' => $samples[0],
@@ -280,11 +297,13 @@ function printSummary(array $report): void
         }
         fwrite(STDOUT, $name . "\n");
         foreach ($scenarios as $scenario => $timing) {
+            $warm = $timing['warm_median_seconds'];
+            $warmLabel = $warm === null ? 'n/a' : sprintf('%.4fs', $warm);
             fwrite(STDOUT, sprintf(
-                "  %-32s cold %.4fs  warm median %.4fs\n",
+                "  %-32s cold %.4fs  warm median %s\n",
                 $scenario,
                 $timing['cold_seconds'],
-                $timing['warm_median_seconds']
+                $warmLabel
             ));
         }
     }
