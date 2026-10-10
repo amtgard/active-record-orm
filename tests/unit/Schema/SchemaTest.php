@@ -54,4 +54,10 @@ class SchemaTest extends AmtgardTestCase
     public function testFuzzyFieldSuggestion() {
         assertEquals('fuzzy', $this->schema->suggestField('wuzzy'));
     }
+
+    public function testJsonSerialize_includesFields(): void
+    {
+        $encoded = $this->schema->jsonSerialize();
+        self::assertArrayHasKey('fields', $encoded);
+    }
 }

@@ -7,8 +7,6 @@ use Amtgard\Traits\Builder\Builder;
 use Amtgard\Traits\Builder\Getter;
 use FuzzyWuzzy\Fuzz;
 use FuzzyWuzzy\Process;
-use Optional\Optional;
-
 class Schema implements \JsonSerializable
 {
     use Builder;
@@ -22,9 +20,13 @@ class Schema implements \JsonSerializable
     }
 
     public function hasField(string $name): bool {
-        return Optional::ofNullable($this->getField($name))
-            ->map(fn($f) => true)
-            ->orElseThrow(new \InvalidArgumentException($this->getSuggestionMesssage($name, $this->suggestField($name))));
+        if ($this->getField($name) !== null) {
+            return true;
+        }
+
+        throw new \InvalidArgumentException(
+            $this->getSuggestionMesssage($name, $this->suggestField($name))
+        );
     }
 
     public function suggestField(string $needle): string {

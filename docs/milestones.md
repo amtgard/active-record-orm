@@ -188,11 +188,10 @@ Run the six scenarios in the latency document. Append a Measurement section with
 
 ### L-03 Lazy field suggestion
 
-- [ ] L-03
-- Status: blocked on L-02 showing `schema_has_field` as a large fraction of wall clock
+- [x] L-03
 - Branch: `latency/l03-lazy-has-field`
-- Stack on: L-02 tip
-- Progress: not started
+- Stack on: `perf/mariadb-after-cache` (baseline perf in `perf/results/before-l03.json`)
+- Progress: branch `latency/l03-lazy-has-field`, commit HEAD. Full-suite line coverage start 91.33% (1834/2008), end 91.38% (1835/2008). Per-file line coverage: Schema 100% (14/14). Infection MSI 80%, covered MSI 80% on changed file. Log-tested decision branches: none (no new logging).
 
 `Schema::hasField` runs `suggestField` and builds the `InvalidArgumentException` only on a miss. A hit is an array lookup. Miss behavior, including the suggestion text, stays the same. Add a profiler split between suggestion and exception construction if the L-02 numbers did not already separate them.
 
