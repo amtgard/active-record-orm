@@ -208,21 +208,21 @@ A read that only calls `next` and hydrates an entity does not build a `FieldOper
 
 ### L-05 Reuse the repository field map
 
-- [ ] L-05
-- Status: blocked on L-02 showing `field_map_reflection` once per `getCurrent` row
-- Branch: `latency/l05-field-map`
+- [x] L-05
+- Branch: `latency/l05-l06-field-map-types` (combined with L-06)
 - Stack on: L-04 tip
-- Progress: not started
+- Progress: combined with L-06 on `latency/l05-l06-field-map-types` (see L-06 block).
 
 `toRepositoryEntity` reuses the field map and `EntityOf` resolution built for that repository class. It does not call `md5(microtime())` or build an empty internal entity that the hydrated entity immediately replaces. Per-row type conversion stays.
 
 ### L-06 Date and enum conversion
 
-- [ ] L-06
-- Status: blocked on L-02 showing date, enum, or entity-reference columns as a measurable share
-- Branch: `latency/l06-type-conversion`
-- Stack on: L-05 tip
-- Progress: not started
+- [x] L-06
+- Branch: `latency/l05-l06-field-map-types` (combined with L-05)
+- Stack on: L-04 tip
+- Progress: branch `latency/l05-l06-field-map-types`, commit HEAD. Full-suite line coverage start 91.29% (1855/2032), end 91.50% (1862/2035). Per-file line coverage on edited class: RepositoryEntity 82.70% (153/185). Infection MSI 81%, covered MSI 87% on RepositoryEntity.php. Log-tested decision branches: none.
+
+Perf (uncached warm median vs after-l04): `wide_find_200_repository` 0.3332s → 0.1894s; other scenarios within noise.
 
 Cache `class_implements` results for a destination type for the process. A `DateTimeInterface` destination whose source column is neither `DATETIME` nor `INTEGER` does not silently become `new DateTime()`. Choose an explicit failure or a null, and test it. Do not change valid datetime and integer conversions.
 

@@ -27,6 +27,12 @@ abstract class RepositoryEntity implements EntityInterface
 {
     use Builder, ToBuilder, Data;
 
+    /** @var array<class-string, EntityFieldMap> */
+    private static array $sharedEntityFieldMaps = [];
+
+    /** @var array<string, array<string, bool>|false> */
+    private static array $implementedInterfacesByType = [];
+
     protected EntityMapper $mapper;
     protected EntityInterface $entity;
     protected EntityFieldMap $entityFieldMap;
@@ -105,7 +111,7 @@ abstract class RepositoryEntity implements EntityInterface
                 case FieldType::DATETIME: $instance->$instanceField = new DateTime($sourceFieldValue); return;
                 case FieldType::INTEGER: $instance->$instanceField = DateTime::createFromFormat('U', $sourceFieldValue); return;
             }
-            $instance->$instanceField = new DateTime();
+            $instance->$instanceField = null;
             return;
         } else if (RepositoryEntity::isEntityInterfaceClass($mapInfo)) {
             $backingReferencePk = $mapInfo->getBackingReferencePk();
@@ -129,25 +135,29 @@ abstract class RepositoryEntity implements EntityInterface
     }
 
     private static function isEnumType($mapInfo) {
-        $type = $mapInfo->getDestinationType();
-        if ($type && (class_exists($type) || interface_exists($type))) {
-            $interfaces = class_implements($type);
-            if ($interfaces && count($interfaces) > 0 && in_array(\BackedEnum::class, $interfaces)) {
-                return true;
-            }
-        }
-        return false;
+        $interfaces = self::implementedInterfaces($mapInfo->getDestinationType());
+        return $interfaces !== [] && in_array(\BackedEnum::class, $interfaces, true);
     }
 
     private static function isEntityInterfaceClass($mapInfo) {
-        $type = $mapInfo->getDestinationType();
-        if ($type && (class_exists($type) || interface_exists($type))) {
-            $interfaces = class_implements($type);
-            if ($interfaces && count($interfaces) > 0 && in_array(EntityInterface::class, $interfaces) && !is_null($mapInfo->getBackingReferencePk())) {
-                return true;
-            }
+        $interfaces = self::implementedInterfaces($mapInfo->getDestinationType());
+        return $interfaces !== []
+            && in_array(EntityInterface::class, $interfaces, true)
+            && !is_null($mapInfo->getBackingReferencePk());
+    }
+
+    /** @return array<string, bool> */
+    private static function implementedInterfaces(?string $type): array {
+        if (!$type || !(class_exists($type) || interface_exists($type))) {
+            return [];
         }
-        return false;
+
+        if (!array_key_exists($type, self::$implementedInterfacesByType)) {
+            $interfaces = class_implements($type);
+            self::$implementedInterfacesByType[$type] = $interfaces ?: [];
+        }
+
+        return self::$implementedInterfacesByType[$type];
     }
 
     private static function valueIsEntityInterface($value) {
@@ -207,16 +217,25 @@ abstract class RepositoryEntity implements EntityInterface
 
     #[PreInit]
     protected function preInit() {
-        $this->entityMapperEntityId = md5(microtime());
-        $this->entityFieldMap = static::buildEntityFieldMap();
+        $this->entityFieldMap = static::sharedEntityFieldMap();
 
         if (!isset($this->mapper)) {
             $this->getEntityMapperAttributeValue();
         }
 
         if (!isset($this->entity)) {
+            $this->entityMapperEntityId = md5(microtime());
             $this->buildEmptyInternalEntity();
         }
+    }
+
+    public static function sharedEntityFieldMap(): EntityFieldMap {
+        $class = static::class;
+        if (!isset(self::$sharedEntityFieldMaps[$class])) {
+            self::$sharedEntityFieldMaps[$class] = static::buildEntityFieldMap();
+        }
+
+        return self::$sharedEntityFieldMaps[$class];
     }
 
     private function buildEmptyInternalEntity() {
@@ -237,10 +256,9 @@ abstract class RepositoryEntity implements EntityInterface
                     case FieldType::INTEGER: $this->entity->$sourceField = $this->$instanceField->getTimestamp(); break;
                 }
             } else {
-                $type = $mapInfo->getDestinationType();
-                $interfaces = ($type && (class_exists($type) || interface_exists($type))) ? class_implements($type) : [];
-                if ($interfaces && count($interfaces) > 0) {
-                    if (in_array(EntityInterface::class, $interfaces)) {
+                $interfaces = self::implementedInterfaces($mapInfo->getDestinationType());
+                if ($interfaces !== []) {
+                    if (in_array(EntityInterface::class, $interfaces, true)) {
                         $this->entity->$sourceField = $this->$instanceField->id;
                     }
                 } else {
